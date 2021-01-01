@@ -1,0 +1,6 @@
+[workspace]
+members = [
+  "af-core",
+  "af-macros",
+  "af-proc-macros"
+]
