@@ -14,7 +14,7 @@ all-features = true
 fs-watch = ["notify"]
 logger = ["af-macros/logger", "console", "dashmap"]
 runtime = ["async-executor", "easy-parallel", "num_cpus"]
-runtime-tokio = ["runtime", "tokio"]
+runtime-tokio = ["tokio"]
 
 [dependencies]
 af-macros = { version = "0.1", path = "../af-macros" }

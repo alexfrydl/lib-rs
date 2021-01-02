@@ -6,12 +6,10 @@
 
 //! Synchronization primitives and concurrency utilties.
 
-mod atomic;
 pub mod channel;
 mod semaphore;
 
-pub use self::atomic::*;
-pub use self::channel::Channel;
+pub use self::channel::unbounded as channel;
 pub use self::semaphore::*;
 
 /// Blocking concurrency primitives provided by the `parking_lot` crate.

@@ -48,25 +48,25 @@ async fn map_inner_events(
     match inner_event {
       notify::DebouncedEvent::Create(path) => {
         if let Some(path) = path.to_str() {
-          events.send(Event::Created(path.into())).await?;
+          events.send_queued(Event::Created(path.into())).await?;
         }
       }
 
       notify::DebouncedEvent::Write(path) => {
         if let Some(path) = path.to_str() {
-          events.send(Event::Modified(path.into())).await?;
+          events.send_queued(Event::Modified(path.into())).await?;
         }
       }
 
       notify::DebouncedEvent::Remove(path) => {
         if let Some(path) = path.to_str() {
-          events.send(Event::Removed(path.into())).await?;
+          events.send_queued(Event::Removed(path.into())).await?;
         }
       }
 
       notify::DebouncedEvent::Rename(from, to) => {
         if let (Some(from), Some(to)) = (from.to_str(), to.to_str()) {
-          events.send(Event::Renamed { from: from.into(), to: to.into() }).await?;
+          events.send_queued(Event::Renamed { from: from.into(), to: to.into() }).await?;
         }
       }
 

@@ -5,9 +5,13 @@ cfg_if! {
     mod tokio_0_2;
 
     pub use self::tokio_0_2::*;
-  } else {
+  } else if #[cfg(feature = "runtime")] {
     mod async_executor;
 
     pub use self::async_executor::*;
+  } else {
+    mod none;
+
+    pub use self::none::*;
   }
 }

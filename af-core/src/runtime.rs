@@ -10,9 +10,9 @@ pub mod task;
 pub use af_macros::runtime_main as main;
 
 use crate::prelude::*;
-use crate::sync::AtomicBool;
 use once_cell::sync::Lazy;
 use std::process::exit;
+use std::sync::atomic::{self, AtomicBool};
 
 /// Runs the runtime until the given future completes, then exits the process.
 pub fn run(future: impl Future<Output = Result> + Send + 'static) -> ! {
@@ -20,7 +20,7 @@ pub fn run(future: impl Future<Output = Result> + Send + 'static) -> ! {
 
   static IS_RUNNING: Lazy<AtomicBool> = Lazy::new(default);
 
-  if IS_RUNNING.swap(true) {
+  if IS_RUNNING.swap(true, atomic::Ordering::SeqCst) {
     panic!("The af-core runtime is already running.");
   }
 

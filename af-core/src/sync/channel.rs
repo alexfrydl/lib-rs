@@ -10,19 +10,10 @@ use crate::prelude::*;
 
 use async_channel::TryRecvError;
 
-/// A cloneabe channel for multi-producer multi-consumer message passing.
-pub struct Channel<T> {
-  sender: Sender<T>,
-  receiver: Receiver<T>,
-}
-
 /// A cloneable receiver for a channel.
 pub struct Receiver<T> {
   rx: async_channel::Receiver<T>,
 }
-
-/// A sender for a channel that can only be used once.
-pub struct Once<T>(Sender<T>);
 
 /// A cloneable sender for a channel.
 pub struct Sender<T> {
@@ -63,13 +54,6 @@ pub fn bounded<T>(capacity: usize) -> (Sender<T>, Receiver<T>) {
   (Sender { tx }, Receiver { rx })
 }
 
-/// Creates a channel that can only be sent one message.
-pub fn once<T>() -> (Once<T>, Receiver<T>) {
-  let (tx, rx) = bounded(1);
-
-  (Once(tx), rx)
-}
-
 /// Creates an unbounded channel.
 ///
 /// Unbounded channels can buffer an unlimited number of unreceived messages,
@@ -80,70 +64,15 @@ pub fn unbounded<T>() -> (Sender<T>, Receiver<T>) {
   (Sender { tx }, Receiver { rx })
 }
 
-impl<T> Channel<T> {
-  /// Creates an unbounded channel.
-  ///
-  /// Unbounded channels can buffer an unlimited number of unreceived messages,
-  /// and [`send()`] will never wait.
-  pub fn new() -> Self {
-    let (sender, receiver) = unbounded();
-
-    Self { sender, receiver }
-  }
-
-  /// Creates a bounded channel with a specified capacity.
-  ///
-  /// Bounded channels can only buffer up to `capacity` unreceived messages. If
-  /// the channels is full, [`Sender::send()`] will wait for space
-  pub fn with_capacity(capacity: usize) -> Self {
-    let (sender, receiver) = bounded(capacity);
-
-    Self { sender, receiver }
-  }
-
-  /// Waits for an available message in the channel and then receive it.
-  pub async fn recv(&self) -> Result<T, ClosedError> {
-    self.receiver.recv().await
-  }
-
-  /// Returns a clone of the channel's [`Receiver`].
-  pub fn receiver(&self) -> Receiver<T> {
-    self.receiver.clone()
-  }
-
-  /// Waits for available space in the channel and then sends a message to it.
-  ///
-  /// If the channel is closed before the message can be sent, this function
-  /// returns a [`SendError`] containing the failed message.
-  pub async fn send(&self, message: T) -> Result<(), SendError<T>> {
-    self.sender.send(message).await
-  }
-
-  /// Returns a clone of the channel's [`Sender`].
-  pub fn sender(&self) -> Sender<T> {
-    self.sender.clone()
-  }
-
-  /// Splits the channel into [`Sender`] and [`Receiver`] halves.
-  pub fn split(self) -> (Sender<T>, Receiver<T>) {
-    (self.sender, self.receiver)
-  }
-
-  /// Attempts to immediately receive an available message from the channel.
-  ///
-  /// If the channel is empty, this function returns `None`.
-  pub fn try_recv(&self) -> Result<Option<T>, ClosedError> {
-    self.receiver.try_recv()
-  }
-
-  /// Attempts to immediately sends a message to the channel.
-  pub fn try_send(&self, message: T) -> Result<(), SendError<T>> {
-    self.sender.try_send(message)
-  }
-}
-
 impl<T> Receiver<T> {
-  /// Waits for an available message in the channel and then receive it.
+  /// Returns `true` if the channel is closed.
+  ///
+  /// The channel is closed if all [`Sender`] clones are dropped.
+  pub fn is_closed(&self) -> bool {
+    self.rx.is_closed()
+  }
+
+  /// Waits for an available message in the channel and receives it.
   pub async fn recv(&self) -> Result<T, ClosedError> {
     self.rx.recv().await.map_err(|_| ClosedError)
   }
@@ -161,11 +90,26 @@ impl<T> Receiver<T> {
 }
 
 impl<T> Sender<T> {
-  /// Waits for available space in the channel and then sends a message to it.
+  /// Returns `true` if the channel is closed.
+  ///
+  /// The channel is closed if all [`Receiver`] clones are dropped.
+  pub fn is_closed(&self) -> bool {
+    self.tx.is_closed()
+  }
+
+  /// Sends a message to the channel immediately.
+  ///
+  /// If the channel is closed or full, this function returns `false`. Use
+  /// [`try_send()`] for extended error information.
+  pub fn send(&self, message: T) -> bool {
+    self.try_send(message).is_ok()
+  }
+
+  /// Waits for available space in the channel and then sends a message.
   ///
   /// If the channel is closed before the message can be sent, this function
-  /// returns a [`SendError`] containing the failed message.
-  pub async fn send(&self, message: T) -> Result<(), SendError<T>> {
+  /// returns `false`. Use [`try_send_queued()`] for extended error information.
+  pub async fn send_queued(&self, message: T) -> Result<(), SendError<T>> {
     self
       .tx
       .send(message)
@@ -173,7 +117,10 @@ impl<T> Sender<T> {
       .map_err(|err| SendError { msg: err.0, reason: SendErrorReason::Closed })
   }
 
-  /// Attempts to immediately sends a message to the channel.
+  /// Attempts to send a message to the channel immediately.
+  ///
+  /// If the channel is closed or full, this function returns a[`SendError`]
+  /// containing the failed message.
   pub fn try_send(&self, message: T) -> Result<(), SendError<T>> {
     self.tx.try_send(message).map_err(|err| match err {
       async_channel::TrySendError::Full(msg) => SendError { msg, reason: SendErrorReason::Full },
@@ -182,17 +129,18 @@ impl<T> Sender<T> {
       }
     })
   }
-}
 
-impl<T> Once<T> {
-  pub fn send(self, msg: T) {
-    match self.0.try_send(msg) {
-      Err(err) if err.reason == SendErrorReason::Full => {
-        unreachable!("Once channel should never be full.")
-      }
-
-      _ => {}
-    }
+  /// Attempts to wait for available space in the channel and then send a
+  /// message.
+  ///
+  /// If the channel is closed before the message can be sent, this function
+  /// returns a [`SendError`] containing the failed message.
+  pub async fn try_send_queued(&self, message: T) -> Result<(), SendError<T>> {
+    self
+      .tx
+      .send(message)
+      .await
+      .map_err(|err| SendError { msg: err.0, reason: SendErrorReason::Closed })
   }
 }
 
