@@ -12,7 +12,7 @@ all-features = true
 
 [features]
 logger = ["af-macros/logger", "console", "dashmap"]
-runtime = ["async-executor", "easy-parallel", "num_cpus"]
+runtime = ["async-executor", "async-io", "easy-parallel", "num_cpus"]
 runtime-tokio = ["tokio"]
 
 [dependencies]
@@ -48,9 +48,10 @@ dashmap = { version = "4", optional = true }
 # runtime deps.
 
 async-executor = { version = "1", optional = true }
+async-io = { version = "1", optional = true }
 easy-parallel = { version = "3", optional = true }
 num_cpus = { version = "1", optional = true }
 
 # runtime-tokio deps.
 
-tokio = { version = "0.2", optional = true, features = ["rt-threaded"] }
+tokio = { version = "0.2", optional = true, features = ["rt-threaded", "time"] }

@@ -6,6 +6,7 @@
 
 pub use parse_duration::parse::Error as ParseError;
 
+use crate::math::AsPrimitive;
 use crate::prelude::*;
 use parse_duration::parse;
 
@@ -149,7 +150,7 @@ impl Ord for Duration {
 
 impl<T> Mul<T> for Duration
 where
-  T: crate::math::AsPrimitive<f64>,
+  T: AsPrimitive<f64>,
 {
   type Output = Self;
 
@@ -160,7 +161,7 @@ where
 
 impl<T> Div<T> for Duration
 where
-  T: crate::math::AsPrimitive<f64>,
+  T: AsPrimitive<f64>,
 {
   type Output = Self;
 

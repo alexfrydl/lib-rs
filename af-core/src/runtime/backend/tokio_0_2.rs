@@ -14,6 +14,10 @@ pub fn run<T>(future: impl Future<Output = T>) -> T {
   runtime.block_on(future)
 }
 
+pub async fn sleep(duration: Duration) {
+  tokio::time::delay_for(duration.into()).await;
+}
+
 pub fn spawn<T: Send + 'static>(future: impl Future<Output = T> + Send + 'static) -> JoinHandle<T> {
   let handle = HANDLE.get().expect("The af-core runtime is not running.");
 

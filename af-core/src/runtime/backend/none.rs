@@ -1,8 +1,14 @@
+#![allow(unused_variables)]
+
 use crate::prelude::*;
 
 pub struct JoinHandle<T>(PhantomData<T>);
 
 pub fn run<T>(future: impl Future<Output = T>) -> T {
+  unimplemented()
+}
+
+pub async fn sleep(duration: Duration) {
   unimplemented()
 }
 

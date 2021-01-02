@@ -6,12 +6,17 @@
 
 //! Asynchronous tasks.
 
-use super::backend;
 use crate::prelude::*;
+use crate::runtime::backend;
 
 /// A handle that can be used to wait for a task to complete and receive its
 /// result.
 pub struct Handle<T>(backend::JoinHandle<T>);
+
+/// Waits for the given duration to elapse.
+pub async fn sleep(duration: Duration) {
+  backend::sleep(duration).await;
+}
 
 /// Spawns a task onto the thread pool.
 pub fn spawn<T: Send + 'static>(future: impl Future<Output = T> + Send + 'static) -> Handle<T> {

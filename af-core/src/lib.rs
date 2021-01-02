@@ -19,6 +19,7 @@ pub mod random;
 pub mod runtime;
 pub mod string;
 pub mod sync;
+pub mod task;
 pub mod thread;
 pub mod time;
 pub mod util;

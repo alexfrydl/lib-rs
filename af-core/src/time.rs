@@ -17,9 +17,6 @@ pub use self::zone::{Zone, LOCAL, UTC};
 use crate::prelude::*;
 use chrono::TimeZone;
 
-#[cfg(feature = "postgres")]
-use crate::postgres as pg;
-
 /// A timestamp with a time zone.
 #[derive(Clone, Copy)]
 pub struct Time {

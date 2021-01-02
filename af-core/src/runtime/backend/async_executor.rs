@@ -1,6 +1,7 @@
 use crate::prelude::*;
 use crate::thread;
 use async_executor::{Executor, Task};
+use async_io::Timer;
 use easy_parallel::Parallel;
 use event_listener::Event;
 use once_cell::sync::Lazy;
@@ -27,6 +28,10 @@ pub fn run<T>(future: impl Future<Output = T>) -> T {
     }));
 
   result
+}
+
+pub async fn sleep(duration: Duration) {
+  Timer::after(duration.into()).await;
 }
 
 pub fn spawn<T: Send + 'static>(future: impl Future<Output = T> + Send + 'static) -> JoinHandle<T> {
