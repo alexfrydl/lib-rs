@@ -45,7 +45,7 @@ pub fn init() {
 
   log::set_max_level(LevelFilter::Trace);
 
-  thread::spawn("af_runtime::logger", || thread::block_on(output_messages()));
+  thread::start("af_runtime::logger", || thread::block_on(output_messages()));
 }
 
 /// Sets the level of the logger.

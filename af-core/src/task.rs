@@ -18,8 +18,8 @@ pub async fn sleep(duration: Duration) {
   backend::sleep(duration).await;
 }
 
-/// Spawns a task onto the thread pool.
-pub fn spawn<T: Send + 'static>(future: impl Future<Output = T> + Send + 'static) -> Handle<T> {
+/// Starts a new concurrent task.
+pub fn start<T: Send + 'static>(future: impl Future<Output = T> + Send + 'static) -> Handle<T> {
   Handle(backend::spawn(future))
 }
 
