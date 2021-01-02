@@ -4,7 +4,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//! Asynchronous tasks.
+//! Task-based concurrency.
+
+pub use crate::future::{sleep, yield_now, PanicError};
 
 use crate::prelude::*;
 use crate::runtime::backend;
@@ -13,14 +15,9 @@ use crate::runtime::backend;
 /// result.
 pub struct Handle<T>(backend::JoinHandle<T>);
 
-/// Waits for the given duration to elapse.
-pub async fn sleep(duration: Duration) {
-  backend::sleep(duration).await;
-}
-
-/// Starts a new concurrent task.
-pub fn start<T: Send + 'static>(future: impl Future<Output = T> + Send + 'static) -> Handle<T> {
-  Handle(backend::spawn(future))
+/// Starts running an async operation on a new task.
+pub fn start<T: Send + 'static>(op: impl Future<Output = T> + Send + 'static) -> Handle<T> {
+  Handle(backend::spawn(op))
 }
 
 impl<T> Handle<T> {
@@ -28,7 +25,7 @@ impl<T> Handle<T> {
   ///
   /// If the task panics, this function returns an error containing the panic
   /// value.
-  pub async fn join(self) -> Result<T, future::PanicError> {
+  pub async fn join(self) -> Result<T, PanicError> {
     self.0.join().await
   }
 }

@@ -40,5 +40,3 @@ pub use {
   std::{i128, i16, i32, i64, i8, isize},
   std::{u128, u16, u32, u64, u8, usize},
 };
-
-pub(crate) use futures_lite::Stream;

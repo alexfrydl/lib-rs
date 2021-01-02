@@ -1,3 +1,5 @@
+pub use blocking::unblock;
+
 use crate::prelude::*;
 use crate::thread;
 use async_executor::{Executor, Task};

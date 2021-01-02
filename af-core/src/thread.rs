@@ -6,6 +6,8 @@
 
 //! Thread utilities.
 
+pub use std::thread::yield_now;
+
 use crate::prelude::*;
 use crate::sync::channel;
 use std::thread::{Builder, JoinHandle};
@@ -18,7 +20,7 @@ pub struct Handle<T> {
 }
 
 /// An error returned from [`Handle::join()`] when the thread panics.
-#[derive(Debug, Display, Error, From)]
+#[derive(Debug, Display, Error)]
 #[display(fmt = "Thread panicked.")]
 pub struct PanicError {
   /// The value the thread panicked with.
@@ -35,7 +37,7 @@ pub fn sleep(dur: Duration) {
   std::thread::sleep(dur.into());
 }
 
-/// Starts a new thread.
+/// Starts running an operation on a new thread.
 pub fn start<T: Send + 'static>(
   name: impl Into<String>,
   func: impl FnOnce() -> T + Send + 'static,
@@ -60,8 +62,8 @@ impl<T> Handle<T> {
       return Ok(output);
     }
 
-    if let Err(err) = self.inner.join() {
-      return Err(err.into());
+    if let Err(value) = self.inner.join() {
+      return Err(PanicError { value });
     }
 
     unreachable!("Thread exited successfully but did not send output.");

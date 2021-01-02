@@ -15,13 +15,19 @@ pub fn run<T>(future: impl Future<Output = T>) -> T {
 }
 
 pub async fn sleep(duration: Duration) {
-  tokio::time::delay_for(duration.into()).await;
+  handle().enter(|| tokio::time::delay_for(duration.into())).await;
 }
 
 pub fn spawn<T: Send + 'static>(future: impl Future<Output = T> + Send + 'static) -> JoinHandle<T> {
-  let handle = HANDLE.get().expect("The af-core runtime is not running.");
+  JoinHandle(handle().spawn(future))
+}
 
-  JoinHandle(handle.spawn(future))
+pub async fn unblock<T: Send + 'static>(func: impl FnOnce() -> T + Send + 'static) -> T {
+  handle().enter(|| tokio::task::spawn_blocking(func)).await.unwrap()
+}
+
+fn handle() -> &'static Handle {
+  HANDLE.get().expect("The af-core runtime is not running.")
 }
 
 impl<T> JoinHandle<T> {

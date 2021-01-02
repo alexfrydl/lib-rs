@@ -144,16 +144,6 @@ impl<T> Sender<T> {
   }
 }
 
-// Implement `Stream` for the receiver end.
-
-impl<T> Stream for Receiver<T> {
-  type Item = T;
-
-  fn poll_next(mut self: Pin<&mut Self>, cx: &mut future::Context) -> future::Poll<Option<T>> {
-    Pin::new(&mut self.rx).poll_next(cx)
-  }
-}
-
 // Manually implement `Clone` for all `T`.
 
 impl<T> Clone for Receiver<T> {

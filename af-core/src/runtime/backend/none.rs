@@ -16,6 +16,10 @@ pub fn spawn<T: Send + 'static>(future: impl Future<Output = T> + Send + 'static
   unimplemented()
 }
 
+pub async fn unblock<T: Send + 'static>(func: impl FnOnce() -> T + Send + 'static) -> T {
+  unimplemented()
+}
+
 impl<T> JoinHandle<T> {
   pub async fn join(self) -> Result<T, future::PanicError> {
     unimplemented()
