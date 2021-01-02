@@ -169,3 +169,25 @@ where
     Self::secs_f64(self.secs / rhs.as_())
   }
 }
+
+impl Debug for Duration {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    Display::fmt(self, f)
+  }
+}
+
+impl Display for Duration {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    if self.secs.is_infinite() {
+      write!(f, "forever")
+    } else if self.secs < 2.0 {
+      write!(f, "{} ms", self.as_ms())
+    } else if self.secs < 120.0 {
+      write!(f, "{} secs", self.as_secs())
+    } else if self.secs < 7_200.0 {
+      write!(f, "{} hours", self.as_hours())
+    } else {
+      write!(f, "{} days", self.as_days())
+    }
+  }
+}
