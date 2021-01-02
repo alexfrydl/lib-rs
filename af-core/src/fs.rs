@@ -10,13 +10,5 @@
 //! characters are either ignored or cause an error, depending on the context.
 
 pub mod path;
-mod utils;
 
 pub use self::path::PathLike;
-pub use self::utils::*;
-
-#[cfg(feature = "fs-watch")]
-mod watch;
-
-#[cfg(feature = "fs-watch")]
-pub use self::watch::Watcher;
