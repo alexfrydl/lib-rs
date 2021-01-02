@@ -6,40 +6,13 @@
 
 //! Formatting utilities.
 
-mod indent;
-
-pub use self::indent::*;
-
 #[doc(no_inline)]
 pub use std::fmt::*;
 
-use crate::fs::path;
+mod as_path;
+mod indent;
+mod surround;
 
-/// Formats a string as a file sytem path.
-#[derive(Debug)]
-pub struct AsPath<'a>(pub &'a str);
-
-/// Formats a value surrounded by a prefix and suffix string.
-pub struct Surrounded<'a, T>(pub &'a str, pub T, pub &'a str);
-
-impl Display for AsPath<'_> {
-  fn fmt(&self, f: &mut Formatter) -> Result {
-    write!(f, "{}", path::as_std(self.0).display())
-  }
-}
-
-impl<T: Debug> Debug for Surrounded<'_, T> {
-  fn fmt(&self, f: &mut Formatter) -> Result {
-    write!(f, "{}", self.0)?;
-    self.1.fmt(f)?;
-    write!(f, "{}", self.2)
-  }
-}
-
-impl<T: Display> Display for Surrounded<'_, T> {
-  fn fmt(&self, f: &mut Formatter) -> Result {
-    write!(f, "{}", self.0)?;
-    self.1.fmt(f)?;
-    write!(f, "{}", self.2)
-  }
-}
+pub use self::as_path::*;
+pub use self::indent::*;
+pub use self::surround::*;

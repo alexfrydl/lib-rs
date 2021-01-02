@@ -144,7 +144,7 @@ fn write_message(time: Time, record: &Record, f: &mut String) -> fmt::Result {
   // Write the source of the message.
 
   if !record.target().is_empty() {
-    let mut name = style(fmt::Surrounded("[", record.target(), "] "));
+    let mut name = style(fmt::surround("[", record.target(), "] "));
 
     name = match record.level() {
       Level::Trace => name.black().bright(),

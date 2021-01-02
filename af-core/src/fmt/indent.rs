@@ -19,7 +19,7 @@ pub struct IndentedFormatter<'a, F> {
 
 /// Wraps the value so that it is displayed with the given initial and hanging
 /// indentation.
-pub fn indent<'a, T: Display>(initial: &'a str, hanging: &'a str, value: T) -> Indented<'a, T> {
+pub fn indent<'a, T>(initial: &'a str, hanging: &'a str, value: T) -> Indented<'a, T> {
   Indented { initial, hanging, value }
 }
 
@@ -28,6 +28,19 @@ impl<'a, F: Write + 'a> IndentedFormatter<'a, F> {
   /// indentation.
   pub fn new(f: F, initial: &'a str, hanging: &'a str) -> Self {
     Self { f, initial, hanging, line: 1, start_of_line: true }
+  }
+}
+
+impl<'a, T: Debug> Debug for Indented<'a, T> {
+  fn fmt(&self, f: &mut Formatter) -> Result {
+    let alt = f.alternate();
+    let mut f = IndentedFormatter::new(f, self.initial, self.hanging);
+
+    if alt {
+      write!(f, "{:#?}", self.value)
+    } else {
+      write!(f, "{:?}", self.value)
+    }
   }
 }
 
@@ -47,13 +60,16 @@ impl<'a, T: Display> Display for Indented<'a, T> {
 impl<'a, F: 'a + Write> Write for IndentedFormatter<'a, F> {
   fn write_str(&mut self, s: &str) -> Result {
     for c in s.chars() {
+      // Mark new lines.
+
       if c == '\n' {
-        self.f.write_char(c)?;
         self.start_of_line = true;
         self.line += 1;
 
         continue;
       }
+
+      // Output indentation before each line.
 
       if self.start_of_line {
         if self.line == 1 {
@@ -64,6 +80,8 @@ impl<'a, F: 'a + Write> Write for IndentedFormatter<'a, F> {
 
         self.start_of_line = false;
       }
+
+      // Output the original character.
 
       self.f.write_char(c)?;
     }
