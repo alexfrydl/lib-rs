@@ -1,6 +1,6 @@
 [package]
 authors = ["Alexandra Frydl <me@alexfrydl.com>"]
-description = "A core utility library for Rust applications."
+description = "A core library and async runtime for Rust applications."
 edition = "2018"
 name = "af-core"
 license = "MPL-2.0"
@@ -13,14 +13,14 @@ all-features = true
 [features]
 fs-watch = ["notify"]
 logger = ["af-macros/logger", "console", "dashmap"]
-rt = ["rt-enabled", "async-executor", "easy-parallel", "num_cpus"]
-rt-enabled = []
-rt-tokio = ["rt-enabled", "tokio"]
+runtime = ["async-executor", "easy-parallel", "num_cpus"]
+runtime-tokio = ["runtime", "tokio"]
 
 [dependencies]
 af-macros = { version = "0.1", path = "../af-macros" }
 arrayvec = "0.5"
 async-channel = "1"
+async-lock = "2"
 base64 = "0.13"
 blocking = "1"
 cfg-if = "1"
@@ -50,12 +50,12 @@ notify = { version = "4", optional = true }
 console = { version = "0.14", optional = true }
 dashmap = { version = "4", optional = true }
 
-# rt deps.
+# runtime deps.
 
 async-executor = { version = "1", optional = true }
 easy-parallel = { version = "3", optional = true }
 num_cpus = { version = "1", optional = true }
 
-# rt-tokio deps.
+# runtime-tokio deps.
 
 tokio = { version = "0.2", optional = true, features = ["rt-threaded"] }

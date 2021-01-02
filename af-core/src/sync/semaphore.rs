@@ -6,62 +6,34 @@
 
 //! A counting semaphore.
 
-use super::channel;
 use crate::prelude::*;
 
-/// A counting semaphore.
-///
-/// A semaphore manages a fixed number of _permits_. Tasks can acquire a single
-/// `Permit` by awaiting the `acquire()` method, then release it by dropping it.
+/// A counting semaphore with a limited number of “permits” for concurrent
+/// operations.
 #[derive(Clone)]
-pub struct Semaphore {
-  acquire: channel::Receiver<()>,
-  release: channel::Sender<()>,
-}
+pub struct Semaphore(Arc<async_lock::Semaphore>);
 
-/// A permit for a `Semaphore`, released when dropped.
-pub struct Permit {
-  release: Option<channel::Sender<()>>,
-}
+/// A permit for a [`Semaphore`], released when dropped.
+pub struct SemaphorePermit(async_lock::SemaphoreGuardArc);
 
 impl Semaphore {
-  /// Creates a new semaphore with a specified number of permits.
+  /// Creates a new semaphore with the specified number of permits.
   pub fn new(permits: usize) -> Self {
-    let (release, acquire) = channel::bounded(permits);
-
-    for _ in 0..permits {
-      release.try_send(()).unwrap();
-    }
-
-    Self { acquire, release }
+    Self(Arc::new(async_lock::Semaphore::new(permits)))
   }
 
-  /// Waits for an availableü permit and then acquires it.
-  pub async fn acquire(&self) -> Permit {
-    self.acquire.recv().await.unwrap();
-
-    Permit { release: Some(self.release.clone()) }
+  /// Waits for an available permit.
+  pub async fn acquire(&self) -> SemaphorePermit {
+    SemaphorePermit(self.0.acquire_arc().await)
   }
 }
 
-impl Permit {
+impl SemaphorePermit {
   /// Releases a permit, dropping it immediately.
   pub fn release(self) {}
 
-  /// Wraps a future such that when it completes, the permit is released.
+  /// Executes a future and then releases the permit.
   pub async fn release_after<O>(self, future: impl Future<Output = O>) -> O {
-    let output = future.await;
-    self.release();
-    output
-  }
-}
-
-// Implement `Drop` to release permits.
-
-impl Drop for Permit {
-  fn drop(&mut self) {
-    if let Some(release) = self.release.take() {
-      let _ = release.try_send(());
-    }
+    future.await
   }
 }

@@ -28,8 +28,8 @@ pub use self::random::{random, Random};
 pub use self::symbol::Symbol;
 pub use self::uuid::Uuid;
 
-#[cfg(feature = "rt-enabled")]
+#[cfg(feature = "runtime")]
 pub mod runtime;
 
-#[cfg(feature = "rt-enabled")]
+#[cfg(feature = "runtime")]
 pub use self::runtime::main;

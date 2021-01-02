@@ -12,7 +12,7 @@ mod semaphore;
 
 pub use self::atomic::*;
 pub use self::channel::Channel;
-pub use self::semaphore::Semaphore;
+pub use self::semaphore::*;
 
 /// Blocking concurrency primitives provided by the `parking_lot` crate.
 #[doc(inline)]
