@@ -6,21 +6,9 @@
 
 //! Utilities for working with futures and async logic.
 
-mod buffered;
-mod join;
-mod race;
-
-pub use self::join::{join, Join};
-pub use self::race::{race, Race};
-
-pub use blocking::unblock;
-pub use futures_lite::future::FutureExt;
-pub use futures_lite::future::{pending, Pending};
-pub use futures_lite::future::{poll_fn, PollFn};
 pub use std::future::Future;
 pub use std::task::{Context, Poll};
 
-use self::buffered::Buffered;
 use crate::prelude::*;
 
 /// An error returned from [`catch_unwind()`] when the future panics.
@@ -36,33 +24,7 @@ pub async fn catch_unwind<F>(future: F) -> Result<F::Output, PanicError>
 where
   F: Future + panic::UnwindSafe,
 {
-  struct CatchUnwind<F>(F);
-
-  impl<F> Future for CatchUnwind<F>
-  where
-    F: Future + panic::UnwindSafe,
-  {
-    type Output = Result<F::Output, PanicError>;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut future::Context) -> Poll<Self::Output> {
-      let inner = unsafe { Pin::map_unchecked_mut(self, |s| &mut s.0) };
-      let result = panic::catch_unwind(panic::AssertUnwindSafe(|| inner.poll(cx)));
-
-      match result {
-        Ok(Poll::Pending) => Poll::Pending,
-        Ok(Poll::Ready(value)) => Poll::Ready(Ok(value)),
-        Err(value) => Poll::Ready(Err(PanicError { value })),
-      }
-    }
-  }
-
-  CatchUnwind(future).await
-}
-
-/// Waits for a given duration of time to elapse.
-#[cfg(feature = "runtime")]
-pub async fn sleep(duration: Duration) {
-  async_io::Timer::new(duration.to_std()).await;
+  futures_lite::FutureExt::catch_unwind(future).await.map_err(|value| PanicError { value })
 }
 
 /// Yields once to other running futures or tasks.

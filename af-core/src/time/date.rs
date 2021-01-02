@@ -71,37 +71,3 @@ impl Display for Date {
     write!(f, "{}", self.format("%v"))
   }
 }
-
-// Implement conversion to and from postgres.
-
-#[cfg(feature = "postgres")]
-impl<'a> pg::FromSql<'a> for Date {
-  fn from_sql(ty: &pg::Type, raw: &'a [u8]) -> pg::FromSqlResult<Self> {
-    chrono::NaiveDate::from_sql(ty, raw).map(Date::from)
-  }
-
-  fn accepts(ty: &pg::Type) -> bool {
-    <chrono::NaiveDate as pg::FromSql>::accepts(ty)
-  }
-}
-
-#[cfg(feature = "postgres")]
-impl pg::ToSql for Date {
-  fn to_sql(&self, ty: &pg::Type, out: &mut pg::BytesMut) -> pg::ToSqlResult
-  where
-    Self: Sized,
-  {
-    self.0.to_sql(ty, out)
-  }
-
-  fn accepts(ty: &pg::Type) -> bool
-  where
-    Self: Sized,
-  {
-    <chrono::NaiveDate as pg::ToSql>::accepts(ty)
-  }
-
-  fn to_sql_checked(&self, ty: &pg::Type, out: &mut pg::BytesMut) -> pg::ToSqlResult {
-    self.0.to_sql_checked(ty, out)
-  }
-}

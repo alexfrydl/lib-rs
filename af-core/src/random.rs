@@ -7,7 +7,8 @@
 //! Utilities for generating randomness.
 
 use crate::prelude::*;
-use crate::sync::blocking::Mutex;
+use once_cell::sync::Lazy;
+use parking_lot::Mutex;
 use rand::distributions::{self, Distribution};
 use rand::seq::SliceRandom;
 use rand::{Rng as _, SeedableRng as _};

@@ -6,6 +6,7 @@
 
 use crate::prelude::*;
 use crate::sync::Semaphore;
+use once_cell::sync::Lazy;
 
 /// A shared semaphore to limit the number of concurrent file system operations.
 static SEMAPHORE: Lazy<Semaphore> = Lazy::new(|| Semaphore::new(8));
@@ -26,7 +27,7 @@ pub async fn glob(pattern: impl Into<String>) -> Result<Vec<String>> {
   let pattern = pattern.into();
   let _permit = SEMAPHORE.acquire().await;
 
-  future::unblock! {
+  blocking::unblock(move || {
     // Find all matching files.
 
     let paths = glob::glob_with(&pattern, MATCH_OPTS)?;
@@ -37,16 +38,17 @@ pub async fn glob(pattern: impl Into<String>) -> Result<Vec<String>> {
 
     for path in paths {
       match path {
-        Ok(path) =>
+        Ok(path) => {
+          if let Some(path) = path.to_str() {
+            output.push(path.into());
+          }
+        }
 
-      if let Some(path) = path.to_str() {
-        output.push(path.into());
-      },
-
-      Err(err) => fail!("{} (at `{}`).", err.error(), err.path().display()),
+        Err(err) => fail!("{} (at `{}`).", err.error(), err.path().display()),
+      }
     }
-  }
 
     Ok(output)
-  }
+  })
+  .await
 }

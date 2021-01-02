@@ -4,11 +4,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-mod matrix;
-mod vector;
-
-pub use self::matrix::Matrix4;
-pub use self::vector::{Vector2, Vector3, Vector4};
 pub use num_traits::identities::{one, zero, One, Zero};
 pub use num_traits::AsPrimitive;
 

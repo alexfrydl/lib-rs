@@ -6,6 +6,7 @@
 
 //! Common derive macros.
 
+pub use af_macros::Error;
 pub use derive_more::*;
-pub use af_proc_macros::Error;
-pub use serde::{Deserialize, Serialize};
+
+pub(crate) use serde::{Deserialize, Serialize};

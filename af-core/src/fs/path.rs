@@ -42,7 +42,7 @@ pub fn append(base: &mut String, relative: &str) {
 
 /// Returns `true` if the given path is absolute.
 pub fn is_absolute(path: &str) -> bool {
-  as_std_path(path).is_absolute()
+  as_std(path).is_absolute()
 }
 
 /// Joins a base path and a relative path.
@@ -66,7 +66,7 @@ pub fn join<'a, 'b>(base: impl PathLike<'b>, relative: impl PathLike<'a>) -> Cow
 ///
 /// If `path` is a root or empty path, this function returns `None`.
 pub fn last(path: &str) -> Option<&str> {
-  as_std_path(path).file_name()?.to_str()
+  as_std(path).file_name()?.to_str()
 }
 
 /// Normalizes a path.
@@ -103,7 +103,7 @@ pub fn normalized<'a>(path: impl PathLike<'a>) -> Cow<'a, str> {
 ///
 /// If `path` is a root or empty path, this function returns `None`.
 pub fn parent(path: &str) -> Option<&str> {
-  as_std_path(path).parent()?.to_str()
+  as_std(path).parent()?.to_str()
 }
 
 /// Removes the last component from the path and returns it.
@@ -151,7 +151,7 @@ pub fn resolved<'a>(path: impl PathLike<'a>) -> Result<Cow<'a, str>, env::Workin
 
 /// Returns `true` if the first path starts with the second path.
 pub fn starts_with(path: &str, prefix: &str) -> bool {
-  as_std_path(path).starts_with(prefix)
+  as_std(path).starts_with(prefix)
 }
 
 /// Returns the given path with a trailing separator if it does not already
@@ -170,7 +170,7 @@ pub fn with_trailing_sep<'a>(path: impl PathLike<'a>) -> Cow<'a, str> {
 }
 
 /// Converts a value into a `&Path`.
-fn as_std_path(path: &str) -> &Path {
+pub fn as_std(path: &str) -> &Path {
   path.as_ref()
 }
 
@@ -178,7 +178,7 @@ fn as_std_path(path: &str) -> &Path {
 ///
 /// The output is expected to already be empty.
 fn normalize_into(path: &str, output: &mut String) {
-  for component in as_std_path(path).components() {
+  for component in as_std(path).components() {
     match component {
       std::path::Component::CurDir => continue,
       std::path::Component::Normal(component) => append(output, component.to_str().unwrap()),

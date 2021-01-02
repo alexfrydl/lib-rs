@@ -12,19 +12,16 @@ pub use crate as __af_core;
 #[doc(no_inline)]
 pub use {
   crate::derive::*,
-  crate::encoding::json,
   crate::fail::{self, fail, Result},
-  crate::fmt::{self, Debug, Describe, Display, Write as _},
+  crate::fmt::{self, Debug, Display, Write as _},
   crate::future::{self, Future},
   crate::iter::{self, Itertools as _},
   crate::log::{self, debug, error, info, trace, warn},
   crate::math::Number,
   crate::random::{self, random, Random},
-  crate::stream::{self, Stream, StreamExt},
-  crate::sync::{pin, Lazy},
   crate::time::{self, Date, Duration, Time},
+  crate::util::{attempt, attempt_async, default, pin},
   crate::uuid::{self, Uuid},
-  crate::{attempt, attempt_async},
   std::any::Any,
   std::borrow::*,
   std::cmp::{self, Eq, Ord, PartialEq, PartialOrd},
@@ -44,7 +41,4 @@ pub use {
   std::{u128, u16, u32, u64, u8, usize},
 };
 
-/// Returns the “default value” for a type.
-pub fn default<T: Default>() -> T {
-  T::default()
-}
+pub(crate) use futures_lite::Stream;

@@ -9,4 +9,8 @@ version = "0.1.0"
 [package.metadata.docs.rs]
 all-features = true
 
-[lib]
+[features]
+dotenv = ["af-proc-macros/dotenv" ]
+
+[dependencies]
+af-proc-macros = { version = "0.1.0", path = "../af-proc-macros" }

@@ -5,7 +5,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use crate::prelude::*;
-use crate::sync::Event;
+use event_listener::Event;
 use std::sync::atomic as base;
 use std::sync::atomic::Ordering;
 

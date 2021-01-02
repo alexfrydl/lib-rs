@@ -10,7 +10,7 @@ macro_rules! path_join {
   ($first:expr, $($path:expr),+) => {{
     let mut path = String::from($first);
 
-    $(__af_corefs::path::push(&mut path, $path);)*
+    $(__af_core::fs::path::push(&mut path, $path);)*
 
     path
   }};
@@ -24,7 +24,7 @@ macro_rules! path_join {
 #[macro_export]
 macro_rules! path_normalize {
   ($($args:tt)*) => {
-    __af_corefs::path::normalized(__af_corefs::path::join!($($args:tt)*))
+    __af_core::fs::path::normalized(__af_core::fs::path::join!($($args:tt)*))
   };
 }
 
@@ -32,6 +32,6 @@ macro_rules! path_normalize {
 #[macro_export]
 macro_rules! path_resolve {
   ($($args:tt)*) => {
-    __af_corefs::path::resolved(__af_corefs::path::join!($($args:tt)*))
+    __af_core::fs::path::resolved(__af_core::fs::path::join!($($args:tt)*))
   };
 }

@@ -17,7 +17,7 @@ pub fn main(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
   // Require an async function.
 
   if sig.asyncness.is_none() {
-    return syn::Error::new_spanned(sig.fn_token, "An __af_coremain function must be async.")
+    return syn::Error::new_spanned(sig.fn_token, "The runtime main function must be async.")
       .to_compile_error()
       .into();
   }
@@ -25,9 +25,12 @@ pub fn main(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
   // Require no parameters.
 
   if !sig.inputs.is_empty() {
-    return syn::Error::new_spanned(sig.inputs, "An __af_coremain function cannot have parameters.")
-      .to_compile_error()
-      .into();
+    return syn::Error::new_spanned(
+      sig.inputs,
+      "The runtime main function must not have parameters.",
+    )
+    .to_compile_error()
+    .into();
   }
 
   // Generate code to print errors.
@@ -44,7 +47,7 @@ pub fn main(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
   #[cfg(feature = "dotenv")]
   init.extend(quote! {
-    __af_coreenv::load_dotenv();
+    __af_core::env::load_dotenv();
   });
 
   let result = quote! {
@@ -54,9 +57,9 @@ pub fn main(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
       #init
 
-      __af_coreruntime::logger::init!();
+      __af_core::runtime::logger::init!();
 
-      __af_coreruntime::run(async {
+      __af_core::runtime::run(async {
         let result = #name().await;
 
         #wrap_result

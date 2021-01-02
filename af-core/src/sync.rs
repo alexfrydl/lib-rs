@@ -13,9 +13,6 @@ mod semaphore;
 pub use self::atomic::*;
 pub use self::channel::Channel;
 pub use self::semaphore::Semaphore;
-pub use event_listener::{Event, EventListener};
-pub use futures_lite::pin;
-pub use once_cell::sync::{Lazy, OnceCell};
 
 /// Blocking concurrency primitives provided by the `parking_lot` crate.
 #[doc(inline)]

@@ -10,7 +10,7 @@ use crate::prelude::*;
 
 use async_channel::TryRecvError;
 
-/// A cloneabe channel for multi-producer multi-consumer cmessage passing.
+/// A cloneabe channel for multi-producer multi-consumer message passing.
 pub struct Channel<T> {
   sender: Sender<T>,
   receiver: Receiver<T>,

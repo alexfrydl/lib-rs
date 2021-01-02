@@ -4,7 +4,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-mod future;
 mod prelude;
 mod runtime;
 
@@ -32,31 +31,12 @@ pub fn derive_error(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
   result.into()
 }
 
-/// Waits for all given futures to complete and returns their outputs as a
-/// tuple.
-#[proc_macro]
-#[proc_macro_error]
-pub fn future_join(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-  future::join(input).into()
-}
-
-/// Waits for one of the given futures to complete and then returns the output.
-///
-/// The other futures are canceled.
-#[proc_macro]
-#[proc_macro_error]
-pub fn future_race(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-  future::race(input).into()
-}
-
 /// Defines an async main function that runs on the af-core runtime.
 ///
 /// ## Example
 ///
 /// ```ignore
-/// use __af_coreprelude::*;
-///
-/// #[__af_coremain]
+/// #[af::runtime::main]
 /// async fn main() {
 ///   println!("Hello af-core!");
 /// }
@@ -69,7 +49,7 @@ pub fn future_race(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// code of `1`.
 ///
 /// ```ignore
-/// #[__af_coremain]
+/// #[af::runtime::main]
 /// async fn main() -> Result<(), String> {
 ///   Err("This message is written to stderr.".into())
 /// }

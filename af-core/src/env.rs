@@ -8,6 +8,7 @@
 
 use crate::fs::path;
 use crate::prelude::*;
+use once_cell::sync::Lazy;
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -99,32 +100,6 @@ pub fn exe_path() -> &'static str {
 /// Returns true if this executable was started by `cargo run` or similar.
 pub fn is_cargo_run() -> bool {
   PROJECT_PATH.is_some()
-}
-
-/// Loads environment variables from a `.env` file in the current working
-/// directory or one of its parent directories.
-#[cfg(feature = "dotenv")]
-pub fn load_dotenv() -> bool {
-  load_dotenv_from(".env")
-}
-
-/// Loads environment variables from a file in the current working directory or
-/// one of its parent directories.
-#[cfg(feature = "dotenv")]
-pub fn load_dotenv_from(file_name: &str) -> bool {
-  match dotenv_crate::from_filename(file_name) {
-    Ok(path) => {
-      debug!("Loaded environment variables from `{}`.", path.display());
-      true
-    }
-
-    Err(dotenv_crate::Error::Io(err)) if err.kind() == io::ErrorKind::NotFound => false,
-
-    Err(err) => {
-      warn!("Failed to load environment variables. {}", err);
-      false
-    }
-  }
 }
 
 /// Returns the full file system path to the cargo project of the currently
