@@ -11,7 +11,3 @@ mod semaphore;
 
 pub use self::channel::unbounded as channel;
 pub use self::semaphore::*;
-
-/// Blocking concurrency primitives provided by the `parking_lot` crate.
-#[doc(inline)]
-pub use parking_lot as blocking;
