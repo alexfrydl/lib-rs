@@ -16,7 +16,7 @@ pub use {
   crate::fmt::{self, Debug, Display, Write as _},
   crate::future::{self, Future},
   crate::iter::{self, Itertools as _},
-  crate::log::{self, debug, error, info, trace, warn},
+  crate::log::{debug, error, info, trace, warn},
   crate::math::Number,
   crate::random::{self, random, Random},
   crate::time::{self, Date, Duration, Time},

@@ -33,3 +33,11 @@ impl<T: Debug> Debug for Surrounded<'_, T> {
     write!(f, "{}", self.2)
   }
 }
+
+impl<T: Display> Display for Surrounded<'_, T> {
+  fn fmt(&self, f: &mut Formatter) -> Result {
+    write!(f, "{}", self.0)?;
+    self.1.fmt(f)?;
+    write!(f, "{}", self.2)
+  }
+}
