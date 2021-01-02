@@ -15,7 +15,7 @@ use std::thread::{Builder, JoinHandle};
 /// A handle that can be used to wait for a thread to complete and receive its
 /// result.
 pub struct Handle<T> {
-  inner: JoinHandle<bool>,
+  inner: JoinHandle<()>,
   rx: channel::Receiver<T>,
 }
 
@@ -44,10 +44,12 @@ pub fn start<T: Send + 'static>(
 ) -> Handle<T> {
   let (tx, rx) = channel::bounded(1);
 
-  let inner = Builder::new()
-    .name(name.into())
-    .spawn(move || tx.send(func()))
-    .expect("Failed to start thread");
+  let func = move || {
+    let output = func();
+    let _ = tx.try_send(output);
+  };
+
+  let inner = Builder::new().name(name.into()).spawn(func).expect("Failed to start thread");
 
   Handle { inner, rx }
 }

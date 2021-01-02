@@ -97,19 +97,11 @@ impl<T> Sender<T> {
     self.tx.is_closed()
   }
 
-  /// Sends a message to the channel immediately.
-  ///
-  /// If the channel is closed or full, this function returns `false`. Use
-  /// [`try_send()`] for extended error information.
-  pub fn send(&self, message: T) -> bool {
-    self.try_send(message).is_ok()
-  }
-
   /// Waits for available space in the channel and then sends a message.
   ///
   /// If the channel is closed before the message can be sent, this function
-  /// returns `false`. Use [`try_send_queued()`] for extended error information.
-  pub async fn send_queued(&self, message: T) -> Result<(), SendError<T>> {
+  /// returns a [`SendError`] containing the failed message.
+  pub async fn send(&self, message: T) -> Result<(), SendError<T>> {
     self
       .tx
       .send(message)
@@ -119,7 +111,7 @@ impl<T> Sender<T> {
 
   /// Attempts to send a message to the channel immediately.
   ///
-  /// If the channel is closed or full, this function returns a[`SendError`]
+  /// If the channel is closed or full, this function returns a [`SendError`]
   /// containing the failed message.
   pub fn try_send(&self, message: T) -> Result<(), SendError<T>> {
     self.tx.try_send(message).map_err(|err| match err {
@@ -128,19 +120,6 @@ impl<T> Sender<T> {
         SendError { msg, reason: SendErrorReason::Closed }
       }
     })
-  }
-
-  /// Attempts to wait for available space in the channel and then send a
-  /// message.
-  ///
-  /// If the channel is closed before the message can be sent, this function
-  /// returns a [`SendError`] containing the failed message.
-  pub async fn try_send_queued(&self, message: T) -> Result<(), SendError<T>> {
-    self
-      .tx
-      .send(message)
-      .await
-      .map_err(|err| SendError { msg: err.0, reason: SendErrorReason::Closed })
   }
 }
 
