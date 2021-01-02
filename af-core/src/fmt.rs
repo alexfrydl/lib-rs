@@ -6,6 +6,10 @@
 
 //! Formatting utilities.
 
+mod indent;
+
+pub use self::indent::*;
+
 #[doc(no_inline)]
 pub use std::fmt::*;
 
@@ -17,8 +21,6 @@ pub struct AsPath<'a>(pub &'a str);
 
 /// Formats a value surrounded by a prefix and suffix string.
 pub struct Surrounded<'a, T>(pub &'a str, pub T, pub &'a str);
-
-// Implement formatting.
 
 impl Display for AsPath<'_> {
   fn fmt(&self, f: &mut Formatter) -> Result {

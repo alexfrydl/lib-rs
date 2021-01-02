@@ -101,7 +101,7 @@ impl Watcher {
   /// Begins watching the given directory for events.
   pub fn watch_dir<'a>(&mut self, path: impl fs::PathLike<'a>) -> Result {
     let path = fs::path::join(
-      fs::path::resolved(path).map_err(fail::with!("Failed to resolve directory."))?,
+      fs::path::resolved(path).map_err(fail::wrap!("Failed to resolve directory."))?,
       "",
     );
 

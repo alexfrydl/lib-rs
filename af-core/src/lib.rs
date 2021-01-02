@@ -16,7 +16,7 @@ pub mod log;
 pub mod math;
 pub mod prelude;
 pub mod random;
-mod symbol;
+pub mod string;
 pub mod sync;
 pub mod thread;
 pub mod time;
@@ -25,7 +25,6 @@ pub mod uuid;
 
 pub use self::fail::fail;
 pub use self::random::{random, Random};
-pub use self::symbol::Symbol;
 pub use self::uuid::Uuid;
 
 #[cfg(feature = "runtime")]

@@ -16,7 +16,7 @@ macro_rules! fail {
 #[macro_export]
 macro_rules! fail_err {
   ($expr:expr) => {
-    fail::Error::new(format!("{:#}", $expr))
+    fail::Error::new($expr)
   };
 
   ($($args:tt)*) => {
@@ -24,11 +24,11 @@ macro_rules! fail_err {
   };
 }
 
-/// Returns a closure for using [`Result::map_err`] to add a description before
-/// another error.
+/// Returns a closure for using [`Result::map_err`] to wrap an error in a
+/// `fail::Error`.
 #[macro_export]
-macro_rules! fail_with {
+macro_rules! fail_wrap {
   ($($args:tt)*) => {
-    |err| fail::Error::join(format_args!($($args)*), err)
+    |err| fail::err!($($args)*).with_cause(err)
   };
 }

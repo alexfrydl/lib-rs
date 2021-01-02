@@ -27,7 +27,7 @@ pub fn run(future: impl Future<Output = Result> + Send + 'static) -> ! {
   // Run the main future on the backend and then exit.
 
   if let Err(err) = backend::run(future) {
-    eprintln!("{}", err);
+    eprintln!("{:?}", err);
     exit(1);
   }
 
