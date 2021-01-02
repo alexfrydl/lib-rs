@@ -5,13 +5,12 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 mod backend;
-pub mod logger;
 pub mod task;
 
 pub use af_macros::runtime_main as main;
 
-use af_core::prelude::*;
-use af_core::sync::AtomicBool;
+use crate::prelude::*;
+use crate::sync::AtomicBool;
 use once_cell::sync::Lazy;
 use std::process::exit;
 
@@ -24,6 +23,8 @@ pub fn run(future: impl Future<Output = Result> + Send + 'static) -> ! {
   if IS_RUNNING.swap(true) {
     panic!("The af-core runtime is already running.");
   }
+
+  // Run the main future on the backend and then exit.
 
   if let Err(err) = backend::run(future) {
     eprintln!("{}", err);

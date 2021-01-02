@@ -10,7 +10,7 @@ version = "0.1.0"
 all-features = true
 
 [features]
-dotenv = ["af-proc-macros/dotenv" ]
+logger = ["af-proc-macros/logger" ]
 
 [dependencies]
 af-proc-macros = { version = "0.1.0", path = "../af-proc-macros" }

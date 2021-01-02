@@ -6,10 +6,8 @@
 
 //! Asynchronous tasks.
 
-pub use af_core::future::PanicError;
-
-use crate::backend;
-use af_core::prelude::*;
+use super::backend;
+use crate::prelude::*;
 
 /// A handle that can be used to wait for a task to complete and receive its
 /// result.
@@ -25,7 +23,7 @@ impl<T> Handle<T> {
   ///
   /// If the task panics, this function returns an error containing the panic
   /// value.
-  pub async fn join(self) -> Result<T, PanicError> {
+  pub async fn join(self) -> Result<T, future::PanicError> {
     self.0.join().await
   }
 }

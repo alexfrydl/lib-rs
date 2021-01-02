@@ -1,5 +1,5 @@
-use af_core::prelude::*;
-use af_core::thread;
+use crate::prelude::*;
+use crate::thread;
 use async_executor::{Executor, Task};
 use easy_parallel::Parallel;
 use event_listener::Event;

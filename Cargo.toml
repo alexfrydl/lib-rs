@@ -2,6 +2,5 @@
 members = [
   "af-core",
   "af-macros",
-  "af-proc-macros",
-  "af-runtime"
+  "af-proc-macros"
 ]

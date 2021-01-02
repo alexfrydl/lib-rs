@@ -7,4 +7,14 @@
 //! Logging provided by the `log` crate.
 
 pub use self::Level::*;
-pub use ::log::{debug, error, info, trace, warn, Level};
+pub use log::{debug, error, info, trace, warn, Level};
+
+use crate::prelude::*;
+
+cfg_if! {
+  if #[cfg(feature = "logger")] {
+    mod logger;
+
+    pub use self::logger::*;
+  }
+}

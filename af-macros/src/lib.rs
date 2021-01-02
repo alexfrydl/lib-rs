@@ -5,8 +5,10 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 mod fail;
-mod logger;
 mod path;
 mod util;
 
 pub use af_proc_macros::*;
+
+#[cfg(feature = "logger")]
+mod logger;

@@ -36,7 +36,7 @@ pub fn derive_error(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// ## Example
 ///
 /// ```ignore
-/// #[af::runtime::main]
+/// #[af_core::main]
 /// async fn main() {
 ///   println!("Hello af-core!");
 /// }
@@ -49,7 +49,7 @@ pub fn derive_error(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// code of `1`.
 ///
 /// ```ignore
-/// #[af::runtime::main]
+/// #[af_core::main]
 /// async fn main() -> Result<(), String> {
 ///   Err("This message is written to stderr.".into())
 /// }

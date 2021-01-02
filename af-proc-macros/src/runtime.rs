@@ -45,9 +45,9 @@ pub fn main(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
   #[allow(unused_mut)]
   let mut init = TokenStream::new();
 
-  #[cfg(feature = "dotenv")]
-  init.extend(quote! {
-    __af_core::env::load_dotenv();
+  #[cfg(feature = "logger")]
+  init.append_all(quote! {
+    af_core::log::init!();
   });
 
   let result = quote! {
@@ -57,9 +57,7 @@ pub fn main(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
       #init
 
-      __af_core::runtime::logger::init!();
-
-      __af_core::runtime::run(async {
+      af_core::runtime::run(async {
         let result = #name().await;
 
         #wrap_result

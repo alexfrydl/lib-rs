@@ -27,3 +27,9 @@ pub use self::fail::fail;
 pub use self::random::{random, Random};
 pub use self::symbol::Symbol;
 pub use self::uuid::Uuid;
+
+#[cfg(feature = "rt-enabled")]
+pub mod runtime;
+
+#[cfg(feature = "rt-enabled")]
+pub use self::runtime::main;

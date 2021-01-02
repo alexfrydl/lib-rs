@@ -13,8 +13,7 @@ all-features = true
 proc-macro = true
 
 [features]
-default = []
-dotenv = []
+logger = []
 
 [dependencies]
 anyhow = "1"
