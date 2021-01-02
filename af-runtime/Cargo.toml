@@ -16,14 +16,13 @@ tokio-0-2 = ["tokio"]
 [dependencies]
 af-core = { version = "0.1", path = "../af-core" }
 af-macros = { version = "0.1", path = "../af-macros" }
-async-executor = "0.1"
-async-io = "0.1"
+async-executor = "1"
 console = "0.14"
-dashmap = "3"
+dashmap = "4"
 easy-parallel = "3"
 event-listener = "2"
 log = { version = "0.4", features = ["std"] }
 num_cpus = "1"
 once_cell = { version = "1", features = ["parking_lot"] }
 
-tokio = { version = "0.2", optional = true, features = ["rt-core"] }
+tokio = { version = "0.2", optional = true, features = ["rt-threaded"] }

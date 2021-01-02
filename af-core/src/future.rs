@@ -12,7 +12,7 @@ pub use std::task::{Context, Poll};
 use crate::prelude::*;
 
 /// An error returned from [`catch_unwind()`] when the future panics.
-#[derive(Debug, Display, Error)]
+#[derive(Debug, Display, Error, From)]
 #[display(fmt = "Panicked.")]
 pub struct PanicError {
   /// The value the future panicked with.
@@ -24,7 +24,7 @@ pub async fn catch_unwind<F>(future: F) -> Result<F::Output, PanicError>
 where
   F: Future + panic::UnwindSafe,
 {
-  futures_lite::FutureExt::catch_unwind(future).await.map_err(|value| PanicError { value })
+  futures_lite::FutureExt::catch_unwind(future).await.map_err(From::from)
 }
 
 /// Yields once to other running futures or tasks.
