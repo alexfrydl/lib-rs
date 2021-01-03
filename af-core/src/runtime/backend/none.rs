@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-pub struct JoinHandle<T>(PhantomData<T>);
+pub struct TaskHandle<T>(PhantomData<T>);
 
 pub fn run<T>(future: impl Future<Output = T>) -> T {
   unimplemented()
@@ -12,7 +12,7 @@ pub async fn sleep(duration: Duration) {
   unimplemented()
 }
 
-pub fn spawn<T: Send + 'static>(future: impl Future<Output = T> + Send + 'static) -> JoinHandle<T> {
+pub fn spawn<T: Send + 'static>(future: impl Future<Output = T> + Send + 'static) -> TaskHandle<T> {
   unimplemented()
 }
 
@@ -20,8 +20,12 @@ pub async fn unblock<T: Send + 'static>(func: impl FnOnce() -> T + Send + 'stati
   unimplemented()
 }
 
-impl<T> JoinHandle<T> {
+impl<T> TaskHandle<T> {
   pub async fn join(self) -> Result<T, future::PanicError> {
+    unimplemented()
+  }
+
+  pub async fn stop(self) -> Option<T> {
     unimplemented()
   }
 }

@@ -9,8 +9,11 @@
 pub use std::future::Future;
 pub use std::task::{Context, Poll};
 
+mod noop_waker;
+
 use crate::prelude::*;
 use crate::runtime;
+use futures_lite::FutureExt;
 
 /// An error returned from [`cancel_after()`] when the operation is canceled.
 #[derive(Clone, Copy, Display, Error)]
@@ -40,16 +43,14 @@ pub async fn cancel_after<O, A>(
   signal: impl Future<Output = A>,
   op: impl Future<Output = O>,
 ) -> Result<O, CancelError<A>> {
-  futures_lite::future::or(
-    async move {
-      let output = op.await;
-      Ok(output)
-    },
-    async {
-      let value = signal.await;
-      Err(CancelError { value })
-    },
-  )
+  async move {
+    let output = op.await;
+    Ok(output)
+  }
+  .or(async {
+    let value = signal.await;
+    Err(CancelError { value })
+  })
   .await
 }
 
@@ -58,7 +59,15 @@ pub async fn catch_unwind<F>(future: F) -> Result<F::Output, PanicError>
 where
   F: Future + panic::UnwindSafe,
 {
-  futures_lite::FutureExt::catch_unwind(future).await.map_err(|value| PanicError { value })
+  future.catch_unwind().await.map_err(|value| PanicError { value })
+}
+
+/// Polls a future and returns its result if it is ready.
+pub fn poll<F: Future + Unpin>(op: &mut F) -> Option<F::Output> {
+  match Pin::new(op).poll(&mut noop_waker::context()) {
+    Poll::Ready(value) => Some(value),
+    _ => None,
+  }
 }
 
 /// Waits for the given duration to elapse.
@@ -75,6 +84,13 @@ pub async fn timeout<T>(
   future: impl Future<Output = T>,
 ) -> Result<T, TimeoutError> {
   cancel_after(sleep(duration), future).await.map_err(|_| TimeoutError)
+}
+
+/// Polls a future once and returns its result if it is ready; otherwise, the
+/// future is dropped.
+pub fn try_resolve<T>(op: impl Future<Output = T>) -> Option<T> {
+  pin!(op);
+  poll(&mut op)
 }
 
 /// Runs the given function on a background thread and waits for the result.

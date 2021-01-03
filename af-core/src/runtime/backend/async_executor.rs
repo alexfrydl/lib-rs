@@ -10,7 +10,7 @@ use once_cell::sync::Lazy;
 
 static EXECUTOR: Lazy<Executor> = Lazy::new(default);
 
-pub struct JoinHandle<T> {
+pub struct TaskHandle<T> {
   task: Option<Task<T>>,
 }
 
@@ -36,21 +36,25 @@ pub async fn sleep(duration: Duration) {
   Timer::after(duration.into()).await;
 }
 
-pub fn spawn<T: Send + 'static>(future: impl Future<Output = T> + Send + 'static) -> JoinHandle<T> {
+pub fn spawn<T: Send + 'static>(future: impl Future<Output = T> + Send + 'static) -> TaskHandle<T> {
   let task = EXECUTOR.spawn(future);
 
-  JoinHandle { task: Some(task) }
+  TaskHandle { task: Some(task) }
 }
 
-impl<T> JoinHandle<T> {
+impl<T> TaskHandle<T> {
   pub async fn join(mut self) -> Result<T, future::PanicError> {
     let task = self.task.take().unwrap();
 
     future::catch_unwind(panic::AssertUnwindSafe(task)).await
   }
+
+  pub async fn stop(self) -> Option<T> {
+    self.task.take().unwrap().cancel().await
+  }
 }
 
-impl<T> Drop for JoinHandle<T> {
+impl<T> Drop for TaskHandle<T> {
   fn drop(&mut self) {
     if let Some(task) = self.task.take() {
       task.detach();

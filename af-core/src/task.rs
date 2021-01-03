@@ -9,15 +9,15 @@
 pub use crate::future::{sleep, yield_now, PanicError};
 
 use crate::prelude::*;
-use crate::runtime::backend;
+use crate::runtime;
 
 /// A handle that can be used to wait for a task to complete and receive its
 /// result.
-pub struct Handle<T>(backend::JoinHandle<T>);
+pub struct Handle<T>(runtime::backend::TaskHandle<T>);
 
 /// Starts running an async operation on a new task.
 pub fn start<T: Send + 'static>(op: impl Future<Output = T> + Send + 'static) -> Handle<T> {
-  Handle(backend::spawn(op))
+  Handle(runtime::backend::spawn(op))
 }
 
 impl<T> Handle<T> {
@@ -27,5 +27,19 @@ impl<T> Handle<T> {
   /// value.
   pub async fn join(self) -> Result<T, PanicError> {
     self.0.join().await
+  }
+
+  /// Forcefully stops the task.
+  ///
+  /// If the task already completed, this function returns its output.
+  pub fn kill(self) -> Option<T> {
+    future::try_resolve(self.stop())?
+  }
+
+  /// Forcefully stops the task and waits for it to exit.
+  ///
+  /// If the task already completed, this function returns its output.
+  pub async fn stop(self) -> Option<T> {
+    self.0.stop().await
   }
 }
