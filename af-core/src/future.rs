@@ -22,11 +22,11 @@ pub struct CancelError<T> {
   pub value: T,
 }
 
-/// An error returned from [`Handle::join()`] when the task panics.
+/// An error representing a panic from a [`Future`].
 #[derive(Debug, Display, Error, From)]
 #[display(fmt = "Panicked.")]
 pub struct PanicError {
-  /// The value the task panicked with.
+  /// The value the future panicked with.
   pub value: Box<dyn Any + Send>,
 }
 
@@ -35,16 +35,17 @@ pub struct PanicError {
 #[display(fmt = "Timed out.")]
 pub struct TimeoutError;
 
-/// Runs an async operation until another “signal” operation completes.
+/// Waits for a future to be ready or cancels it when a signal future is
+/// ready.
 ///
-/// If the signal completes before the operation completes, this function
-/// returns a [`CancelError`]. The operation is then dropped.
+/// When either future is ready, the other is dropped. If the signal future is
+/// ready first, this function returns a [`CancelError`] containing its output.
 pub async fn cancel_after<O, A>(
   signal: impl Future<Output = A>,
-  op: impl Future<Output = O>,
+  f: impl Future<Output = O>,
 ) -> Result<O, CancelError<A>> {
   async move {
-    let output = op.await;
+    let output = f.await;
     Ok(output)
   }
   .or(async {
@@ -54,17 +55,17 @@ pub async fn cancel_after<O, A>(
   .await
 }
 
-/// Runs an async operation and returs a [`PanicError`] if it panics.
-pub async fn catch_unwind<F>(future: F) -> Result<F::Output, PanicError>
+/// Waits for a future to be ready or returns a [`PanicError`] if it panics.
+pub async fn catch_unwind<F>(f: F) -> Result<F::Output, PanicError>
 where
   F: Future + panic::UnwindSafe,
 {
-  future.catch_unwind().await.map_err(|value| PanicError { value })
+  f.catch_unwind().await.map_err(|value| PanicError { value })
 }
 
 /// Polls a future and returns its result if it is ready.
-pub fn poll<F: Future + Unpin>(op: &mut F) -> Option<F::Output> {
-  match Pin::new(op).poll(&mut noop_waker::context()) {
+pub fn poll<F: Future + Unpin>(f: &mut F) -> Option<F::Output> {
+  match Pin::new(f).poll(&mut noop_waker::context()) {
     Poll::Ready(value) => Some(value),
     _ => None,
   }
@@ -75,27 +76,23 @@ pub async fn sleep(duration: Duration) {
   runtime::backend::sleep(duration).await;
 }
 
-/// Runs an async operation with a given timeout.
+/// Waits for a future to be ready or cancels it after a given timeout.
 ///
-/// If the timeout duration elapses before the operation completes, this
-/// function returns `None`. The operation is then dropped.
-pub async fn timeout<T>(
-  duration: Duration,
-  future: impl Future<Output = T>,
-) -> Result<T, TimeoutError> {
-  cancel_after(sleep(duration), future).await.map_err(|_| TimeoutError)
+/// If the timeout duration elapses before the future is ready, this
+/// function drops the future and returns `None`.
+pub async fn timeout<T>(duration: Duration, f: impl Future<Output = T>) -> Result<T, TimeoutError> {
+  cancel_after(sleep(duration), f).await.map_err(|_| TimeoutError)
 }
 
-/// Polls a future once and returns its result if it is ready; otherwise, the
-/// future is dropped.
-pub fn try_resolve<T>(op: impl Future<Output = T>) -> Option<T> {
-  pin!(op);
-  poll(&mut op)
+/// Polls the future once, drops it, and returns its output if it is ready.
+pub fn try_resolve<T>(f: impl Future<Output = T>) -> Option<T> {
+  pin!(f);
+  poll(&mut f)
 }
 
-/// Runs the given function on a background thread and waits for the result.
-pub async fn unblock<T: Send + 'static>(func: impl FnOnce() -> T + Send + 'static) -> T {
-  runtime::backend::unblock(func).await
+/// Runs a blocking operation on a background thread and waits for its output.
+pub async fn unblock<T: Send + 'static>(op: impl FnOnce() -> T + Send + 'static) -> T {
+  runtime::backend::unblock(op).await
 }
 
 /// Yields once to other running futures or tasks.
