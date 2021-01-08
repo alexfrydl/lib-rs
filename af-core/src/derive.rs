@@ -8,5 +8,6 @@
 
 pub use af_macros::Error;
 pub use derive_more::*;
+pub use std::error::Error;
 
 pub(crate) use serde::{Deserialize, Serialize};

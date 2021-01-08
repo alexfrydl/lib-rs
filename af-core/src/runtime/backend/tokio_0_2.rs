@@ -7,7 +7,7 @@ static HANDLE: OnceCell<Handle> = OnceCell::new();
 
 pub struct TaskHandle<T> {
   exit: Event,
-  inner: tokio::task::JoinHandle<Result<T, future::CancelError<()>>>,
+  inner: tokio::task::JoinHandle<Result<T, future::CancelError>>,
 }
 
 pub fn run<T>(future: impl Future<Output = T>) -> T {
@@ -43,7 +43,7 @@ impl<T> TaskHandle<T> {
   }
 
   pub async fn stop(self) -> Option<T> {
-    self.exit.notify(1);
+    self.exit.notify_relaxed(1);
     self.join().await.ok()
   }
 }

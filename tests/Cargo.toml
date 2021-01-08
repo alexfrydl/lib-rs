@@ -1,0 +1,14 @@
+[package]
+authors = ["Alexandra Frydl <me@alexfrydl.com>"]
+edition = "2018"
+name = "tests"
+license = "MPL-2.0"
+version = "0.0.0"
+
+[features]
+default = ["runtime"]
+runtime = ["af-core/runtime"]
+runtime-tokio = ["af-core/runtime-tokio"]
+
+[dependencies]
+af-core = { path = "../af-core", features = ["logger"] }

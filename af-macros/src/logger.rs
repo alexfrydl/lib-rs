@@ -8,9 +8,9 @@
 #[macro_export]
 macro_rules! logger_init {
   () => {
-    af_core::runtime::logger::init();
+    af_core::log::init();
 
-    af_core::runtime::logger::set_level_of(
+    af_core::log::set_level_of(
       option_env!("CARGO_BIN_NAME").unwrap_or(env!("CARGO_PKG_NAME")).replace("-", "_"),
       match cfg!(debug_assertions) {
         true => af_core::log::Debug,

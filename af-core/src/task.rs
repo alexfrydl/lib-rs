@@ -29,17 +29,10 @@ impl<T> Handle<T> {
     self.0.join().await
   }
 
-  /// Forcefully stops the task.
+  /// Kills the task by dropping it.
   ///
   /// If the task already completed, this function returns its output.
   pub fn kill(self) -> Option<T> {
-    future::try_resolve(self.stop())?
-  }
-
-  /// Forcefully stops the task and waits for it to exit.
-  ///
-  /// If the task already completed, this function returns its output.
-  pub async fn stop(self) -> Option<T> {
-    self.0.stop().await
+    future::try_resolve(self.0.stop())?
   }
 }

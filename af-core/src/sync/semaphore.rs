@@ -14,7 +14,7 @@ use crate::prelude::*;
 pub struct Semaphore(Arc<async_lock::Semaphore>);
 
 /// A permit for a [`Semaphore`], released when dropped.
-pub struct SemaphorePermit(async_lock::SemaphoreGuardArc);
+pub struct Permit(async_lock::SemaphoreGuardArc);
 
 impl Semaphore {
   /// Creates a new semaphore with the specified number of permits.
@@ -23,12 +23,12 @@ impl Semaphore {
   }
 
   /// Waits for an available permit.
-  pub async fn acquire(&self) -> SemaphorePermit {
-    SemaphorePermit(self.0.acquire_arc().await)
+  pub async fn acquire(&self) -> Permit {
+    Permit(self.0.acquire_arc().await)
   }
 }
 
-impl SemaphorePermit {
+impl Permit {
   /// Releases a permit, dropping it immediately.
   pub fn release(self) {}
 

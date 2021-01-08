@@ -25,7 +25,7 @@ pub fn run<T>(future: impl Future<Output = T>) -> T {
     // Run the main future on the current thread.
     .finish(|| thread::block_on(async {
       let result = future.await;
-      shutdown.notify(threads);
+      shutdown.notify_relaxed(threads);
       result
     }));
 
@@ -49,7 +49,7 @@ impl<T> TaskHandle<T> {
     future::catch_unwind(panic::AssertUnwindSafe(task)).await
   }
 
-  pub async fn stop(self) -> Option<T> {
+  pub async fn stop(mut self) -> Option<T> {
     self.task.take().unwrap().cancel().await
   }
 }

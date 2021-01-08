@@ -51,3 +51,13 @@ publish package=".":
 
   set -l root (pwd)
   cd {{package}} && cargo publish --all-features --target-dir $root/target
+
+test runtime="default":
+  #!/bin/fish
+
+  switch "{{runtime}}"
+  case tokio:
+    cargo run -p tests --no-default-features --features runtime-tokio 
+  case '*'
+    cargo run -p tests
+  end

@@ -16,11 +16,9 @@ use crate::runtime;
 use futures_lite::FutureExt;
 
 /// An error returned from [`cancel_after()`] when the operation is canceled.
-#[derive(Clone, Copy, Display, Error)]
+#[derive(Clone, Copy, Debug, Display, Error)]
 #[display(fmt = "Canceled.")]
-pub struct CancelError<T> {
-  pub value: T,
-}
+pub struct CancelError;
 
 /// An error representing a panic from a [`Future`].
 #[derive(Debug, Display, Error, From)]
@@ -39,18 +37,18 @@ pub struct TimeoutError;
 /// ready.
 ///
 /// When either future is ready, the other is dropped. If the signal future is
-/// ready first, this function returns a [`CancelError`] containing its output.
+/// ready first, this function returns a [`CancelError`].
 pub async fn cancel_after<O, A>(
   signal: impl Future<Output = A>,
   f: impl Future<Output = O>,
-) -> Result<O, CancelError<A>> {
+) -> Result<O, CancelError> {
   async move {
     let output = f.await;
     Ok(output)
   }
   .or(async {
     let value = signal.await;
-    Err(CancelError { value })
+    Err(CancelError)
   })
   .await
 }
@@ -84,7 +82,8 @@ pub async fn timeout<T>(duration: Duration, f: impl Future<Output = T>) -> Resul
   cancel_after(sleep(duration), f).await.map_err(|_| TimeoutError)
 }
 
-/// Polls the future once, drops it, and returns its output if it is ready.
+/// Polls the future once then drops it, returning the output if the future was
+/// ready.
 pub fn try_resolve<T>(f: impl Future<Output = T>) -> Option<T> {
   pin!(f);
   poll(&mut f)
@@ -98,12 +97,4 @@ pub async fn unblock<T: Send + 'static>(op: impl FnOnce() -> T + Send + 'static)
 /// Yields once to other running futures or tasks.
 pub async fn yield_now() {
   futures_lite::future::yield_now().await;
-}
-
-// Delegate `Debug` to `Display` for errors.
-
-impl<T> Debug for CancelError<T> {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    Display::fmt(self, f)
-  }
 }
