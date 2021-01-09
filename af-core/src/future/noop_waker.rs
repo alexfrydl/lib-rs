@@ -1,5 +1,5 @@
+use crate::prelude::*;
 use core::ptr::null;
-use once_cell::sync::Lazy;
 use std::task::{Context, RawWaker, RawWakerVTable, Waker};
 
 /// A shared instance of the no-op waker.

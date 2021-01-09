@@ -6,9 +6,8 @@
 
 //! Functions for inspecting the environment of the current process.
 
-use crate::fs::path;
+use crate::path;
 use crate::prelude::*;
-use once_cell::sync::Lazy;
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -51,41 +50,6 @@ static EXE_PATH: Lazy<Result<(String, String), String>> = Lazy::new(|| {
   Ok((path, file))
 });
 
-/// The full file system path to the cargo project for the currently running
-/// executable.
-static PROJECT_PATH: Lazy<Option<String>> = Lazy::new(|| var("CARGO_MANIFEST_DIR").ok());
-
-/// The full file system path to the cargo workspace of the currently running
-/// executable.
-static WORKSPACE_PATH: Lazy<Option<String>> = Lazy::new(|| {
-  // Starting at the project path, look for a directory containing `Cargo.lock`.
-
-  let project_path = PROJECT_PATH.as_ref()?;
-  let mut workspace_path: String = project_path.into();
-
-  loop {
-    path::append(&mut workspace_path, "Cargo.lock");
-
-    let found = AsRef::<Path>::as_ref(&workspace_path).exists();
-
-    path::pop(&mut workspace_path);
-
-    if found {
-      break;
-    }
-
-    // Try the parent directory next. If there's no parent directory, default to
-    // the project path.
-
-    if path::pop(&mut workspace_path).is_none() {
-      workspace_path.replace_range(.., project_path);
-      break;
-    }
-  }
-
-  Some(workspace_path)
-});
-
 /// Returns the file name of the currently running executable.
 pub fn exe_name() -> &'static str {
   &EXE_PATH.as_ref().expect("Failed to determine path to current executable").1
@@ -97,30 +61,27 @@ pub fn exe_path() -> &'static str {
   &EXE_PATH.as_ref().expect("Failed to determine path to current executable").0
 }
 
-/// Returns true if this executable was started by `cargo run` or similar.
-pub fn is_cargo_run() -> bool {
-  PROJECT_PATH.is_some()
-}
-
 /// Returns the full file system path to the cargo project of the currently
 /// running executable.
 ///
 /// This function panics if the executable was not run with a `cargo` command.
 /// Use [`is_cargo_run()`] to check whether this function will panic.
-pub fn project_path() -> &'static str {
-  PROJECT_PATH.as_ref().expect("project_path is only available with `cargo run` and `cargo test`")
+pub fn project_path() -> Option<&'static str> {
+  static PATH: Lazy<Option<&'static str>> = Lazy::new(|| {
+    let value = var("CARGO_MANIFEST_DIR").ok()?;
+
+    Some(Box::leak(value.into_boxed_str()))
+  });
+
+  *PATH
 }
 
-/// Returns the full file system path to the cargo workspace of the currently
-/// running executable.
-///
-/// This function panics if the executable was not run with a `cargo` command.
-/// Use [`is_cargo_run()`] to check whether this function will panic.
-pub fn workspace_path() -> &'static str {
-  WORKSPACE_PATH
-    .as_ref()
-    .map(|w| w.as_str())
-    .expect("workspace_path is only available with `cargo run` and `cargo test`")
+/// Returns the value of the given environment variable.
+pub fn var(name: &str) -> Result<String, VarError> {
+  std::env::var(name).map_err(|err| match err {
+    std::env::VarError::NotPresent => VarError::NotPresent,
+    std::env::VarError::NotUnicode(_) => VarError::NotUnicode,
+  })
 }
 
 /// Returns the full file system path to the current working directory.
@@ -134,12 +95,42 @@ pub fn working_path() -> Result<String, WorkingPathError> {
   Ok(path.to_str().map(String::from).ok_or_else(|| WorkingPathError::NotUnicode(path))?)
 }
 
-/// Returns the value of the given environment variable.
-pub fn var(name: &str) -> Result<String, VarError> {
-  std::env::var(name).map_err(|err| match err {
-    std::env::VarError::NotPresent => VarError::NotPresent,
-    std::env::VarError::NotUnicode(_) => VarError::NotUnicode,
-  })
+/// Returns the full file system path to the cargo workspace of the currently
+/// running executable.
+///
+/// If the currently running executable was not started by `cargo run` or a
+/// similar command, this function returns `None`.
+pub fn workspace_path() -> Option<&'static str> {
+  static PATH: Lazy<Option<&'static str>> = Lazy::new(|| {
+    // Starting at the project path, look for a directory containing `Cargo.lock`.
+
+    let project_path = project_path()?;
+    let mut workspace_path: String = project_path.into();
+
+    loop {
+      path::append(&mut workspace_path, "Cargo.lock");
+
+      let found = AsRef::<Path>::as_ref(&workspace_path).exists();
+
+      path::pop(&mut workspace_path);
+
+      if found {
+        break;
+      }
+
+      // Try the parent directory next. If there's no parent directory, default to
+      // the project path.
+
+      if path::pop(&mut workspace_path).is_none() {
+        workspace_path.replace_range(.., project_path);
+        break;
+      }
+    }
+
+    Some(Box::leak(workspace_path.into_boxed_str()))
+  });
+
+  *PATH
 }
 
 #[cfg(test)]
@@ -148,22 +139,22 @@ mod tests {
 
   #[test]
   fn test_project_path() {
-    assert!(path::is_absolute(project_path()), "path is not absolute");
+    let path = project_path().unwrap();
 
-    assert_eq!(
-      project_path(),
-      var("CARGO_MANIFEST_DIR").unwrap(),
-      "path does not point to project"
-    );
+    assert!(path::is_absolute(path), "path is not absolute");
+
+    assert_eq!(path, var("CARGO_MANIFEST_DIR").unwrap(), "path does not point to project");
   }
 
   #[test]
   fn test_workspace_path() {
-    assert!(path::is_absolute(workspace_path()), "path is not absolute");
+    let path = workspace_path().unwrap();
+
+    assert!(path::is_absolute(path), "path is not absolute");
 
     assert_eq!(
-      workspace_path(),
-      path::parent(project_path()).unwrap(),
+      path,
+      path::parent(project_path().unwrap()).unwrap(),
       "path does not point to workspace"
     );
   }
@@ -186,7 +177,7 @@ mod tests {
     assert!(path::is_absolute(&working_path), "path is not absolute");
 
     assert!(
-      path::starts_with(&working_path, workspace_path()),
+      path::starts_with(&working_path, workspace_path().unwrap()),
       "path is outside the workspace directory"
     );
   }

@@ -4,8 +4,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+mod attr_main;
 mod prelude;
-mod runtime;
 
 use crate::prelude::*;
 
@@ -55,9 +55,6 @@ pub fn derive_error(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// }
 /// ```
 #[proc_macro_attribute]
-pub fn runtime_main(
-  _: proc_macro::TokenStream,
-  item: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-  runtime::main(item)
+pub fn main(_: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+  attr_main::run(item)
 }

@@ -4,6 +4,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+//! Traits and utilities for working with numbers.
+
 pub use num_traits::identities::{one, zero, One, Zero};
 pub use num_traits::AsPrimitive;
 
@@ -12,14 +14,9 @@ use crate::prelude::*;
 /// A trait for types that implement all the basic operations of a number.
 ///
 /// This trait is implemented for all primitive integer and floating-point
-/// types, for example.
+/// types.
 pub trait Number:
   PartialOrd + PartialEq + Zero + One + num_traits::NumOps + num_traits::NumAssignOps
-{
-}
-
-impl<T> Number for T where
-  T: PartialOrd + PartialEq + Zero + One + num_traits::NumOps + num_traits::NumAssignOps
 {
 }
 
@@ -37,6 +34,13 @@ pub fn clamp_mut<T: Number>(value: &mut T, min: T, max: T) {
   } else if &*value > &max {
     *value = max;
   }
+}
+
+// Implement Number for all types that implement the required traits.
+
+impl<T> Number for T where
+  T: PartialOrd + PartialEq + Zero + One + num_traits::NumOps + num_traits::NumAssignOps
+{
 }
 
 // Unit tests.

@@ -8,8 +8,8 @@
 
 pub use std::thread::yield_now;
 
+use crate::channel;
 use crate::prelude::*;
-use crate::sync::channel;
 use std::thread::{Builder, JoinHandle};
 
 /// A handle that can be used to wait for a thread to complete and receive its
@@ -29,7 +29,7 @@ pub struct PanicError {
 
 /// Blocks the current thread until the given future completes.
 pub fn block_on<T>(future: impl Future<Output = T>) -> T {
-  futures_lite::future::block_on(future)
+  async_io::block_on(future)
 }
 
 /// Blocks the current thread for a given duration.
@@ -42,7 +42,7 @@ pub fn start<T: Send + 'static>(
   name: impl Into<String>,
   func: impl FnOnce() -> T + Send + 'static,
 ) -> Handle<T> {
-  let (tx, rx) = channel::bounded(1);
+  let (tx, rx) = channel::with_capacity(1);
 
   let func = move || {
     let output = func();

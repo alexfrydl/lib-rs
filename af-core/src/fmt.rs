@@ -9,10 +9,8 @@
 #[doc(no_inline)]
 pub use std::fmt::*;
 
-mod as_path;
 mod indent;
 mod surround;
 
-pub use self::as_path::*;
 pub use self::indent::*;
 pub use self::surround::*;

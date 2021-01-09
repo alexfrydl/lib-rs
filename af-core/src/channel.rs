@@ -25,8 +25,7 @@ pub struct Sender<T> {
 #[display(fmt = "Channel is closed.")]
 pub struct ClosedError;
 
-/// An error that occurred during a [`Channel::send()`] or
-/// [`Channel::try_send()`] call.
+/// An error returned from a [`Sender::send()`] or [`Sender::try_send()`] call.
 #[derive(Clone, Copy)]
 pub struct SendError<M> {
   /// The message that failed to send.
@@ -35,7 +34,7 @@ pub struct SendError<M> {
   pub reason: SendErrorReason,
 }
 
-/// One of the possible kinds of [`SendError`].
+/// The reason a [`SendError`] was returned.
 #[derive(Clone, Copy, Debug, Display, Eq, PartialEq)]
 pub enum SendErrorReason {
   #[display(fmt = "Channel is closed.")]
@@ -44,22 +43,9 @@ pub enum SendErrorReason {
   Full,
 }
 
-/// Creates a bounded channel with a specified capacity.
-///
-/// Bounded channels can only buffer up to `capacity` unreceived messages. If
-/// the channels is full, [`Sender::send()`] will wait for space.
-pub fn bounded<T>(capacity: usize) -> (Sender<T>, Receiver<T>) {
+/// Creates a channel with a specified capacity.
+pub fn with_capacity<T>(capacity: usize) -> (Sender<T>, Receiver<T>) {
   let (tx, rx) = async_channel::bounded(capacity);
-
-  (Sender { tx }, Receiver { rx })
-}
-
-/// Creates an unbounded channel.
-///
-/// Unbounded channels can buffer an unlimited number of unreceived messages,
-/// and [`Sender::send()`] will never wait.
-pub fn unbounded<T>() -> (Sender<T>, Receiver<T>) {
-  let (tx, rx) = async_channel::unbounded();
 
   (Sender { tx }, Receiver { rx })
 }

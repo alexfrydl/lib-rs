@@ -7,4 +7,6 @@
 //! Iterator utilities.
 
 pub use itertools::*;
+
+#[doc(no_inline)]
 pub use std::iter::*;

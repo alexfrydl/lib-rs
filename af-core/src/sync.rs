@@ -6,10 +6,4 @@
 
 //! Synchronization primitives and concurrency utilties.
 
-pub mod atomic_cell;
 pub mod channel;
-pub mod semaphore;
-
-pub use self::atomic_cell::AtomicCell;
-pub use self::channel::unbounded as channel;
-pub use self::semaphore::Semaphore;

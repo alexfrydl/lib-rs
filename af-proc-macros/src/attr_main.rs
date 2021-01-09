@@ -6,13 +6,12 @@
 
 use crate::prelude::*;
 
-/// Runs the `runtime::main` attribute macro.
-pub fn main(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+/// Runs the `main` attribute macro.
+pub fn run(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
   // Extract function item information.
 
   let syn::ItemFn { attrs, vis, sig, block } = syn::parse_macro_input!(item as syn::ItemFn);
   let name = &sig.ident;
-  let output = &sig.output;
 
   // Require an async function.
 
@@ -33,13 +32,6 @@ pub fn main(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     .into();
   }
 
-  // Generate code to print errors.
-
-  let wrap_result = match output {
-    syn::ReturnType::Default => quote! { Ok(result) },
-    _ => quote! { Ok(result?) },
-  };
-
   // Generate the output.
 
   #[allow(unused_mut)]
@@ -50,6 +42,27 @@ pub fn main(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     af_core::log::init!();
   });
 
+  // Generate code to print errors.
+
+  let print_error = match &sig.output {
+    syn::ReturnType::Default => quote! {},
+    _ => quote! {
+      match output {
+        Err(err) => {
+          eprintln!("{}", err);
+          std::process::exit(-1)
+        },
+
+        Ok(Err(err)) => {
+          eprintln!("{}", err);
+          std::process::exit(1)
+        },
+
+        _ => {}
+      }
+    },
+  };
+
   let result = quote! {
     #vis fn main() {
       #(#attrs)*
@@ -57,11 +70,9 @@ pub fn main(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
       #init
 
-      af_core::runtime::run(async {
-        let result = #name().await;
+      let output = af_core::thread::block_on(af_core::task::start(async { #name().await }));
 
-        #wrap_result
-      })
+      #print_error
     }
   };
 

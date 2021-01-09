@@ -71,6 +71,13 @@ impl<T: Copy> AtomicCell<T> {
     unsafe { from_u64(value) }
   }
 
+  /// Atomically loads the current value with relaxed ordering.
+  pub fn load_relaxed(&self) -> T {
+    let value = self.value.load(atomic::Ordering::Relaxed);
+
+    unsafe { from_u64(value) }
+  }
+
   /// Atomically stores a new value.
   pub fn store(&self, value: T)
   where
@@ -106,12 +113,15 @@ impl<T: Copy> AtomicCell<T> {
   }
 }
 
-impl<T: Copy + PartialEq> Listener<T> {
+impl<T: Copy> Listener<T> {
   /// Waits for and returns the next value of the cell.
   ///
   /// The first time this function is called, it will return immediately with
   /// the current value of the cell.
-  pub async fn next(&mut self) -> T {
+  pub async fn next(&mut self) -> T
+  where
+    T: PartialEq,
+  {
     struct Next<'a, T>(&'a mut Listener<T>);
 
     impl<'a, T: Copy + PartialEq> Future for Next<'a, T> {
@@ -126,7 +136,10 @@ impl<T: Copy + PartialEq> Listener<T> {
   }
 
   /// Polls the listener for the next value.
-  fn poll_next(self: Pin<&mut Self>, cx: &mut future::Context) -> future::Poll<T> {
+  fn poll_next(self: Pin<&mut Self>, cx: &mut future::Context) -> future::Poll<T>
+  where
+    T: PartialEq,
+  {
     let _self = unsafe { self.get_unchecked_mut() };
 
     match &mut _self.state {
@@ -171,7 +184,7 @@ impl<T: Copy + PartialEq> Future for Listener<T> {
   }
 }
 
-impl<T: Copy + Eq> Stream for Listener<T> {
+impl<T: Copy + PartialEq> Stream for Listener<T> {
   type Item = T;
 
   fn poll_next(self: Pin<&mut Self>, cx: &mut future::Context) -> std::task::Poll<Option<T>> {

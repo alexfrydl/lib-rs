@@ -5,7 +5,6 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use crate::prelude::*;
-use once_cell::sync::Lazy;
 use parking_lot::RwLock;
 
 use std::{collections::HashMap, ptr};

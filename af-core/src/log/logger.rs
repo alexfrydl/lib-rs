@@ -7,11 +7,9 @@
 pub use af_macros::logger_init as init;
 
 use crate::prelude::*;
-use crate::sync::channel;
-use crate::thread;
+use crate::{channel, thread};
 use dashmap::DashMap;
 use log::{Level, LevelFilter, Log, Metadata, Record, RecordBuilder};
-use once_cell::sync::Lazy;
 use parking_lot::RwLock;
 use std::cell::RefCell;
 use std::sync::atomic::{self, AtomicUsize};
@@ -29,7 +27,7 @@ static LOGGER: Lazy<Logger> = Lazy::new(|| Logger {
   dropped_messages: default(),
   max_level: RwLock::new(LevelFilter::Warn),
   max_level_of: default(),
-  output: channel::bounded(16384),
+  output: channel::with_capacity(4096),
 });
 
 thread_local! {

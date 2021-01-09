@@ -20,7 +20,7 @@ pub use {
   crate::math::Number,
   crate::random::{self, random, Random},
   crate::time::{self, Date, Duration, Time},
-  crate::util::{attempt, attempt_async, cfg_if, default, pin},
+  crate::util::{attempt, attempt_async, cfg_if, default, pin, Lazy},
   crate::uuid::{self, Uuid},
   std::any::Any,
   std::borrow::*,

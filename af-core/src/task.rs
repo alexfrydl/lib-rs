@@ -6,33 +6,95 @@
 
 //! Task-based concurrency.
 
-pub use crate::future::{sleep, yield_now, PanicError};
+mod cancel;
+
+pub use self::cancel::{CancelSignal, Canceler};
 
 use crate::prelude::*;
-use crate::runtime;
 
-/// A handle that can be used to wait for a task to complete and receive its
-/// result.
-pub struct Handle<T>(runtime::backend::TaskHandle<T>);
+/// The output of a [`Task`].
+type Output<T> = Result<T, PanicError>;
 
-/// Starts running an async operation on a new task.
-pub fn start<T: Send + 'static>(op: impl Future<Output = T> + Send + 'static) -> Handle<T> {
-  Handle(runtime::backend::spawn(op))
+/// An asynchronous task.
+#[must_use = "A task is killed when its Handle is dropped."]
+pub struct Handle<T> {
+  task: async_executor::Task<Output<T>>,
+}
+
+/// An error representing a panic from a [`Future`].
+#[derive(Error, From)]
+pub struct PanicError {
+  /// The value the future panicked with.
+  pub value: Box<dyn Any + Send>,
+}
+
+/// Waits for the given duration to elapse.
+pub async fn sleep(duration: Duration) {
+  async_io::Timer::after(duration.into()).await;
+}
+
+/// Starts a new task.
+pub fn start<F>(future: F) -> Handle<F::Output>
+where
+  F: Future + Send + 'static,
+  F::Output: Send + 'static,
+{
+  let future = async {
+    future::catch_unwind(panic::AssertUnwindSafe(future))
+      .await
+      .map_err(|value| PanicError { value })
+  };
+
+  Handle { task: async_global_executor::spawn(future) }
+}
+
+/// Yields once to other running tasks.
+pub async fn yield_now() {
+  futures_lite::future::yield_now().await;
 }
 
 impl<T> Handle<T> {
-  /// Waits for the associated task to finish and returns its result.
+  /// Kills the task by dropping its associated future, then waits for the task
+  /// to exit.
   ///
-  /// If the task panics, this function returns an error containing the panic
-  /// value.
-  pub async fn join(self) -> Result<T, PanicError> {
-    self.0.join().await
+  /// If the task already exited normally, this function returns its output.
+  pub async fn kill(self) -> Option<T> {
+    self.task.cancel().await?.ok()
   }
+}
 
-  /// Kills the task by dropping it.
-  ///
-  /// If the task already completed, this function returns its output.
-  pub fn kill(self) -> Option<T> {
-    future::try_resolve(self.0.stop())?
+// Implement Future for Handle to poll the underlying task.
+
+impl<T> Future for Handle<T> {
+  type Output = Output<T>;
+
+  fn poll(self: Pin<&mut Self>, cx: &mut future::Context<'_>) -> future::Poll<Self::Output> {
+    let task = unsafe { Pin::map_unchecked_mut(self, |s| &mut s.task) };
+
+    task.poll(cx)
+  }
+}
+
+impl Debug for PanicError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    if let Some(string) = self.value.downcast_ref::<String>() {
+      write!(f, "PanicError({:?})", string)
+    } else if let Some(string) = self.value.downcast_ref::<&'static str>() {
+      write!(f, "PanicError({:?})", string)
+    } else {
+      write!(f, "PanicError")
+    }
+  }
+}
+
+impl Display for PanicError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    if let Some(string) = self.value.downcast_ref::<String>() {
+      write!(f, "Task panicked with `{}`.", string)
+    } else if let Some(string) = self.value.downcast_ref::<&'static str>() {
+      write!(f, "Task panicked with `{}`.", string)
+    } else {
+      write!(f, "Task panicked.")
+    }
   }
 }
