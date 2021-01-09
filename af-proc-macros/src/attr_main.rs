@@ -21,17 +21,6 @@ pub fn run(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
       .into();
   }
 
-  // Require no parameters.
-
-  if !sig.inputs.is_empty() {
-    return syn::Error::new_spanned(
-      sig.inputs,
-      "The runtime main function must not have parameters.",
-    )
-    .to_compile_error()
-    .into();
-  }
-
   // Generate the output.
 
   #[allow(unused_mut)]
@@ -42,24 +31,30 @@ pub fn run(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     af_core::log::init!();
   });
 
-  // Generate code to print errors.
+  // Generate code to wrap the output in a result.
 
-  let print_error = match &sig.output {
-    syn::ReturnType::Default => quote! {},
+  let wrap_result = match &sig.output {
+    syn::ReturnType::Default => quote! { Result::<_, i32>::Ok(output) },
+    _ => quote! { output },
+  };
+
+  // Generate code to call the main function.
+
+  let run = match sig.inputs.len() {
+    0 => quote! {
+      af_core::run(async {
+        let output = #name().await;
+
+        #wrap_result
+      });
+    },
+
     _ => quote! {
-      match output {
-        Err(err) => {
-          eprintln!("{}", err);
-          std::process::exit(-1)
-        },
+      af_core::run_with(|cancel_signal| async {
+        let output = #name(cancel_signal).await;
 
-        Ok(Err(err)) => {
-          eprintln!("{}", err);
-          std::process::exit(1)
-        },
-
-        _ => {}
-      }
+        #wrap_result
+      });
     },
   };
 
@@ -69,10 +64,7 @@ pub fn run(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
       #sig #block
 
       #init
-
-      let output = af_core::thread::block_on(af_core::task::start(async { #name().await }));
-
-      #print_error
+      #run
     }
   };
 

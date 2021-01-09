@@ -37,6 +37,14 @@ pub fn poll<F: Future + Unpin>(f: &mut F) -> Option<F::Output> {
   }
 }
 
+/// Waits for one of two futures to complete and returns its result.
+///
+/// The remaining future is dropped. If both futures are ready at the same time,
+/// the first future has priority.
+pub async fn race<T>(a: impl Future<Output = T>, b: impl Future<Output = T>) -> T {
+  a.or(b).await
+}
+
 /// Polls the future once then drops it, returning the output if the future was
 /// ready.
 pub fn try_resolve<T>(f: impl Future<Output = T>) -> Option<T> {

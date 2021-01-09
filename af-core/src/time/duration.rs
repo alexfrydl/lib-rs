@@ -20,49 +20,49 @@ pub struct Duration {
 }
 
 impl Duration {
+  /// An infinite duration.
+  pub const INFINITE: Self = Self { secs: f64::INFINITY };
+
   /// Returns a duration of the given number of weeks.
-  pub fn weeks(weeks: u64) -> Self {
-    Self::secs_f64(weeks as f64 * 7.0 * 24.0 * 60.0 * 60.0)
+  pub fn weeks(weeks: impl AsPrimitive<f64>) -> Self {
+    Self::secs(weeks.as_() * 7.0 * 24.0 * 60.0 * 60.0)
   }
 
   /// Returns a duration of the given number of days.
-  pub fn days(days: u64) -> Self {
-    Self::secs_f64(days as f64 * 24.0 * 60.0 * 60.0)
+  pub fn days(days: impl AsPrimitive<f64>) -> Self {
+    Self::secs(days.as_() * 24.0 * 60.0 * 60.0)
   }
 
   /// Returns a duration of the given number of hours.
-  pub fn hours(hours: u64) -> Self {
-    Self::secs_f64(hours as f64 * 60.0 * 60.0)
+  pub fn hours(hours: impl AsPrimitive<f64>) -> Self {
+    Self::secs(hours.as_() * 60.0 * 60.0)
   }
 
   /// Returns a duration of the given number of minutes.
-  pub fn mins(mins: u64) -> Self {
-    Self::secs_f64(mins as f64 * 60.0)
+  pub fn mins(mins: impl AsPrimitive<f64>) -> Self {
+    Self::secs(mins.as_() * 60.0)
   }
 
   /// Returns a duration of the given number of seconds.
-  pub fn secs(secs: u64) -> Self {
-    Self::secs_f64(secs as f64)
-  }
+  pub fn secs(secs: impl AsPrimitive<f64>) -> Self {
+    let secs = secs.as_();
 
-  /// Returns a duration of the given number of seconds.
-  pub fn secs_f64(secs: f64) -> Self {
     assert!(!secs.is_nan(), "Duration cannot be NaN.");
 
     Self { secs: secs.max(0.0) }
   }
 
   /// Returns a duration of the given number of Hz.
-  pub fn hz(hz: u64) -> Self {
-    Self::secs_f64(1.0 / hz as f64)
+  pub fn hz(hz: impl AsPrimitive<f64>) -> Self {
+    Self::secs(1.0 / hz.as_())
   }
 
   /// Returns a duration of the given number of milliseconds.
-  pub fn ms(ms: u64) -> Duration {
-    Self::secs_f64(ms as f64 * 1000.0)
+  pub fn ms(ms: impl AsPrimitive<f64>) -> Duration {
+    Self::secs(ms.as_() * 1000.0)
   }
 
-  /// Return the duration as a number of days.
+  /// Return the duration as a number of weeks.
   pub fn as_weeks(self) -> f64 {
     self.as_secs() / 7.0 / 24.0 / 60.0 / 60.0
   }
@@ -97,9 +97,22 @@ impl Duration {
     self.secs * 1000.0
   }
 
+  /// Returns `true` if this duration represents a finite amount of time.
+  pub fn is_finite(&self) -> bool {
+    self.secs.is_finite()
+  }
+
+  /// Returns `true` if this duration represents an infinite amount of time.
+  pub fn is_infinite(&self) -> bool {
+    self.secs.is_infinite()
+  }
+
   /// Converts this duration to a `std::time::Duration`.
   pub fn to_std(self) -> std::time::Duration {
-    std::time::Duration::from_secs_f64(self.secs)
+    /// The maximum f64 value with whole number precision.
+    const MAX_SAFE_INT: f64 = 9007199254740991f64;
+
+    std::time::Duration::from_secs_f64(self.secs.min(MAX_SAFE_INT))
   }
 }
 
@@ -115,7 +128,7 @@ impl FromStr for Duration {
 
 impl From<std::time::Duration> for Duration {
   fn from(value: std::time::Duration) -> Self {
-    Self::secs_f64(value.as_secs_f64())
+    Self::secs(value.as_secs_f64())
   }
 }
 
@@ -155,7 +168,7 @@ where
   type Output = Self;
 
   fn mul(self, rhs: T) -> Self::Output {
-    Self::secs_f64(self.secs * rhs.as_())
+    Self::secs(self.secs * rhs.as_())
   }
 }
 
@@ -166,13 +179,13 @@ where
   type Output = Self;
 
   fn div(self, rhs: T) -> Self::Output {
-    Self::secs_f64(self.secs / rhs.as_())
+    Self::secs(self.secs / rhs.as_())
   }
 }
 
 impl Debug for Duration {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    Display::fmt(self, f)
+    write!(f, "\"{}\"", self)
   }
 }
 
@@ -181,13 +194,19 @@ impl Display for Duration {
     if self.secs.is_infinite() {
       write!(f, "forever")
     } else if self.secs < 2.0 {
-      write!(f, "{} ms", self.as_ms())
+      write!(f, "{} ms", self.as_ms().round_to_places(3))
     } else if self.secs < 120.0 {
-      write!(f, "{} secs", self.as_secs())
+      write!(f, "{} secs", self.as_secs().round_to_places(3))
     } else if self.secs < 7_200.0 {
-      write!(f, "{} hours", self.as_hours())
+      write!(f, "{} mins", self.as_mins().round_to_places(2))
+    } else if self.secs < 172_800.0 {
+      write!(f, "{} hours", self.as_hours().round_to_places(2))
+    } else if self.secs < 604_800.0 {
+      write!(f, "{} days", self.as_days().round_to_places(2))
+    } else if self.secs < 31_557_600.0 {
+      write!(f, "{} weeks", self.as_weeks().round_to_places(1))
     } else {
-      write!(f, "{} days", self.as_days())
+      write!(f, "{} years", (self.secs / 31_557_600.0).round_to_places(1))
     }
   }
 }

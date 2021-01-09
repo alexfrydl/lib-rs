@@ -6,6 +6,9 @@
 
 //! Traits and utilities for working with numbers.
 
+mod float;
+
+pub use self::float::FloatExt;
 pub use num_traits::identities::{one, zero, One, Zero};
 pub use num_traits::AsPrimitive;
 

@@ -34,7 +34,11 @@ pub fn block_on<T>(future: impl Future<Output = T>) -> T {
 
 /// Blocks the current thread for a given duration.
 pub fn sleep(dur: Duration) {
-  std::thread::sleep(dur.into());
+  if dur.is_infinite() {
+    std::thread::sleep(std::time::Duration::new(u64::MAX, 0));
+  } else {
+    std::thread::sleep(dur.into());
+  }
 }
 
 /// Starts running an operation on a new thread.

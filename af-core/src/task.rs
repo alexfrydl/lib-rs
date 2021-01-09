@@ -30,7 +30,11 @@ pub struct PanicError {
 
 /// Waits for the given duration to elapse.
 pub async fn sleep(duration: Duration) {
-  async_io::Timer::after(duration.into()).await;
+  if duration.is_infinite() {
+    future::forever().await
+  } else {
+    async_io::Timer::after(duration.into()).await;
+  }
 }
 
 /// Starts a new task.
@@ -75,6 +79,20 @@ impl<T> Future for Handle<T> {
   }
 }
 
+// Implement formatting for PanicError.
+
+impl PanicError {
+  pub fn value_display(&self) -> Option<&dyn Display> {
+    if let Some(string) = self.value.downcast_ref::<String>() {
+      Some(string)
+    } else if let Some(string) = self.value.downcast_ref::<&'static str>() {
+      Some(string)
+    } else {
+      None
+    }
+  }
+}
+
 impl Debug for PanicError {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     if let Some(string) = self.value.downcast_ref::<String>() {
@@ -89,10 +107,8 @@ impl Debug for PanicError {
 
 impl Display for PanicError {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    if let Some(string) = self.value.downcast_ref::<String>() {
-      write!(f, "Task panicked with `{}`.", string)
-    } else if let Some(string) = self.value.downcast_ref::<&'static str>() {
-      write!(f, "Task panicked with `{}`.", string)
+    if let Some(display) = self.value_display() {
+      write!(f, "Task panicked with `{}`.", display)
     } else {
       write!(f, "Task panicked.")
     }

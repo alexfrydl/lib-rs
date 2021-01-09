@@ -2,7 +2,7 @@ use crate::prelude::*;
 use event_listener::{Event, EventListener};
 use std::sync::atomic::{self, AtomicBool};
 
-/// The notifier for a [`CancelSignal`].
+/// A task canceler that notifies [`CancelSignal`] instances.
 pub struct Canceler(Arc<Inner>);
 
 /// An awaitable cancellation signal.
@@ -18,27 +18,30 @@ struct Inner {
 }
 
 impl Canceler {
-  /// Sets the cancel signal.
+  /// Creates a new task canceler.
+  pub fn new() -> Self {
+    Self(Arc::new(Inner::default()))
+  }
+
+  /// Signals a cancellation.
   pub fn cancel(&self) {
     if !self.0.flag.swap(true, atomic::Ordering::AcqRel) {
       self.0.event.notify_relaxed(usize::MAX);
     }
   }
 
-  /// Returns `true` if the cancel signal is set.
+  /// Returns `true` if a cancellation has been signaled.
   pub fn is_canceled(&self) -> bool {
     self.0.flag.load(atomic::Ordering::Relaxed)
+  }
+
+  /// Returns a [`CancelSignal`] that is set by this task canceler.
+  pub fn signal(&self) -> CancelSignal {
+    CancelSignal { inner: self.0.clone(), listener: None }
   }
 }
 
 impl CancelSignal {
-  /// Creates a new cancellation signal and a [`Canceler`] to trigger it.
-  pub fn new() -> (Canceler, Self) {
-    let inner = Arc::new(Inner::default());
-
-    (Canceler(inner.clone()), Self { inner, listener: None })
-  }
-
   /// Returns `true` if the cancel signal is set.
   pub fn is_set(&self) -> bool {
     self.inner.flag.load(atomic::Ordering::Acquire)

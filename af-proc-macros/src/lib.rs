@@ -31,29 +31,7 @@ pub fn derive_error(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
   result.into()
 }
 
-/// Defines an async main function that runs on the af-core runtime.
-///
-/// ## Example
-///
-/// ```ignore
-/// #[af_core::main]
-/// async fn main() {
-///   println!("Hello af-core!");
-/// }
-/// ```
-///
-/// ## Returning a result
-///
-/// The `main` function may return a `Result<(), T>`. If the return value is an
-/// `Err(T)` the error is written to stderr and the process exits with an exit
-/// code of `1`.
-///
-/// ```ignore
-/// #[af_core::main]
-/// async fn main() -> Result<(), String> {
-///   Err("This message is written to stderr.".into())
-/// }
-/// ```
+/// Defines an async main function for an `af-core` application.
 #[proc_macro_attribute]
 pub fn main(_: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
   attr_main::run(item)

@@ -17,7 +17,7 @@ pub use {
   crate::future::{self, Future},
   crate::iter::{self, Itertools as _},
   crate::log::{debug, error, info, trace, warn},
-  crate::math::Number,
+  crate::math::{FloatExt as _, Number},
   crate::random::{self, random, Random},
   crate::time::{self, Date, Duration, Time},
   crate::util::{attempt, attempt_async, cfg_if, default, pin, Lazy},
