@@ -43,9 +43,16 @@ pub enum SendErrorReason {
   Full,
 }
 
-/// Creates a channel with a specified capacity.
+/// Creates a channel with a buffer of a given capacity.
 pub fn with_capacity<T>(capacity: usize) -> (Sender<T>, Receiver<T>) {
   let (tx, rx) = async_channel::bounded(capacity);
+
+  (Sender { tx }, Receiver { rx })
+}
+
+/// Creates an channel whose buffer can grow unbounded.
+pub fn unbounded<T>() -> (Sender<T>, Receiver<T>) {
+  let (tx, rx) = async_channel::unbounded();
 
   (Sender { tx }, Receiver { rx })
 }

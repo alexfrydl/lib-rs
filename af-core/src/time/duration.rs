@@ -59,7 +59,7 @@ impl Duration {
 
   /// Returns a duration of the given number of milliseconds.
   pub fn ms(ms: impl AsPrimitive<f64>) -> Duration {
-    Self::secs(ms.as_() * 1000.0)
+    Self::secs(ms.as_() / 1000.0)
   }
 
   /// Return the duration as a number of weeks.

@@ -89,7 +89,7 @@ pub fn working_path() -> Result<String, WorkingPathError> {
   let path = std::env::current_dir().map_err(|err| match err.kind() {
     io::ErrorKind::NotFound => WorkingPathError::NotFound,
     io::ErrorKind::PermissionDenied => WorkingPathError::PermissionDenied,
-    _ => unreachable!(),
+    _ => panic!("{}", err),
   })?;
 
   Ok(path.to_str().map(String::from).ok_or_else(|| WorkingPathError::NotUnicode(path))?)

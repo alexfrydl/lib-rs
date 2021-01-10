@@ -50,8 +50,8 @@ pub fn run(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     },
 
     _ => quote! {
-      af_core::run_with(|cancel_signal| async {
-        let output = #name(cancel_signal).await;
+      af_core::run_with(|cancel| async {
+        let output = #name(cancel).await;
 
         #wrap_result
       });

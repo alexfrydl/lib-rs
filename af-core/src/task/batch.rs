@@ -1,60 +1,156 @@
-use super::*;
-use crate::sync::{channel, AtomicCell, AtomicCellListener};
+use crate::channel;
+use crate::prelude::*;
+use crate::string::SharedString;
 use crate::task;
 
-type TaskHandle<T = (), E = fail::Error> = task::Handle<TaskOutput<T, E>>;
-type TaskOutput<T = (), E = fail::Error> = Result<T, E>;
-type TaskResult<T = (), E = fail::Error> = Result<TaskOutput<T, E>, future::PanicError>;
-
-pub struct Batch<T, E> {
-  canceled: Arc<AtomicCell<State>>,
-  tasks: Vec<TaskHandle<T, E>>,
-  output_rx: channel::Receiver<TaskResult<T, E>>,
+/// A batch of concurrent tasks that must all complete successfully.
+///
+/// If any task fails, the rest of the tasks are canceled.
+pub struct Batch<E> {
+  canceler: Option<task::Canceler>,
+  rx: channel::Receiver<TaskExit<E>>,
+  tx: channel::Sender<TaskExit<E>>,
+  tasks: Vec<Task>,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-enum State {
-  Running,
-  Canceled,
-  Succeeded,
+/// A task in a batch.
+struct Task {
+  _monitor: task::Handle<(), Infallible>,
+  name: SharedString,
 }
 
-pub struct CancelSignal(Option<AtomicCellListener<State>>);
-
-impl<T, E> Batch<T, E> {
-  pub fn add(&mut self, task: TaskHandle<T, E>) {
-    self.tasks.push(task);
-  }
-
-  pub async fn cancel(&self) {
-    self.canceled.store(true);
-
-    for task in tasks {}
-  }
-
-  pub fn cancel_signal(&self) -> CancelSignal {
-    CancelSignal(Some(self.canceled.listen()))
-  }
+/// An exit message sent from a task monitor.
+struct TaskExit<E> {
+  index: usize,
+  output: task::Output<(), E>,
 }
 
-impl Future for CancelSignal {
-  type Output = ();
+impl<E> Batch<E>
+where
+  E: Debug + Display,
+{
+  /// Creates a new task batch.
+  pub fn new() -> Self {
+    let (tx, rx) = channel::unbounded();
 
-  fn poll(self: Pin<&mut Self>, cx: &mut future::Context) -> future::Poll<()> {
-    let this = unsafe { self.get_unchecked_mut() };
+    Self { canceler: None, rx, tx, tasks: Vec::with_capacity(16) }
+  }
 
-    match &mut this.0 {
-      None => future::Poll::Ready(()),
+  /// Runs the batch until all tasks exit successfully or a task fails.
+  pub async fn run(mut self) -> BatchResult<E> {
+    drop(self.tx);
 
-      Some(listener) => match unsafe { Pin::new_unchecked(listener) }.poll(cx) {
-        future::Poll::Ready(value) if value == State::Canceled => {
-          this.0 = None;
+    let mut err = None;
 
-          future::Poll::Ready(())
+    while let Ok(TaskExit { index, output }) = self.rx.recv().await {
+      let task = &mut self.tasks[index];
+
+      if let Err(failure) = output {
+        match &err {
+          None => {
+            err = Some(BatchError { failure, task_index: index, task_name: task.name.clone() });
+          }
+
+          Some(_) if task.name.is_empty() => {
+            warn!("Task #{} failed. {}", index, failure);
+          }
+
+          Some(_) => {
+            warn!("Task `{}` failed. {}", task.name, failure);
+          }
         }
 
-        _ => future::Poll::Pending,
-      },
+        match &self.canceler {
+          Some(e) => e.cancel(),
+          None => break,
+        }
+      }
+    }
+
+    match err {
+      None => Ok(()),
+      Some(err) => Err(err),
+    }
+  }
+
+  /// Sets a canceler to use instead of killing tasks when the batch fails.
+  pub fn set_canceler(&mut self, canceler: task::Canceler) {
+    self.canceler = Some(canceler);
+  }
+}
+
+// Implement the Batch::add method with a DSL for adding extra info.
+
+impl<E> Batch<E>
+where
+  E: Send + 'static,
+{
+  /// Adds a task to the batch.
+  pub fn add<T>(&mut self, task: task::Handle<T, E>) -> AddTask<E>
+  where
+    T: Send + 'static,
+  {
+    let index = self.tasks.len();
+    let tx = self.tx.clone();
+
+    let _monitor = task::start(async move {
+      let output = task.await.map(|_| ());
+      let _ = tx.send(TaskExit { index, output }).await;
+
+      Ok(())
+    });
+
+    AddTask { batch: self, task: ManuallyDrop::new(Task { _monitor, name: default() }) }
+  }
+}
+
+/// A helper for adding information to a [`Batch`] task.
+pub struct AddTask<'a, E> {
+  batch: &'a mut Batch<E>,
+  task: ManuallyDrop<Task>,
+}
+
+impl<'a, E> AddTask<'a, E> {
+  /// Sets the name of the task in error messages.
+  pub fn set_name(&mut self, name: impl Into<SharedString>) {
+    self.task.name = name.into();
+  }
+
+  /// Sets the name of the task in error messages.
+  pub fn with_name(mut self, name: impl Into<SharedString>) -> Self {
+    self.set_name(name);
+    self
+  }
+}
+
+impl<'a, E> Drop for AddTask<'a, E> {
+  fn drop(&mut self) {
+    self.batch.tasks.push(unsafe { ManuallyDrop::take(&mut self.task) });
+  }
+}
+
+/// The result of a [`Batch`].
+pub type BatchResult<E> = Result<(), BatchError<E>>;
+
+/// The error that caused a [`Batch`] to exit.
+#[derive(Debug)]
+pub struct BatchError<E> {
+  pub task_index: usize,
+  pub task_name: SharedString,
+  pub failure: task::Failure<E>,
+}
+
+impl<E> Error for BatchError<E> where E: Debug + Display {}
+
+impl<E> Display for BatchError<E>
+where
+  E: Display,
+{
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    if self.task_name.is_empty() {
+      write!(f, "Task #{} failed. {}", self.task_index, self.failure)
+    } else {
+      write!(f, "Task `{}` failed. {}", self.task_name, self.failure)
     }
   }
 }

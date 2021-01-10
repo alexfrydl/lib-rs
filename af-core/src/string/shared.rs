@@ -39,6 +39,20 @@ impl Debug for SharedString {
   }
 }
 
+impl Default for SharedString {
+  fn default() -> Self {
+    Self(Inner::StaticStr(""))
+  }
+}
+
+impl Deref for SharedString {
+  type Target = str;
+
+  fn deref(&self) -> &Self::Target {
+    self.as_str()
+  }
+}
+
 impl From<&'static str> for SharedString {
   fn from(value: &'static str) -> Self {
     Self(Inner::StaticStr(value))

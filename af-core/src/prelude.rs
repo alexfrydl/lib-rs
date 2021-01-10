@@ -25,7 +25,7 @@ pub use {
   std::any::Any,
   std::borrow::*,
   std::cmp::{self, Eq, Ord, PartialEq, PartialOrd},
-  std::convert::{TryFrom, TryInto},
+  std::convert::{Infallible, TryFrom, TryInto},
   std::hash::{self, Hash, Hasher},
   std::io::{BufRead as _, Read as _, Seek as _, Write as _},
   std::marker::PhantomData,

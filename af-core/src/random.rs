@@ -8,6 +8,7 @@
 
 use crate::prelude::*;
 use parking_lot::Mutex;
+use rand::distributions::uniform::{SampleRange, SampleUniform};
 use rand::distributions::{self, Distribution};
 use rand::seq::SliceRandom;
 use rand::{Rng as _, SeedableRng as _};
@@ -43,7 +44,12 @@ pub fn fill_bytes(bytes: &mut [u8]) {
 
 /// Generates a random value.
 pub fn random<T: Random>() -> T {
-  T::random()
+  THREAD_RNG.with(|rng| T::random_with(&mut rng.borrow_mut()))
+}
+
+/// Generates a random number within a range.
+pub fn range<T: SampleUniform>(range: impl SampleRange<T>) -> T {
+  THREAD_RNG.with(|rng| rng.borrow_mut().random_range(range))
 }
 
 /// Randomly shuffles a slice in place.
@@ -58,7 +64,7 @@ pub trait Random: Sized {
 
   /// Returns a random value.
   fn random() -> Self {
-    THREAD_RNG.with(|rng| Self::random_with(&mut rng.borrow_mut()))
+    random()
   }
 }
 
@@ -83,6 +89,11 @@ impl Rng {
   /// Generates a random value.
   pub fn random<T: Random>(&mut self) -> T {
     T::random_with(self)
+  }
+
+  /// Generates a random number within a range.
+  pub fn random_range<T: SampleUniform>(&mut self, range: impl SampleRange<T>) -> T {
+    self.inner.gen_range(range)
   }
 
   /// Randomly shuffles a slice in place.

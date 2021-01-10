@@ -6,7 +6,7 @@
 
 pub use af_macros::logger_init as init;
 
-use crate::prelude::*;
+use super::*;
 use crate::{channel, thread};
 use dashmap::DashMap;
 use log::{Level, LevelFilter, Log, Metadata, Record, RecordBuilder};
@@ -42,6 +42,14 @@ pub fn init() {
   }
 
   log::set_max_level(LevelFilter::Trace);
+
+  set_level_of(
+    "af_core",
+    match cfg!(debug_assertions) {
+      true => Debug,
+      false => Info,
+    },
+  );
 
   thread::start("af_runtime::logger", || thread::block_on(output_messages()));
 }

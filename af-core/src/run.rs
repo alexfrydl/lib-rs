@@ -17,19 +17,21 @@ where
   let task = task::start(future);
 
   match thread::block_on(task) {
-    Err(err) => {
-      if let Some(value) = err.value_display() {
+    Err(task::Failure::Panic(err)) => {
+      if let Some(value) = err.display_value() {
         error!("The main task panicked with `{}`.", value);
       } else {
         error!("The main task panicked.")
       }
 
+      thread::sleep(Duration::hz(60));
       exit(-1)
     }
 
-    Ok(Err(err)) => {
-      eprintln!("The main task failed. {}", err);
+    Err(task::Failure::Err(err)) => {
+      error!("The main task failed. {}", err);
 
+      thread::sleep(Duration::hz(60));
       exit(1)
     }
 
@@ -52,7 +54,7 @@ where
   F: Future<Output = Result<(), E>> + Send + 'static,
 {
   let canceler = task::Canceler::new();
-  let cancel_signal = canceler.signal();
+  let cancel = canceler.signal();
 
   let mut signals = Signals::new(TERM_SIGNALS).expect("Failed to register signal handler");
 
@@ -66,5 +68,5 @@ where
     canceler.cancel();
   });
 
-  run(async { func(cancel_signal).await })
+  run(async { func(cancel).await })
 }
