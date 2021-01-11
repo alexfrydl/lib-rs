@@ -10,6 +10,9 @@ pub use std::future::Future;
 pub use std::task::{Context, Poll};
 
 mod noop_waker;
+mod try_future;
+
+pub use self::try_future::*;
 
 use crate::prelude::*;
 use futures_lite::FutureExt;

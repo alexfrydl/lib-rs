@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use crate::task;
+use crate::task::{self, Task};
 use crate::thread;
 use signal_hook::consts::TERM_SIGNALS;
 use signal_hook::iterator::Signals;
@@ -10,8 +10,9 @@ use std::process::exit;
 ///
 /// If the task fails, this function logs the error and exits the process with
 /// a non-zero exit code.
-pub fn run<E>(future: impl Future<Output = Result<(), E>> + Send + 'static) -> !
+pub fn run<T, E>(future: impl Task<T, E>) -> !
 where
+  T: Send + 'static,
   E: Display + Send + 'static,
 {
   let task = task::start(future);
@@ -48,10 +49,11 @@ where
 /// The provided function is passed a [`task::CancelSignal`] that is triggered
 /// when the process receives a termination signal (SIGINT, SIGTERM, or
 /// SIGQUIT).
-pub fn run_with<E, F>(func: impl FnOnce(task::CancelSignal) -> F + Send + 'static) -> !
+pub fn run_with<T, E, F>(func: impl FnOnce(task::CancelSignal) -> F + Send + 'static) -> !
 where
+  T: Send + 'static,
   E: Display + Send + 'static,
-  F: Future<Output = Result<(), E>> + Send + 'static,
+  F: Task<T, E>,
 {
   let canceler = task::Canceler::new();
   let cancel = canceler.signal();

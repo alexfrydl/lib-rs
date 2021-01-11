@@ -3,6 +3,18 @@ use super::*;
 /// The output of a task.
 pub type Output<T, E> = Result<T, Failure<E>>;
 
+/// Waits for a task to complete and captures its output.
+pub async fn capture<T, E>(task: impl Task<T, E>) -> Output<T, E>
+where
+  T: Send + 'static,
+  E: Send + 'static,
+{
+  future::catch_unwind(panic::AssertUnwindSafe(task))
+    .await
+    .map_err(|value| Failure::Panic(Panicked { value }))
+    .and_then(|res| res.map_err(Failure::Err))
+}
+
 /// A task failure.
 #[derive(Debug, Display)]
 pub enum Failure<E> {
@@ -25,6 +37,14 @@ impl<E> Failure<E> {
     match self {
       Self::Err(err) => err,
       Self::Panic(panic) => panic.into(),
+    }
+  }
+
+  /// Convert the [`Err`][Self::Err] value if it exists.
+  pub fn map_err<F>(self, map: impl FnOnce(E) -> F) -> Failure<F> {
+    match self {
+      Self::Err(err) => Failure::Err(map(err)),
+      Self::Panic(panic) => Failure::Panic(panic),
     }
   }
 }

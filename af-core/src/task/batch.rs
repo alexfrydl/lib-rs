@@ -1,20 +1,20 @@
 use crate::channel;
 use crate::prelude::*;
 use crate::string::SharedString;
-use crate::task;
+use crate::task::{self, Task};
 
 /// A batch of concurrent tasks that must all complete successfully.
 ///
 /// If any task fails, the rest of the tasks are canceled.
 pub struct Batch<E> {
   canceler: Option<task::Canceler>,
+  children: Vec<Child>,
   rx: channel::Receiver<TaskExit<E>>,
   tx: channel::Sender<TaskExit<E>>,
-  tasks: Vec<Task>,
 }
 
-/// A task in a batch.
-struct Task {
+/// A child task.
+struct Child {
   _monitor: task::Handle<(), Infallible>,
   name: SharedString,
 }
@@ -27,13 +27,39 @@ struct TaskExit<E> {
 
 impl<E> Batch<E>
 where
-  E: Debug + Display,
+  E: Debug + Display + Send + 'static,
 {
   /// Creates a new task batch.
   pub fn new() -> Self {
     let (tx, rx) = channel::unbounded();
 
-    Self { canceler: None, rx, tx, tasks: Vec::with_capacity(16) }
+    Self { canceler: None, children: Vec::with_capacity(16), rx, tx }
+  }
+
+  /// Adds a task to the batch.
+  pub fn add<T>(&mut self, task: impl Task<T, E>)
+  where
+    T: Send + 'static,
+  {
+    self.add_as("", task)
+  }
+
+  /// Adds a named task to the batch.
+  pub fn add_as<T>(&mut self, name: impl Into<SharedString>, task: impl Task<T, E>)
+  where
+    T: Send + 'static,
+  {
+    let index = self.children.len();
+    let tx = self.tx.clone();
+
+    let _monitor = task::start(async move {
+      let output = task::output::capture(task).await.map(|_| ());
+      let _ = tx.send(TaskExit { index, output }).await;
+
+      Ok(())
+    });
+
+    self.children.push(Child { _monitor, name: name.into() });
   }
 
   /// Runs the batch until all tasks exit successfully or a task fails.
@@ -43,7 +69,7 @@ where
     let mut err = None;
 
     while let Ok(TaskExit { index, output }) = self.rx.recv().await {
-      let task = &mut self.tasks[index];
+      let task = &mut self.children[index];
 
       if let Err(failure) = output {
         match &err {
@@ -76,56 +102,6 @@ where
   /// Sets a canceler to use instead of killing tasks when the batch fails.
   pub fn set_canceler(&mut self, canceler: task::Canceler) {
     self.canceler = Some(canceler);
-  }
-}
-
-// Implement the Batch::add method with a DSL for adding extra info.
-
-impl<E> Batch<E>
-where
-  E: Send + 'static,
-{
-  /// Adds a task to the batch.
-  pub fn add<T>(&mut self, task: task::Handle<T, E>) -> AddTask<E>
-  where
-    T: Send + 'static,
-  {
-    let index = self.tasks.len();
-    let tx = self.tx.clone();
-
-    let _monitor = task::start(async move {
-      let output = task.await.map(|_| ());
-      let _ = tx.send(TaskExit { index, output }).await;
-
-      Ok(())
-    });
-
-    AddTask { batch: self, task: ManuallyDrop::new(Task { _monitor, name: default() }) }
-  }
-}
-
-/// A helper for adding information to a [`Batch`] task.
-pub struct AddTask<'a, E> {
-  batch: &'a mut Batch<E>,
-  task: ManuallyDrop<Task>,
-}
-
-impl<'a, E> AddTask<'a, E> {
-  /// Sets the name of the task in error messages.
-  pub fn set_name(&mut self, name: impl Into<SharedString>) {
-    self.task.name = name.into();
-  }
-
-  /// Sets the name of the task in error messages.
-  pub fn with_name(mut self, name: impl Into<SharedString>) -> Self {
-    self.set_name(name);
-    self
-  }
-}
-
-impl<'a, E> Drop for AddTask<'a, E> {
-  fn drop(&mut self) {
-    self.batch.tasks.push(unsafe { ManuallyDrop::take(&mut self.task) });
   }
 }
 

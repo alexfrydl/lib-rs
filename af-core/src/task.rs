@@ -18,6 +18,22 @@ pub use self::output::{Failure, Output, Panicked};
 
 use crate::prelude::*;
 
+/// A trait marking futures that can be started as tasks.
+pub trait Task<T, E>: TryFuture<T, E> + Send + Sized + 'static
+where
+  T: Send + 'static,
+  E: Send + 'static,
+{
+}
+
+impl<F, T, E> Task<T, E> for F
+where
+  F: TryFuture<T, E> + Send + 'static,
+  T: Send + 'static,
+  E: Send + 'static,
+{
+}
+
 /// Waits for the given duration to elapse.
 pub async fn sleep(duration: Duration) {
   if duration.is_infinite() {
@@ -28,18 +44,12 @@ pub async fn sleep(duration: Duration) {
 }
 
 /// Starts a new task.
-pub fn start<T, E, F>(future: F) -> Handle<T, E>
+pub fn start<T, E>(future: impl Task<T, E>) -> Handle<T, E>
 where
-  F: Future<Output = Result<T, E>> + Send + 'static,
   T: Send + 'static,
   E: Send + 'static,
 {
-  let task = async_global_executor::spawn(async {
-    future::catch_unwind(panic::AssertUnwindSafe(future))
-      .await
-      .map_err(|value| Failure::Panic(Panicked { value }))
-      .and_then(|res| res.map_err(Failure::Err))
-  });
+  let task = async_global_executor::spawn(output::capture(future));
 
   task.into()
 }

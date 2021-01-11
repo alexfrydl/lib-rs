@@ -15,23 +15,6 @@ where
   pub async fn kill(self) {
     self.task.cancel().await;
   }
-
-  /// Starts a new task that runs a continuation function after this task exits.
-  pub fn continue_with<U, F, C>(
-    self,
-    continuation: impl FnOnce(Output<T, E>) -> C + Send + 'static,
-  ) -> Handle<U, F>
-  where
-    C: Future<Output = Result<U, F>> + Send + 'static,
-    U: Send + 'static,
-    F: Send + 'static,
-  {
-    start(async {
-      let output = self.await;
-
-      continuation(output).await
-    })
-  }
 }
 
 // Implement From for Handle to convert from async_executor tasks.

@@ -35,6 +35,7 @@ num-traits = "0.2"
 once_cell = { version = "1", features = ["parking_lot"] }
 parking_lot = "0.11"
 parse_duration = "2"
+pin-project = "1"
 rand = "0.8"
 rand_xoshiro = "0.6"
 serde = "1"

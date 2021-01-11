@@ -9,7 +9,7 @@ use ::uuid::{Builder, Uuid as Inner, Variant, Version};
 
 /// A universally-unique identifier.
 #[derive(
-  Clone, Copy, Default, Deserialize, Eq, FromStr, Hash, Ord, PartialEq, PartialOrd, Serialize,
+  Clone, Copy, Default, Deserialize, Eq, From, FromStr, Hash, Ord, PartialEq, PartialOrd, Serialize,
 )]
 #[serde(transparent)]
 pub struct Uuid(Inner);

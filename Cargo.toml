@@ -3,5 +3,6 @@ members = [
   "af-core",
   "af-macros",
   "af-proc-macros",
+  "af-sentry",
   "tests"
 ]
