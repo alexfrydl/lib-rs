@@ -1,4 +1,3 @@
-use super::Symbol;
 use crate::prelude::*;
 
 #[derive(Clone)]
@@ -8,7 +7,6 @@ pub struct SharedString(Inner);
 enum Inner {
   ArcStr(Arc<str>),
   StaticStr(&'static str),
-  Symbol(Symbol),
 }
 
 impl SharedString {
@@ -16,7 +14,6 @@ impl SharedString {
     match &self.0 {
       Inner::ArcStr(value) => value.as_ref(),
       Inner::StaticStr(value) => value,
-      Inner::Symbol(value) => value.as_ref(),
     }
   }
 }
@@ -77,12 +74,6 @@ impl From<Cow<'static, str>> for SharedString {
       Cow::Borrowed(value) => Self(Inner::StaticStr(value)),
       Cow::Owned(value) => Self(Inner::ArcStr(value.into())),
     }
-  }
-}
-
-impl From<Symbol> for SharedString {
-  fn from(value: Symbol) -> Self {
-    Self(Inner::Symbol(value))
   }
 }
 
