@@ -13,27 +13,27 @@ use std::path::{Path, PathBuf};
 
 /// One of the possible errors that can occur when reading an environment
 /// variable.
-#[derive(Debug, Display, Error)]
+#[derive(Debug, Error)]
 pub enum VarError {
   /// Environment variable not present.
-  #[display(fmt = "Environment variable not present.")]
+  #[error("Environment variable not present.")]
   NotPresent,
   /// Environment variable contains non-Unicode characters.
-  #[display(fmt = "Environment variable contains non-Unicode characters.")]
+  #[error("Environment variable contains non-Unicode characters.")]
   NotUnicode,
 }
 
 /// One of the possible errors returned by [`working_path()`].
-#[derive(Debug, Display, Error)]
+#[derive(Debug, Error)]
 pub enum WorkingPathError {
   /// The working path was not found.
-  #[display(fmt = "The current working directory was not found.")]
+  #[error("The current working directory was not found.")]
   NotFound,
   /// The user does not have permission to access the current working directory.
-  #[display(fmt = "Permission denied reading the current working directory.")]
+  #[error("Permission denied reading the current working directory.")]
   PermissionDenied,
   /// The working path is not unicode.
-  #[display(fmt = "The current working directory `{}` is not unicode.", "_0.display()")]
+  #[error("The current working directory `{}` is not unicode.", .0.display())]
   NotUnicode(PathBuf),
 }
 

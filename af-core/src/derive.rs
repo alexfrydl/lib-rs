@@ -6,8 +6,8 @@
 
 //! Common derive macros.
 
-pub use af_macros::Error;
 pub use derive_more::*;
 pub use std::error::Error;
+pub use thiserror::{self, Error};
 
 pub(crate) use serde::{Deserialize, Serialize};

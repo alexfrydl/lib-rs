@@ -6,23 +6,22 @@ use af_core::string::SharedString;
 
 pub type Result<T = (), E = Error> = std::result::Result<T, E>;
 
-#[derive(Debug, Display, Error)]
+#[derive(Debug, Error)]
 pub enum Error {
-  #[display(fmt = "{}", _0)]
+  #[error(transparent)]
   Db(Box<DbError>),
-  #[display(fmt = "{}", _0)]
+  #[error("{0}")]
   Other(SharedString),
 }
 
 /// An error returned from a `query_one` function.
-#[derive(Debug, Display, Error, From)]
+#[derive(Debug, Error)]
 pub enum QueryOneError {
   /// An error indiating a statement returned no rows.
-  #[display(fmt = "No rows returned.")]
+  #[error("No rows returned.")]
   NoRowsReturned,
-  #[display(fmt = "{}", _0)]
-  #[from]
-  Other(Error),
+  #[error(transparent)]
+  Other(#[from] Error),
 }
 
 impl Error {

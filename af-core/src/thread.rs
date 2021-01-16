@@ -20,8 +20,8 @@ pub struct Handle<T> {
 }
 
 /// An error returned from [`Handle::join()`] when the thread panics.
-#[derive(Debug, Display, Error)]
-#[display(fmt = "Thread panicked.")]
+#[derive(Debug, Error)]
+#[error("Thread panicked.")]
 pub struct PanicError {
   /// The value the thread panicked with.
   pub value: Box<dyn Any + Send>,

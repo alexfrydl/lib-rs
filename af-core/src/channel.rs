@@ -21,8 +21,8 @@ pub struct Sender<T> {
 }
 
 /// An error indicating that the channel is closed.
-#[derive(Clone, Copy, Debug, Default, Display, Error)]
-#[display(fmt = "Channel is closed.")]
+#[derive(Clone, Copy, Debug, Default, Error)]
+#[error("Channel is closed.")]
 pub struct ClosedError;
 
 /// An error returned from a [`Sender::send()`] or [`Sender::try_send()`] call.
@@ -35,11 +35,11 @@ pub struct SendError<M> {
 }
 
 /// The reason a [`SendError`] was returned.
-#[derive(Clone, Copy, Debug, Display, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum SendErrorReason {
-  #[display(fmt = "Channel is closed.")]
+  #[error("Channel is closed.")]
   Closed,
-  #[display(fmt = "Channel is full.")]
+  #[error("Channel is full.")]
   Full,
 }
 

@@ -17,8 +17,8 @@ pub struct CancelSignal {
 }
 
 /// An error indicating a task was canceled.
-#[derive(Debug, Display, Error)]
-#[display(fmt = "Canceled.")]
+#[derive(Debug, Error)]
+#[error("Canceled.")]
 pub struct Canceled;
 
 /// Inner state of an canceler/signal pair.

@@ -7,30 +7,6 @@
 mod attr_main;
 mod prelude;
 
-use crate::prelude::*;
-
-/// A derive macro for the `Error` trait that uses all the default method
-/// implementations.
-#[proc_macro_derive(Error)]
-pub fn derive_error(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
-  let item = syn::parse_macro_input!(item as syn::Item);
-
-  let (name, generics) = match &item {
-    syn::Item::Enum(item) => (&item.ident, &item.generics),
-    syn::Item::Struct(item) => (&item.ident, &item.generics),
-    _ => abort!(item.span(), "Expected enum or a struct."),
-  };
-
-  let generic_params = &generics.params;
-  let where_clause = &generics.where_clause;
-
-  let result = quote! {
-    impl<#generic_params> std::error::Error for #name<#generic_params> #where_clause {}
-  };
-
-  result.into()
-}
-
 /// Defines an async main function for an `af-core` application.
 #[proc_macro_attribute]
 pub fn main(_: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
