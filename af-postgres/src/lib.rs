@@ -4,25 +4,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-pub mod error;
+mod client;
+mod error;
+mod statement;
 
-pub use self::error::Error;
-pub use native_tls::Error as TlsError;
-pub use tokio_postgres::Config;
-
-use af_core::prelude::*;
-use af_core::task::Task;
-use native_tls::TlsConnector;
-use postgres_native_tls::MakeTlsConnector;
-
-pub struct Client {
-  inner: tokio_postgres::Client,
-}
-
-pub async fn connect(config: &Config) -> Result<(Client, impl Task<(), Error>), Error> {
-  let tls_connector = TlsConnector::builder().danger_accept_invalid_certs(true).build().unwrap();
-  let (client, connection) = config.connect(MakeTlsConnector::new(tls_connector)).await?;
-  let task = async move { connection.await.map_err(Error::from) };
-
-  Ok((Client { inner: client }, task))
-}
+pub use self::client::{connect, Client};
+pub use self::error::{Error, Result};
+pub use self::statement::{Statement, StatementBuilder, ToStatement};
+pub use tokio_postgres::types::{FromSql, ToSql, Type};
+pub use tokio_postgres::{Config, Row, RowStream};

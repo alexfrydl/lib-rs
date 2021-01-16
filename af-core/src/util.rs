@@ -4,6 +4,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+mod uuid;
+
+pub use self::uuid::Uuid;
 pub use af_macros::{attempt, attempt_async};
 pub use cfg_if::cfg_if;
 pub use futures_lite::pin;

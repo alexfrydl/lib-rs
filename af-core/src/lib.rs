@@ -17,15 +17,14 @@ pub mod path;
 pub mod prelude;
 pub mod random;
 mod run;
+pub mod stream;
 pub mod string;
 pub mod task;
 pub mod thread;
 pub mod time;
 pub mod util;
-pub mod uuid;
 
 pub use self::fail::fail;
-pub use self::random::{random, Random};
+pub use self::random::random;
 pub use self::run::{run, run_with};
-pub use self::uuid::Uuid;
 pub use af_macros::main;

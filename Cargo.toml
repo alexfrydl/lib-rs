@@ -2,6 +2,7 @@
 members = [
   "af-core",
   "af-macros",
+  "af-postgres",
   "af-proc-macros",
   "af-sentry",
   "tests"

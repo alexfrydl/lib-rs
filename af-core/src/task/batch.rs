@@ -15,7 +15,7 @@ pub struct Batch<E> {
 
 /// A child task.
 struct Child {
-  _monitor: task::Handle<(), Infallible>,
+  monitor: task::Handle<(), Infallible>,
   name: SharedString,
 }
 
@@ -49,17 +49,18 @@ where
   where
     T: Send + 'static,
   {
+    let name = name.into();
     let index = self.children.len();
     let tx = self.tx.clone();
 
-    let _monitor = task::start(async move {
+    let monitor = task::start(async move {
       let output = task::output::capture(task).await.map(|_| ());
       let _ = tx.send(TaskExit { index, output }).await;
 
       Ok(())
     });
 
-    self.children.push(Child { _monitor, name: name.into() });
+    self.children.push(Child { monitor, name: name.into() });
   }
 
   /// Runs the batch until all tasks exit successfully or a task fails.
@@ -91,6 +92,10 @@ where
           None => break,
         }
       }
+    }
+
+    for child in self.children {
+      let _ = child.monitor.await;
     }
 
     match err {

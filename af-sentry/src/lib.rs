@@ -7,7 +7,6 @@
 pub use sentry::{ClientInitGuard, ClientOptions, IntoDsn};
 
 use af_core::prelude::*;
-use af_core::Uuid;
 use std::collections::BTreeMap;
 
 /// The type of the [`Error::fingerprint`] field.
