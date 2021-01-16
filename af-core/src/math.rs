@@ -11,6 +11,8 @@ mod float;
 pub use self::float::FloatExt;
 pub use num_traits::identities::{one, zero, One, Zero};
 pub use num_traits::AsPrimitive;
+use num_traits::{NumAssignOps, NumOps};
+use rand::distributions::uniform::SampleUniform;
 
 use crate::prelude::*;
 
@@ -19,7 +21,7 @@ use crate::prelude::*;
 /// This trait is implemented for all primitive integer and floating-point
 /// types.
 pub trait Number:
-  PartialOrd + PartialEq + Zero + One + num_traits::NumOps + num_traits::NumAssignOps
+  PartialOrd + PartialEq + Zero + One + NumOps + NumAssignOps + SampleUniform
 {
 }
 
@@ -42,7 +44,7 @@ pub fn clamp_mut<T: Number>(value: &mut T, min: T, max: T) {
 // Implement Number for all types that implement the required traits.
 
 impl<T> Number for T where
-  T: PartialOrd + PartialEq + Zero + One + num_traits::NumOps + num_traits::NumAssignOps
+  T: PartialOrd + PartialEq + Zero + One + NumOps + NumAssignOps + SampleUniform
 {
 }
 

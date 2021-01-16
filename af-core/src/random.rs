@@ -37,6 +37,14 @@ thread_local! {
   };
 }
 
+/// Returns `true` with a given probability.
+///
+/// The `probability` is the chance from `0.0` (never) to `1.0` (always) that
+/// this function returns `true`.
+pub fn chance(probability: f64) -> bool {
+  THREAD_RNG.with(|rng| rng.borrow_mut().gen_chance(probability))
+}
+
 /// Fills a slice with random bytes.
 pub fn fill_bytes(bytes: &mut [u8]) {
   THREAD_RNG.with(|rng| rng.borrow_mut().fill_bytes(bytes))
@@ -49,7 +57,13 @@ pub fn random<T: Random>() -> T {
 
 /// Generates a random number within a range.
 pub fn range<T: SampleUniform>(range: impl SampleRange<T>) -> T {
-  THREAD_RNG.with(|rng| rng.borrow_mut().random_range(range))
+  THREAD_RNG.with(|rng| rng.borrow_mut().gen_range(range))
+}
+
+/// Returns `true` with a probability expressed by the ratio between two given
+/// numbers.
+pub fn ratio<T: Number + SampleUniform>(numerator: T, denominator: T) -> bool {
+  THREAD_RNG.with(|rng| rng.borrow_mut().gen_ratio(numerator, denominator))
 }
 
 /// Randomly shuffles a slice in place.
@@ -87,13 +101,29 @@ impl Rng {
   }
 
   /// Generates a random value.
-  pub fn random<T: Random>(&mut self) -> T {
+  pub fn gen<T: Random>(&mut self) -> T {
     T::random_with(self)
   }
 
-  /// Generates a random number within a range.
-  pub fn random_range<T: SampleUniform>(&mut self, range: impl SampleRange<T>) -> T {
+  /// Returns `true` with a given probability.
+  ///
+  /// The probability is the chance from `0.0` (never) to `1.0` (always) that
+  /// this function returns `true`.
+  pub fn gen_chance(&mut self, probability: f64) -> bool {
+    probability > self.gen()
+  }
+
+  /// Generates a random number within a given range.
+  pub fn gen_range<T: SampleUniform>(&mut self, range: impl SampleRange<T>) -> T {
     self.inner.gen_range(range)
+  }
+
+  /// Returns `true` with a probability expressed by the ratio between two given
+  /// numbers.
+  pub fn gen_ratio<T: Number + SampleUniform>(&mut self, numerator: T, denominator: T) -> bool {
+    debug_assert!(denominator > T::zero(), "The denominator of a ratio must be greater than zero.");
+
+    numerator > self.gen_range(T::zero()..denominator)
   }
 
   /// Randomly shuffles a slice in place.
