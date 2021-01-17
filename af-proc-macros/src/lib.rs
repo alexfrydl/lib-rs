@@ -8,6 +8,7 @@ mod attr_future_boxed;
 mod attr_main;
 mod attr_test_main;
 mod prelude;
+mod test;
 
 /// Modifies an `async` function to return a `Box<dyn Future + Send>`.
 #[proc_macro_attribute]

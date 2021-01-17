@@ -8,8 +8,7 @@
 
 pub use af_macros::test_main as main;
 
-use crate::prelude::*;
-use crate::test::{self, Context};
+use crate::test::prelude::*;
 use crate::util::defer;
 use console::style;
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
@@ -26,11 +25,18 @@ pub enum Error {
   Io(#[from] io::Error),
 }
 
+/// The output of the test runner.
+pub struct Output {
+  pub elapsed: Duration,
+  pub failures: usize,
+  pub tests: usize,
+}
+
 /// A test runner result.
-pub type Result<T = (), E = Error> = std::result::Result<T, E>;
+pub type Result<T = Output, E = Error> = std::result::Result<T, E>;
 
 /// Runs a test context in the default test runner.
-pub async fn run(build: impl FnOnce(&mut Context)) -> Result {
+pub async fn run(build: impl FnOnce(&mut test::Context)) -> Result {
   let style_initial = ProgressStyle::default_bar()
     .template("[{elapsed_precise}] {bar:40} {pos:>7}/{len:7} {msg}")
     .progress_chars("##-");
@@ -49,7 +55,7 @@ pub async fn run(build: impl FnOnce(&mut Context)) -> Result {
   pb.set_message("Starting…");
   pb.set_style(style_initial);
 
-  let mut ctx = Context::new();
+  let mut ctx = test::Context::new();
 
   build(&mut ctx);
 
@@ -58,10 +64,13 @@ pub async fn run(build: impl FnOnce(&mut Context)) -> Result {
 
   panic::set_hook(Box::new(|_| ()));
 
+  let started_at = Time::now();
   let mut output = ctx.start();
+
+  let tests = output.len();
   let mut failures = 0;
 
-  pb.set_length(output.len() as u64);
+  pb.set_length(tests as u64);
   pb.set_message("Running…");
   pb.set_style(style_ok);
 
@@ -87,10 +96,16 @@ pub async fn run(build: impl FnOnce(&mut Context)) -> Result {
 
   pb.finish_and_clear();
 
+  let elapsed = started_at.elapsed();
+
+  let (count, status) = match failures {
+    0 => (fmt::count(tests, "test", "tests"), style("passed").bright().green()),
+    n => (fmt::count(n, "test", "tests"), style("failed").bright().red()),
+  };
+
+  writeln!(term, "{} {} in {}.", count, status, style(elapsed).bright().white())?;
+
   term.flush()?;
 
-  match failures {
-    0 => Ok(()),
-    n => Err(Error::Failures(n)),
-  }
+  Ok(Output { elapsed, failures, tests })
 }

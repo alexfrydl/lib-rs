@@ -4,23 +4,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+mod core;
+
 use af_core::prelude::*;
-use af_core::{task, test};
+use af_core::test;
 
 #[af_core::test::main]
-fn main(cx: &mut test::Context) {
-  cx.context("Sleep", |cx| {
-    for i in 0..100 {
-      let duration = Duration::secs(i as f64 * 0.1);
-      let name = format!("for {}", duration);
-
-      cx.test(name, async move {
-        task::sleep(duration / 2.0).await;
-
-        fail::when!(random::range(1..=20) == 1, "Critical miss.");
-
-        Ok(())
-      });
-    }
-  });
+fn test(cx: &mut test::Context) {
+  cx.context("af_core", core::test);
 }

@@ -54,6 +54,13 @@ impl Time {
     .into()
   }
 
+  /// Returns the duration elapsed since this time occurred.
+  ///
+  /// If the time is in the future, this function returns [`Duration::ZERO`].
+  pub fn elapsed(&self) -> Duration {
+    Self::now() - *self
+  }
+
   /// Returns the start time of the day represented by this time value.
   pub fn start_of_day(&self) -> Time {
     let inner = match &self.zone {

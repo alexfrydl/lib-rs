@@ -23,6 +23,9 @@ impl Duration {
   /// An infinite duration.
   pub const INFINITE: Self = Self { secs: f64::INFINITY };
 
+  /// A zero-length duration.
+  pub const ZERO: Self = Self { secs: 0.0 };
+
   /// Returns a duration of the given number of weeks.
   pub fn weeks(weeks: impl AsPrimitive<f64>) -> Self {
     Self::secs(weeks.as_() * 7.0 * 24.0 * 60.0 * 60.0)
@@ -134,7 +137,7 @@ impl From<std::time::Duration> for Duration {
 
 impl From<chrono::Duration> for Duration {
   fn from(value: chrono::Duration) -> Self {
-    value.to_std().expect("Failed to convert chrono::Duration to std::time::Duration").into()
+    value.to_std().unwrap_or_default().into()
   }
 }
 

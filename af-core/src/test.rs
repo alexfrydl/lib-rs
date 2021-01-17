@@ -8,6 +8,11 @@ mod context;
 mod output;
 mod path;
 
+pub mod prelude {
+  pub use crate::prelude::*;
+  pub use crate::test;
+}
+
 pub use self::context::Context;
 pub use self::output::{Output, OutputStream};
 pub use self::path::Path;
