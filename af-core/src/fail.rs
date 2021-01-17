@@ -6,7 +6,7 @@
 
 //! Provides the `fail!` macro and a generic cloneable error type.
 
-pub use af_macros::{fail, fail_err as err, fail_wrap as wrap};
+pub use af_macros::{fail, fail_err as err, fail_when as when, fail_wrap as wrap};
 
 use crate::prelude::*;
 use crate::string::SharedString;

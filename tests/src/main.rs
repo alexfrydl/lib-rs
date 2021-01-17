@@ -17,10 +17,7 @@ fn main(cx: &mut test::Context) {
       cx.test(name, async move {
         task::sleep(duration / 2.0).await;
 
-        match random::range(1..=20) {
-          1 => fail!("Critical miss."),
-          _ => {}
-        }
+        fail::when!(random::range(1..=20) == 1, "Critical miss.");
 
         Ok(())
       });
