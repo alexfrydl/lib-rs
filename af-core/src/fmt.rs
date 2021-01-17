@@ -9,8 +9,10 @@
 #[doc(no_inline)]
 pub use std::fmt::*;
 
+mod count;
 mod indent;
 mod surround;
 
-pub use self::indent::*;
-pub use self::surround::*;
+pub use self::count::{count, Counted};
+pub use self::indent::{indent, Indented, IndentedFormatter};
+pub use self::surround::{surround, Surrounded};

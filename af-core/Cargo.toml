@@ -13,9 +13,8 @@ all-features = true
 [features]
 default = ["logger"]
 logger = ["af-macros/logger", "console", "dashmap"]
+test-runner = ["console", "indicatif", "logger"]
 tokio1 = ["async-global-executor/tokio"]
-tokio03 = ["async-global-executor/tokio03"]
-tokio02 = ["async-global-executor/tokio02"]
 
 [dependencies]
 af-macros = { version = "0.1", path = "../af-macros" }
@@ -54,3 +53,7 @@ dashmap = { version = "4", optional = true }
 async-executor = "1"
 async-global-executor = { version = "2", features = ["async-io"] }
 async-io = "1"
+
+# test-runner deps.
+
+indicatif = { version = "0.15", optional = true }

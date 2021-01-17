@@ -69,6 +69,7 @@ impl<'a, F: 'a + Write> Write for IndentedFormatter<'a, F> {
       // Mark new lines.
 
       if c == '\n' {
+        self.f.write_char(c)?;
         self.start_of_line = true;
         self.line += 1;
 

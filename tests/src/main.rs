@@ -5,39 +5,25 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use af_core::prelude::*;
-use af_core::task;
-use std::sync::atomic::{AtomicUsize, Ordering::AcqRel};
+use af_core::{task, test};
 
-#[af_core::main]
-pub async fn main() -> Result {
-  let mut tasks = task::Parallel::<_, Infallible>::new();
-  let value: Arc<AtomicUsize> = default();
+#[af_core::test::main]
+fn main(cx: &mut test::Context) {
+  cx.context("Sleep", |cx| {
+    for i in 0..100 {
+      let duration = Duration::secs(i as f64 * 0.1);
+      let name = format!("for {}", duration);
 
-  for _ in 0..100 {
-    let value = value.clone();
+      cx.test(name, async move {
+        task::sleep(duration / 2.0).await;
 
-    tasks.add(async move {
-      if random::ratio(1, 20) {
-        panic!("Critical miss!");
-      }
+        match random::range(1..=20) {
+          1 => fail!("Critical miss."),
+          _ => {}
+        }
 
-      Ok(value.fetch_add(1, AcqRel))
-    });
-  }
-
-  while let Some(task) = tasks.next().await {
-    match task.output {
-      Ok(value) if task.index != value => {
-        info!("Task {} returned {}.", task.index, value);
-      }
-
-      Err(err) => {
-        error!("Task {} failed. {}", task.index, err);
-      }
-
-      _ => {}
+        Ok(())
+      });
     }
-  }
-
-  Ok(())
+  });
 }

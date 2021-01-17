@@ -12,7 +12,7 @@ mod handle;
 mod output;
 mod parallel;
 
-pub use self::batch::{Batch, BatchError, BatchResult};
+pub use self::batch::{Batch, BatchError};
 pub use self::cancel::{CancelSignal, Canceled, Canceler};
 pub use self::handle::Handle;
 pub use self::output::{Failure, Output, Panicked};

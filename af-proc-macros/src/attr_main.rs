@@ -16,9 +16,7 @@ pub fn run(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
   // Require an async function.
 
   if sig.asyncness.is_none() {
-    return syn::Error::new_spanned(sig.fn_token, "The runtime main function must be async.")
-      .to_compile_error()
-      .into();
+    abort!(sig.fn_token, "The runtime main function must be async.");
   }
 
   // Generate the output.

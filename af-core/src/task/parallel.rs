@@ -10,10 +10,13 @@ use crate::string::SharedString;
 use crate::task::{self, Task};
 use fnv::FnvHashMap;
 
+/// The index of a [`Parallel`] task.
+pub type Index = usize;
+
 /// Runs multiple tasks in parallel and streams their results.
 pub struct Parallel<T, E> {
-  children: FnvHashMap<usize, Child>,
-  next_index: usize,
+  children: FnvHashMap<Index, Child>,
+  next_index: Index,
   rx: channel::Receiver<TaskExit<T, E>>,
   tx: channel::Sender<TaskExit<T, E>>,
 }
@@ -21,11 +24,22 @@ pub struct Parallel<T, E> {
 /// A completed [`Parallel`] task.
 pub struct CompletedTask<T, E> {
   /// The index of the task.
-  pub index: usize,
+  pub index: Index,
   /// The name of the task, if any.
   pub name: SharedString,
   /// The output of the task.
   pub output: task::Output<T, E>,
+}
+
+/// An error representing a failed task.
+#[derive(Debug)]
+pub struct FailedTask<E> {
+  /// The reason the task failed.
+  pub failure: task::Failure<E>,
+  /// The index of the task.
+  pub index: Index,
+  /// The name of the task, if any.
+  pub name: SharedString,
 }
 
 /// A child task.
@@ -52,13 +66,13 @@ where
     Self { children: default(), next_index: 0, rx, tx }
   }
 
-  /// Adds a task to run in parallel.
-  pub fn add(&mut self, task: impl Task<T, E>) {
+  /// Adds a task to run in parallel and returns its index.
+  pub fn add(&mut self, task: impl Task<T, E>) -> Index {
     self.add_as("", task)
   }
 
-  /// Adds a named task to run in parallel.
-  pub fn add_as(&mut self, name: impl Into<SharedString>, task: impl Task<T, E>) {
+  /// Adds a named task to run in parallel and returns its index.
+  pub fn add_as(&mut self, name: impl Into<SharedString>, task: impl Task<T, E>) -> Index {
     let index = self.next_index;
     let name = name.into();
     let tx = self.tx.clone();
@@ -72,6 +86,8 @@ where
 
     self.next_index += 1;
     self.children.insert(index, Child { name: name.into(), _task });
+
+    index
   }
 
   /// Waits for the result of the next completed task.
@@ -87,5 +103,34 @@ where
     let child = self.children.remove(&index).expect("Received result from unknown child.");
 
     Some(CompletedTask { index, name: child.name, output })
+  }
+
+  /// Waits for the next failed task.
+  ///
+  /// This function repeatedly calls [`next()`], dropping the output of every
+  /// successful task, until a task fails. If all tasks have completed
+  /// successfully, this function returns `None`.
+  pub async fn next_failed(&mut self) -> Option<FailedTask<E>> {
+    while let Some(task) = self.next().await {
+      if let Err(failure) = task.output {
+        return Some(FailedTask { failure, index: task.index, name: task.name });
+      }
+    }
+
+    None
+  }
+}
+
+impl<E> Error for FailedTask<E> where E: Debug + Display {}
+
+impl<E> Display for FailedTask<E>
+where
+  E: Display,
+{
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self.name.as_str() {
+      "" => write!(f, "Task #{} failed. {}", self.index, self.failure),
+      name => write!(f, "Task `{}` failed. {}", name, self.failure),
+    }
   }
 }

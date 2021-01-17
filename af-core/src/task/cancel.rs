@@ -16,9 +16,11 @@ pub struct Canceler {
 }
 
 /// An awaitable cancel signal triggered by a [`Canceler`].
+#[pin_project]
 #[derive(Default)]
 pub struct CancelSignal {
   inner: Option<Arc<Inner>>,
+  #[pin]
   listener: Option<EventListener>,
 }
 
@@ -125,19 +127,23 @@ impl Future for CancelSignal {
       return future::Poll::Pending;
     }
 
-    let _self = unsafe { self.get_unchecked_mut() };
-
-    if _self.listener.is_none() {
-      if _self.is_triggered() {
-        return future::Poll::Ready(());
-      }
-
-      _self.listener = Some(_self.inner.as_ref().unwrap().event.listen());
+    if self.is_triggered() {
+      return future::Poll::Ready(());
     }
 
-    match unsafe { Pin::new_unchecked(_self.listener.as_mut().unwrap()).poll(cx) } {
+    let mut this = self.project();
+
+    if this.listener.is_none() {
+      *this.listener = Some(this.inner.as_ref().unwrap().event.listen());
+    }
+
+    let listener = this.listener.as_mut().get_mut().as_mut().unwrap();
+
+    pin!(listener);
+
+    match listener.poll(cx) {
       future::Poll::Ready(()) => {
-        _self.listener = None;
+        this.listener.set(None);
 
         future::Poll::Ready(())
       }

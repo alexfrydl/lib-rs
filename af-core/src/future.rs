@@ -6,6 +6,7 @@
 
 //! Utilities for working with futures and async logic.
 
+pub use af_macros::{future_boxed as boxed, future_boxed_local as boxed_local};
 pub use std::future::Future;
 pub use std::task::{Context, Poll};
 
@@ -15,7 +16,6 @@ mod try_future;
 pub use self::try_future::*;
 
 use crate::prelude::*;
-use futures_lite::FutureExt;
 
 /// Waits for a future to be ready or panic.
 ///
@@ -24,6 +24,8 @@ pub async fn catch_unwind<F>(f: F) -> Result<F::Output, Box<dyn Any + Send>>
 where
   F: Future + panic::UnwindSafe,
 {
+  use futures_lite::FutureExt;
+
   f.catch_unwind().await
 }
 
@@ -45,6 +47,8 @@ pub fn poll<F: Future + Unpin>(f: &mut F) -> Option<F::Output> {
 /// The remaining future is dropped. If both futures are ready at the same time,
 /// the first future has priority.
 pub async fn race<T>(a: impl Future<Output = T>, b: impl Future<Output = T>) -> T {
+  use futures_lite::FutureExt;
+
   a.or(b).await
 }
 
@@ -54,3 +58,27 @@ pub fn try_resolve<T>(f: impl Future<Output = T>) -> Option<T> {
   pin!(f);
   poll(&mut f)
 }
+
+#[pin_project]
+pub struct OkWrap<F> {
+  #[pin]
+  inner: F,
+}
+
+impl<F: Future> Future for OkWrap<F> {
+  type Output = Result<F::Output, Infallible>;
+
+  fn poll(self: Pin<&mut Self>, cx: &mut future::Context) -> Poll<Self::Output> {
+    let this = self.project();
+
+    this.inner.poll(cx).map(Ok)
+  }
+}
+
+pub trait FutureExt: Future + Sized {
+  fn ok(self) -> OkWrap<Self> {
+    OkWrap { inner: self }
+  }
+}
+
+impl<T: Future + Sized> FutureExt for T {}

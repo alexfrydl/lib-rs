@@ -4,6 +4,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+pub use crate::task::parallel::FailedTask;
+
 use crate::prelude::*;
 use crate::string::SharedString;
 use crate::task::{self, Task};
@@ -43,35 +45,27 @@ where
   }
 
   /// Runs the batch until all tasks exit successfully or a task fails.
-  pub async fn run(mut self) -> BatchResult<E> {
-    let mut err = None;
-
-    while let Some(task) = self.tasks.next().await {
-      if let Err(failure) = task.output {
-        match &err {
-          None => {
-            err = Some(BatchError { failure, task_index: task.index, task_name: task.name });
-          }
-
-          Some(_) if task.name.is_empty() => {
-            warn!("Task #{} failed. {}", task.index, failure);
-          }
-
-          Some(_) => {
-            warn!("Task `{}` failed. {}", task.name, failure);
-          }
-        }
-
-        match &self.canceler {
-          Some(e) => e.cancel(),
-          None => break,
-        }
-      }
-    }
-
-    match err {
+  pub async fn run(mut self) -> Result<E> {
+    match self.tasks.next_failed().await {
       None => Ok(()),
-      Some(err) => Err(err),
+
+      Some(failed_task) => {
+        // If a canceler was provided, cancel the tasks and wait for them to
+        // exit while logging errors.
+
+        if let Some(c) = &self.canceler {
+          c.cancel();
+
+          while let Some(ft) = self.tasks.next_failed().await {
+            match ft.name.as_str() {
+              "" => warn!("Task #{} failed. {}", ft.index, ft.failure),
+              name => warn!("Task `{}` failed. {}", name, ft.failure),
+            }
+          }
+        }
+
+        Err(failed_task)
+      }
     }
   }
 
@@ -82,7 +76,7 @@ where
 }
 
 /// The result of a [`Batch`].
-pub type BatchResult<E> = Result<(), BatchError<E>>;
+pub type Result<E> = std::result::Result<(), FailedTask<E>>;
 
 /// The error that caused a [`Batch`] to exit.
 #[derive(Debug)]
