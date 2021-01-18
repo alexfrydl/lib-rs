@@ -75,20 +75,26 @@ pub async fn run(build: impl FnOnce(&mut test::Context)) -> Result {
   pb.set_style(style_ok);
 
   while let Some(test::Output { path, result }) = output.next().await {
-    if let Err(err) = result {
-      failures += 1;
+    term.clear_last_lines(1)?;
 
-      term.clear_last_lines(1)?;
+    match result {
+      Ok(_) => {
+        writeln!(term, "{} {}\n", path, style("passed.").bright().green(),)?;
+      }
 
-      writeln!(
-        term,
-        "{} {} \n\n{:#}\n\n",
-        path,
-        style("failed.").bright().red(),
-        fmt::indent("  ", "  ", err)
-      )?;
+      Err(err) => {
+        failures += 1;
 
-      pb.set_style(style_err.clone());
+        pb.set_style(style_err.clone());
+
+        writeln!(
+          term,
+          "{} {} {:#}\n",
+          path,
+          style("failed:").bright().red(),
+          fmt::indent("", "  ", err)
+        )?;
+      }
     }
 
     pb.inc(1);
@@ -102,6 +108,10 @@ pub async fn run(build: impl FnOnce(&mut test::Context)) -> Result {
     0 => (fmt::count(tests, "test", "tests"), style("passed").bright().green()),
     n => (fmt::count(n, "test", "tests"), style("failed").bright().red()),
   };
+
+  if tests > 0 {
+    writeln!(term)?;
+  }
 
   writeln!(term, "{} {} in {}.", count, status, style(elapsed).bright().white())?;
 

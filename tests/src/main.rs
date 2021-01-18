@@ -6,10 +6,13 @@
 
 mod core;
 
-use af_core::prelude::*;
-use af_core::test;
+use af_core::test::prelude::*;
 
 #[af_core::test::main]
 fn test(cx: &mut test::Context) {
-  cx.context("af_core", core::test);
+  context!(af_core, core::test);
+
+  test!("A test failure", {
+    fail!("Nope.");
+  });
 }

@@ -10,12 +10,13 @@ mod path;
 
 pub mod prelude {
   pub use crate::prelude::*;
-  pub use crate::test;
+  pub use crate::test::{self, context, test};
 }
 
 pub use self::context::Context;
 pub use self::output::{Output, OutputStream};
 pub use self::path::Path;
+pub use af_macros::{test_context as context, test_test as test};
 
 #[cfg(feature = "test-runner")]
 pub mod runner;
