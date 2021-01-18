@@ -8,9 +8,6 @@ mod attr_future_boxed;
 mod attr_main;
 mod attr_test_main;
 mod prelude;
-mod test;
-
-use self::prelude::*;
 
 /// Modifies an `async` function to return a `Box<dyn Future + Send>`.
 #[proc_macro_attribute]
@@ -43,18 +40,4 @@ pub fn test_main(
   item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
   attr_test_main::run(item)
-}
-
-/// Defines a test context.
-#[proc_macro]
-#[proc_macro_error]
-pub fn test_context(args: proc_macro::TokenStream) -> proc_macro::TokenStream {
-  test::run_context_macro(args.into())
-}
-
-/// Defines a test.
-#[proc_macro]
-#[proc_macro_error]
-pub fn test_test(args: proc_macro::TokenStream) -> proc_macro::TokenStream {
-  test::run_test_macro(args.into())
 }

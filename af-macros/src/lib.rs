@@ -6,6 +6,7 @@
 
 mod fail;
 mod path;
+mod test;
 mod util;
 
 pub use af_proc_macros::*;

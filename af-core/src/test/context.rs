@@ -31,8 +31,8 @@ impl Context {
     default()
   }
 
-  /// Creates a new child context.
-  pub fn context(&mut self, name: impl Into<SharedString>, build: impl FnOnce(&mut Context)) {
+  /// Creates a new child context with a given scope name.
+  pub fn scope(&mut self, name: impl Into<SharedString>, build: impl FnOnce(&mut Context)) {
     let name = name.into();
 
     assert!(!name.is_empty(), "A test context cannot be named \"\".");

@@ -9,5 +9,5 @@ mod channel;
 use af_core::test::prelude::*;
 
 pub fn test(cx: &mut test::Context) {
-  context!(::channel, channel::test);
+  cx.scope("::channel", channel::test);
 }

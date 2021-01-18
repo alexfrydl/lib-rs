@@ -111,8 +111,8 @@ macro_rules! fail_when {
 
   ($value:ident.is_none()) => {
     let $value = match $value {
-      Ok($value) => $value,
-      Err(err) => fail!("`{}` is `None`.", stringify!($value)),
+      Some($value) => $value,
+      None => fail!("`{}` is `None`.", stringify!($value)),
     };
   };
 

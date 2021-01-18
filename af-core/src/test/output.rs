@@ -19,7 +19,7 @@ pub struct OutputStream {
 /// A single test result.
 #[derive(Debug)]
 pub struct Output {
-  /// The path of the test, including context names.
+  /// The path of the test, including scope names.
   pub path: Path,
   /// The result of the test.
   pub result: fail::Result,

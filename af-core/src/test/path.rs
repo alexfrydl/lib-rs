@@ -7,7 +7,7 @@
 use crate::prelude::*;
 use crate::string::SharedString;
 
-/// A qualified test path, including context names.
+/// A qualified test path, including scope names.
 #[derive(Clone, Default)]
 pub struct Path {
   pub(super) components: im::Vector<SharedString>,
@@ -55,7 +55,7 @@ impl Display for Path {
         None => continue,
       };
 
-      if first_char.is_whitespace() || first_char.is_ascii_punctuation() {
+      if first_char.is_whitespace() || [':', '(', '<'].contains(&first_char) {
         write!(f, "{}", component)?;
       } else {
         write!(f, " {}", component)?;

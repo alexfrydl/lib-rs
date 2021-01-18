@@ -10,9 +10,9 @@ use af_core::test::prelude::*;
 
 #[af_core::test::main]
 fn test(cx: &mut test::Context) {
-  context!(af_core, core::test);
+  cx.scope("af_core", core::test);
 
-  test!("A test failure", {
+  test!(cx, "A test failure", {
     fail!("Nope.");
   });
 }
