@@ -6,6 +6,7 @@
 
 use crate::prelude::*;
 
+/// A cheaply cloneable string.
 #[derive(Clone)]
 pub struct SharedString(Inner);
 
@@ -16,6 +17,7 @@ enum Inner {
 }
 
 impl SharedString {
+  /// Returns a reference to this string as a `&str`.
   pub fn as_str(&self) -> &str {
     match &self.0 {
       Inner::ArcStr(value) => value.as_ref(),
