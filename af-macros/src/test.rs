@@ -1,6 +1,5 @@
 #[macro_export]
 macro_rules! test {
-
   ($cx:expr, $name:expr, timeout = immediate, $($rest:tt)+) => {
     $cx.test(
       $name,

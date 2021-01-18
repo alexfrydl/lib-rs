@@ -5,9 +5,16 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 mod channel;
+mod env;
+mod fmt;
+mod future;
 
 use af_core::test::prelude::*;
 
+/// Tests the `af_core` package.
 pub fn test(cx: &mut test::Context) {
   cx.scope("::channel", channel::test);
+  cx.scope("::env", env::test);
+  cx.scope("::fmt", fmt::test);
+  cx.scope("::future", future::test);
 }

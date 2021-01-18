@@ -97,7 +97,7 @@ pub async fn run(build: impl FnOnce(&mut test::Context)) -> Result {
       }
     }
 
-    pb.inc(1);
+    pb.set_position((tests - output.len()) as u64);
   }
 
   pb.finish_and_clear();

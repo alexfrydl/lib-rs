@@ -8,7 +8,7 @@
 #[macro_export]
 macro_rules! fail {
   ($($args:tt)*) => {
-    return Err(fail::err!($($args)*).into())
+    return Err(fail::err!($($args)*))
   };
 }
 
@@ -150,6 +150,18 @@ macro_rules! fail_when {
   (!$value:tt.is_empty()) => {
     if !$value.is_empty() {
       fail!("`{}` is not empty.", stringify!($value));
+    }
+  };
+
+  (!$value:tt) => {
+    if !$value {
+      fail!("`{}` is `false`.", stringify!($value));
+    }
+  };
+
+  ($value:tt) => {
+    if $value {
+      fail!("`{}` is `true`.", stringify!($value));
     }
   };
 

@@ -8,6 +8,7 @@ mod core;
 
 use af_core::test::prelude::*;
 
+/// Entry point of the test suite.
 #[af_core::test::main]
 fn test(cx: &mut test::Context) {
   cx.scope("af_core", core::test);

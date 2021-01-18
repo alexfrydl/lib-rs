@@ -8,4 +8,5 @@ version = "0.0.0"
 [dependencies]
 af-core = { path = "../af-core", features = ["test-runner"] }
 console = "0.14"
+event-listener = "2"
 indicatif = "0.15"

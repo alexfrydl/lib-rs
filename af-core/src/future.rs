@@ -59,6 +59,17 @@ pub fn try_resolve<T>(f: impl Future<Output = T>) -> Option<T> {
   poll(&mut f)
 }
 
+/// An extension trait for [`Future`].
+pub trait FutureExt: Future + Sized {
+  /// Wraps the output of the future in `Result<_, Infallible>`.
+  fn ok(self) -> OkWrap<Self> {
+    OkWrap { inner: self }
+  }
+}
+
+impl<T: Future + Sized> FutureExt for T {}
+
+/// The future returned from [`FutureExt::ok`].
 #[pin_project]
 pub struct OkWrap<F> {
   #[pin]
@@ -74,11 +85,3 @@ impl<F: Future> Future for OkWrap<F> {
     this.inner.poll(cx).map(Ok)
   }
 }
-
-pub trait FutureExt: Future + Sized {
-  fn ok(self) -> OkWrap<Self> {
-    OkWrap { inner: self }
-  }
-}
-
-impl<T: Future + Sized> FutureExt for T {}

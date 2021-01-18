@@ -75,7 +75,7 @@ impl Display for Error {
 
     if f.alternate() {
       for err in &self.trace {
-        write!(f, "\n * {:#}", err)?;
+        write!(f, "\n * {:#}", fmt::indent("", "   ", err))?;
       }
     }
 
