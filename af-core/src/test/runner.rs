@@ -103,7 +103,7 @@ pub async fn run(build: impl FnOnce(&mut test::Context)) -> Result {
     n => (fmt::count(n, "test", "tests"), style("failed").bright().red()),
   };
 
-  if tests > 0 {
+  if failures > 0 {
     writeln!(term)?;
   }
 
