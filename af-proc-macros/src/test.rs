@@ -22,7 +22,7 @@ pub fn run_context_macro(args: TokenStream) -> proc_macro::TokenStream {
   };
 
   let result = quote! {
-    cx.context(#name, |cx| #expr);
+    cx.context(#name, |cx| { #expr; });
   };
 
   result.into()
