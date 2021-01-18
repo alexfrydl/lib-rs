@@ -11,5 +11,5 @@ version = "0.1.0"
 all-features = true
 
 [dependencies]
-af-core = { version = "0.1", path = "../af-core", features = ["tokio1"] }
+af-core = { version = "0.1", path = "../af-core" }
 sentry = "0.21"

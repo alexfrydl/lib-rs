@@ -11,5 +11,5 @@ mod statement;
 pub use self::client::{connect, Client};
 pub use self::error::{Error, Result};
 pub use self::statement::{Statement, StatementBuilder, ToStatement};
-pub use tokio_postgres::types::{FromSql, ToSql, Type};
+pub use tokio_postgres::types::{self, FromSql, ToSql, Type};
 pub use tokio_postgres::{Config, Row, RowStream};

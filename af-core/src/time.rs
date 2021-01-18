@@ -175,42 +175,46 @@ impl Display for Time {
 
 // Implement conversion to and from postgres.
 
-#[cfg(feature = "postgres")]
-impl<'a> pg::FromSql<'a> for Time {
-  fn from_sql(ty: &pg::Type, raw: &'a [u8]) -> pg::FromSqlResult<Self> {
-    Ok(Self { inner: pg::FromSql::from_sql(ty, raw)?, zone: Zone::Local })
-  }
+cfg_if! {
+  if #[cfg(feature = "postgres")] {
+    use postgres_types as pg;
 
-  fn accepts(ty: &pg::Type) -> bool {
-    ty.oid() == pg::Type::TIMESTAMPTZ.oid()
-  }
-}
+    impl<'a> pg::FromSql<'a> for Time {
+      fn from_sql(ty: &pg::Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>>{
+        Ok(Self { inner: pg::FromSql::from_sql(ty, raw)?, zone: Zone::Local })
+      }
 
-#[cfg(feature = "postgres")]
-impl pg::ToSql for Time {
-  fn to_sql(&self, ty: &pg::Type, out: &mut pg::BytesMut) -> pg::ToSqlResult
-  where
-    Self: Sized,
-  {
-    if ty.oid() == pg::Type::TIMESTAMP.oid() {
-      self.to_naive().to_sql(ty, out)
-    } else {
-      self.inner.to_sql(ty, out)
+      fn accepts(ty: &pg::Type) -> bool {
+        ty.oid() == pg::Type::TIMESTAMPTZ.oid()
+      }
     }
-  }
 
-  fn accepts(ty: &pg::Type) -> bool
-  where
-    Self: Sized,
-  {
-    ty.oid() == pg::Type::TIMESTAMP.oid() || ty.oid() == pg::Type::TIMESTAMPTZ.oid()
-  }
+    impl pg::ToSql for Time {
+      fn to_sql(&self, ty: &pg::Type, out: &mut bytes::BytesMut) -> Result<pg::IsNull, Box<dyn Error + Sync + Send>>
+      where
+        Self: Sized,
+      {
+        if ty.oid() == pg::Type::TIMESTAMP.oid() {
+          self.to_naive().to_sql(ty, out)
+        } else {
+          self.inner.to_sql(ty, out)
+        }
+      }
 
-  fn to_sql_checked(&self, ty: &pg::Type, out: &mut pg::BytesMut) -> pg::ToSqlResult {
-    if ty.oid() == pg::Type::TIMESTAMP.oid() {
-      self.to_naive().to_sql_checked(ty, out)
-    } else {
-      self.inner.to_sql_checked(ty, out)
+      fn accepts(ty: &pg::Type) -> bool
+      where
+        Self: Sized,
+      {
+        ty.oid() == pg::Type::TIMESTAMP.oid() || ty.oid() == pg::Type::TIMESTAMPTZ.oid()
+      }
+
+      fn to_sql_checked(&self, ty: &pg::Type, out: &mut bytes::BytesMut) -> Result<pg::IsNull, Box<dyn Error + Sync + Send>> {
+        if ty.oid() == pg::Type::TIMESTAMP.oid() {
+          self.to_naive().to_sql_checked(ty, out)
+        } else {
+          self.inner.to_sql_checked(ty, out)
+        }
+      }
     }
   }
 }
