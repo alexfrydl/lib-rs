@@ -8,6 +8,8 @@ mod channel;
 mod env;
 mod fmt;
 mod future;
+mod math;
+mod path;
 
 use af_core::test::prelude::*;
 
@@ -17,4 +19,6 @@ pub fn test(cx: &mut test::Context) {
   cx.scope("::env", env::test);
   cx.scope("::fmt", fmt::test);
   cx.scope("::future", future::test);
+  cx.scope("::math", math::test);
+  cx.scope("::path", path::test);
 }

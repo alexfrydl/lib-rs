@@ -75,26 +75,20 @@ pub async fn run(build: impl FnOnce(&mut test::Context)) -> Result {
   pb.set_style(style_ok);
 
   while let Some(test::Output { path, result }) = output.next().await {
-    term.clear_last_lines(1)?;
+    if let Err(err) = result {
+      failures += 1;
 
-    match result {
-      Ok(_) => {
-        writeln!(term, "{} {}\n", path, style("passed.").bright().green(),)?;
-      }
+      term.clear_last_lines(1)?;
 
-      Err(err) => {
-        failures += 1;
+      pb.set_style(style_err.clone());
 
-        pb.set_style(style_err.clone());
-
-        writeln!(
-          term,
-          "{} {} {:#}\n",
-          path,
-          style("failed:").bright().red(),
-          fmt::indent("", "  ", err)
-        )?;
-      }
+      writeln!(
+        term,
+        "{} {} — {:#}\n",
+        path,
+        style("failed").bright().red(),
+        fmt::indent("", "  ", err)
+      )?;
     }
 
     pb.set_position((tests - output.len()) as u64);

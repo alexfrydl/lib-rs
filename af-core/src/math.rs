@@ -47,18 +47,3 @@ impl<T> Number for T where
   T: PartialOrd + PartialEq + Zero + One + NumOps + NumAssignOps + SampleUniform
 {
 }
-
-// Unit tests.
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  /// Tests that the clamp function works.
-  #[test]
-  fn test_clamp() {
-    assert_eq!(clamp(5, 0, 20), 5);
-    assert_eq!(clamp(-5, 0, 20), 0);
-    assert_eq!(clamp(25, 0, 20), 20);
-  }
-}
