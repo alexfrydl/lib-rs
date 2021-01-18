@@ -10,6 +10,7 @@ mod fmt;
 mod future;
 mod math;
 mod path;
+mod random;
 
 use af_core::test::prelude::*;
 
@@ -21,4 +22,5 @@ pub fn test(cx: &mut test::Context) {
   cx.scope("::future", future::test);
   cx.scope("::math", math::test);
   cx.scope("::path", path::test);
+  cx.scope("::random", random::test);
 }

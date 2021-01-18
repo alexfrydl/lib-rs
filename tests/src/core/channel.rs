@@ -26,7 +26,6 @@ fn test_unbounded(cx: &mut test::Context) {
 
     fail::when!(one.is_none());
     fail::when!(two.is_none());
-
     fail::when!(one != 1);
     fail::when!(two != 2);
   });
