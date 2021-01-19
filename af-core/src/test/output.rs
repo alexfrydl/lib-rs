@@ -6,14 +6,14 @@
 
 use crate::channel;
 use crate::prelude::*;
-use crate::task;
+use crate::task::Task;
 use crate::test::Path;
 
 /// A stream of test results.
 pub struct OutputStream {
   pub(super) remaining: usize,
   pub(super) rx: channel::Receiver<Output>,
-  pub(super) _task: task::Handle<()>,
+  pub(super) _task: Task<()>,
 }
 
 /// A single test result.

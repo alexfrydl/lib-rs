@@ -5,14 +5,14 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use crate::prelude::*;
-use crate::task;
+use crate::task::{self, Task};
 use event_listener::{Event, EventListener};
 use std::sync::atomic::{self, AtomicBool};
 
 /// A task canceler that triggers a cloneable [`CancelSignal`].
 pub struct Canceler {
   inner: Arc<Inner>,
-  _inherit: Option<task::Handle<()>>,
+  _inherit: Option<Task<()>>,
 }
 
 /// An awaitable cancel signal triggered by a [`Canceler`].

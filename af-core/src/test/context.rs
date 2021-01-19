@@ -5,9 +5,10 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use super::{Output, OutputStream, Path};
+use crate::channel;
 use crate::prelude::*;
 use crate::string::SharedString;
-use crate::{channel, task};
+use crate::task::{self, Task};
 use std::collections::BTreeMap;
 
 /// A test context that groups related tests together.
@@ -21,7 +22,7 @@ pub struct Context {
 /// A child of a [`Context`].
 enum Child {
   Context(Context),
-  Test(Box<dyn FnOnce() -> task::Handle<Result<(), fail::Error>> + Send>),
+  Test(Box<dyn FnOnce() -> Task<Result<(), fail::Error>> + Send>),
 }
 
 impl Context {

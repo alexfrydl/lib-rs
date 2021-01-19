@@ -4,9 +4,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use crate::channel;
 use crate::prelude::*;
 use crate::string::SharedString;
-use crate::{channel, task};
+use crate::task::{self, Task};
 use fnv::FnvHashMap;
 
 /// The index of a [`Join`] task.
@@ -14,16 +15,16 @@ pub type Index = usize;
 
 /// Concurrently waits for the results of multiple tasks.
 pub struct Join<T> {
-  children: FnvHashMap<Index, Task>,
+  children: FnvHashMap<Index, Child>,
   next_index: Index,
   rx: channel::Receiver<Exit<T>>,
   tx: channel::Sender<Exit<T>>,
 }
 
 /// A task in a [`Join`].
-struct Task {
+struct Child {
   name: SharedString,
-  _monitor: task::Handle<()>,
+  _monitor: Task<()>,
 }
 
 /// An exit message sent from a task monitor.
@@ -44,12 +45,12 @@ where
   }
 
   /// Adds a task to the join, returning its index.
-  pub fn add(&mut self, task: task::Handle<T>) -> Index {
+  pub fn add(&mut self, task: Task<T>) -> Index {
     self.add_as("", task)
   }
 
   /// Adds a named task to the join, returning its index.
-  pub fn add_as(&mut self, name: impl Into<SharedString>, task: task::Handle<T>) -> Index {
+  pub fn add_as(&mut self, name: impl Into<SharedString>, task: Task<T>) -> Index {
     // Get next index.
 
     let index = self.next_index;
@@ -67,7 +68,7 @@ where
       tx.send(Exit { index, result }).await.ok();
     });
 
-    self.children.insert(index, Task { name: name.into(), _monitor });
+    self.children.insert(index, Child { name: name.into(), _monitor });
 
     index
   }

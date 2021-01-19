@@ -12,14 +12,13 @@ use crate::channel;
 use crate::prelude::*;
 use std::thread::{Builder, JoinHandle};
 
-/// A handle that can be used to wait for a thread to complete and receive its
-/// result.
-pub struct Handle<T> {
+/// An operating system thread.
+pub struct Thread<T> {
   inner: JoinHandle<()>,
   rx: channel::Receiver<T>,
 }
 
-/// An error returned from [`Handle::join()`] when the thread panics.
+/// An error returned from [`Thread::join()`] when the thread panics.
 #[derive(Debug, Error)]
 #[error("Thread panicked.")]
 pub struct PanicError {
@@ -45,7 +44,7 @@ pub fn sleep(dur: Duration) {
 pub fn start<T: Send + 'static>(
   name: impl Into<String>,
   func: impl FnOnce() -> T + Send + 'static,
-) -> Handle<T> {
+) -> Thread<T> {
   let (tx, rx) = channel::with_capacity(1);
 
   let func = move || {
@@ -55,10 +54,10 @@ pub fn start<T: Send + 'static>(
 
   let inner = Builder::new().name(name.into()).spawn(func).expect("Failed to start thread");
 
-  Handle { inner, rx }
+  Thread { inner, rx }
 }
 
-impl<T> Handle<T> {
+impl<T> Thread<T> {
   /// Waits for the thread to exit and returns its output.
   ///
   /// If the thread panicked, this function returns a [`PanicError`] containing

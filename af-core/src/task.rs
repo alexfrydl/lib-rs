@@ -11,11 +11,9 @@ pub mod try_join;
 
 mod cancel;
 mod error;
-mod handle;
 
 pub use self::cancel::{CancelSignal, Canceled, Canceler};
 pub use self::error::{Error, Panic, Result, ResultResultExt};
-pub use self::handle::Handle;
 pub use self::join::Join;
 pub use self::try_join::TryJoin;
 
@@ -41,15 +39,40 @@ pub async fn sleep(duration: Duration) {
 }
 
 /// Starts a new task.
-pub fn start<T: Send + 'static>(future: impl Future<T>) -> Handle<T> {
+pub fn start<T: Send + 'static>(future: impl Future<T>) -> Task<T> {
   let task = async_global_executor::spawn(async move {
     future::catch_unwind(panic::AssertUnwindSafe(future)).await.map_err(|value| Panic { value })
   });
 
-  task.into()
+  Task { task }
 }
 
 /// Yields once to other running tasks.
 pub async fn yield_now() {
   futures_lite::future::yield_now().await;
+}
+
+/// An asynchronous task.
+#[must_use = "Tasks are killed when dropped."]
+pub struct Task<T> {
+  task: async_executor::Task<Result<T>>,
+}
+
+impl<T> Task<T> {
+  /// Kills the task and waits for its future to be dropped.
+  pub async fn kill(self) {
+    self.task.cancel().await;
+  }
+}
+
+// Implement Future for Task to poll the underlying task.
+
+impl<T> future::Future for Task<T> {
+  type Output = Result<T>;
+
+  fn poll(self: Pin<&mut Self>, cx: &mut future::Context<'_>) -> future::Poll<Self::Output> {
+    let task = unsafe { Pin::map_unchecked_mut(self, |s| &mut s.task) };
+
+    task.poll(cx)
+  }
 }

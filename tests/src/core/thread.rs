@@ -23,7 +23,7 @@ pub fn test(cx: &mut test::Context) {
     fail::when!(id == current);
   });
 
-  cx.scope("::Handle::join()", |cx| {
+  cx.scope("::Thread::join()", |cx| {
     test!(cx, "waits for the thread output", timeout = "1 s", {
       let thread = thread::start("fourteen", || 14);
       let output = thread.join().await?;
