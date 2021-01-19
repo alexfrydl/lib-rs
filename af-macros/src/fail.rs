@@ -45,58 +45,112 @@ macro_rules! fail_when {
     };
   };
 
+  (let $pattern:pat = $expr:expr) => {
+    if let $pattern = $expr {
+      fail!("Pattern match failed on line {} of `{}`.", line!(), file!());
+    }
+  };
+
   (let $pattern:pat = $expr:expr, $($args:tt)+) => {
     if let $pattern = $expr {
       fail!($($args)+);
     }
   };
 
-  ($left:tt == $right:expr) => {
+  ($left:tt == $right:tt) => {
     if $left == $right {
-      fail!("`{}` equals `{}`.", stringify!($left), stringify!($right));
+      fail!(
+        "`{}` equals `{}` on line {} of `{}`.",
+        stringify!($left),
+        stringify!($right),
+        line!(),
+        file!(),
+      );
     }
   };
 
-  ($left:tt != $right:expr) => {
+  ($left:tt != $right:tt) => {
     if $left != $right {
-      fail!("`{}` does not equal `{}`.", stringify!($left), stringify!($right));
+      fail!(
+        "`{}` does not equal `{}` on line {} of `{}`.",
+        stringify!($left),
+        stringify!($right),
+        line!(),
+        file!(),
+      );
     }
   };
 
-  ($left:tt > $right:expr) => {
+  ($left:tt > $right:tt) => {
     if $left > $right {
-      fail!("`{}` is greater than `{}`.", stringify!($left), stringify!($right));
+      fail!(
+        "`{}` is greater than `{}` on line {} of `{}`.",
+        stringify!($left),
+        stringify!($right),
+        line!(),
+        file!(),
+      );
     }
   };
 
-  ($left:tt < $right:expr) => {
+  ($left:tt < $right:tt) => {
     if $left < $right {
-      fail!("`{}` is less than `{}`.", stringify!($left), stringify!($right));
+      fail!(
+        "`{}` is less than `{}` on line {} of `{}`.",
+        stringify!($left),
+        stringify!($right),
+        line!(),
+        file!(),
+      );
     }
   };
 
-  ($left:tt >= $right:expr) => {
+  ($left:tt >= $right:tt) => {
     match $left.partial_cmp(&$right) {
       Some(std::cmp::Ordering::Greater) => {
-        fail!("`{}` is greater than `{}`.", stringify!($left), stringify!($right));
+        fail!(
+          "`{}` is greater than `{}` on line {} of `{}`.",
+          stringify!($left),
+          stringify!($right),
+          line!(),
+          file!(),
+        );
       }
 
       Some(std::cmp::Ordering::Equal) => {
-        fail!("`{}` is equal to `{}`.", stringify!($left), stringify!($right));
+        fail!(
+          "`{}` is equal to `{}` on line {} of `{}`.",
+          stringify!($left),
+          stringify!($right),
+          line!(),
+          file!(),
+        );
       }
 
       _ => {}
     }
   };
 
-  ($left:tt <= $right:expr) => {
+  ($left:tt <= $right:tt) => {
     match $left.partial_cmp(&$right) {
       Some(std::cmp::Ordering::Less) => {
-        fail!("`{}` is less than `{}`.", stringify!($left), stringify!($right));
+        fail!(
+          "`{}` is less than `{}` on line {} of `{}`.",
+          stringify!($left),
+          stringify!($right),
+          line!(),
+          file!(),
+        );
       }
 
       Some(std::cmp::Ordering::Equal) => {
-        fail!("`{}` is equal to `{}`.", stringify!($left), stringify!($right));
+        fail!(
+          "`{}` is equal to `{}` on line {} of `{}`.",
+          stringify!($left),
+          stringify!($right),
+          line!(),
+          file!(),
+        );
       }
 
       _ => {}
@@ -105,69 +159,62 @@ macro_rules! fail_when {
 
   ($value:tt.is_some()) => {
     if $value.is_some() {
-      fail!("`{}` is `Some(_)`.", stringify!($value));
+      fail!("`{}` is `Some` on line {} of `{}`.", stringify!($value), line!(), file!());
     }
   };
 
   ($value:ident.is_none()) => {
     let $value = match $value {
       Some($value) => $value,
-      None => fail!("`{}` is `None`.", stringify!($value)),
+      None => fail!("`{}` is `None` on line {} of `{}`.", stringify!($value), line!(), file!()),
     };
   };
 
   ($value:tt.is_none()) => {
     if $value.is_none() {
-      fail!("`{}` is `None`.", stringify!($value));
+      fail!("`{}` is `None` on line {} of `{}`.", stringify!($value), line!(), file!());
     }
   };
 
   ($value:tt.is_ok()) => {
     if $value.is_ok() {
-      fail!("`{}` is not an error.", stringify!($value));
-    }
-  };
-
-  ($value:ident.is_err()) => {
-    let $value = match $value {
-      Ok($value) => $value,
-      Err(err) => return Err(fail::from(err)),
-    };
-  };
-
-  ($value:tt.is_err()) => {
-    if $value.is_err() {
-      Err(fail::from($value))
+      fail!("`{}` is `Ok` on line {} of `{}`.", stringify!($value), line!(), file!());
     }
   };
 
   ($value:tt.is_empty()) => {
     if $value.is_empty() {
-      fail!("`{}` is empty.", stringify!($value));
+      fail!("`{}` is empty on line {} of `{}`.", stringify!($value), line!(), file!());
     }
   };
 
   (!$value:tt.is_empty()) => {
     if !$value.is_empty() {
-      fail!("`{}` is not empty.", stringify!($value));
+      fail!("`{}` is not empty on line {} of `{}`.", stringify!($value), line!(), file!());
     }
   };
 
   (!$value:tt) => {
     if !$value {
-      fail!("`{}` is `false`.", stringify!($value));
+      fail!("`{}` is `true` on line {} of `{}`.", stringify!($value), line!(), file!());
     }
   };
 
   ($value:tt) => {
     if $value {
-      fail!("`{}` is `true`.", stringify!($value));
+      fail!("`{}` is `true` on line {} of `{}`.", stringify!($value), line!(), file!());
     }
   };
 
   ($condition:expr, $($args:tt)+) => {
     if $condition {
       fail!($($args)*);
+    }
+  };
+
+  ($($condition:tt)*) => {
+    if $($condition)* {
+      fail!("Failure on line {} of `{}`.", line!(), file!());
     }
   };
 }

@@ -33,6 +33,7 @@ pub use {
   std::mem::{self, ManuallyDrop},
   std::ops::*,
   std::pin::Pin,
+  std::ptr,
   std::rc::{Rc, Weak as RcWeak},
   std::str::{self, FromStr},
   std::sync::{Arc, Weak as ArcWeak},
