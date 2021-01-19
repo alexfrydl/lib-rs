@@ -7,7 +7,7 @@
 use crate::error::{Error, NoRowsReturned, QueryOneError, Result};
 use crate::{Config, Row, RowStream, Statement, ToSql, ToStatement};
 use af_core::prelude::*;
-use af_core::task::Task;
+use af_core::task;
 
 /// A client for executing stataments on a Postgres connection.
 ///
@@ -26,7 +26,9 @@ pub struct Client {
 /// task must be polled (for example, by adding it to a
 /// [`Batch`][af_core::task::Batch]) to communicate with the server and report
 /// errors. The client can be cloned and shared between tasks.
-pub async fn connect(config: &Config) -> Result<(Client, impl Task<(), Error>), Error> {
+pub async fn connect(
+  config: &Config,
+) -> Result<(Client, impl task::Future<Result<(), Error>>), Error> {
   use native_tls::TlsConnector;
   use postgres_native_tls::MakeTlsConnector;
 

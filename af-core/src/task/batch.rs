@@ -8,7 +8,7 @@ pub use crate::task::parallel::FailedTask;
 
 use crate::prelude::*;
 use crate::string::SharedString;
-use crate::task::{self, Task};
+use crate::task;
 
 /// Runs a batch of related tasks that must all complete successfully.
 ///
@@ -16,7 +16,7 @@ use crate::task::{self, Task};
 /// and wait for them to exit, provide a [`Canceler`] with [`set_canceler()`].
 pub struct Batch<E> {
   canceler: Option<task::Canceler>,
-  tasks: task::Parallel<(), E>,
+  tasks: task::Parallel<Result<(), E>>,
 }
 
 impl<E> Batch<E>
@@ -29,7 +29,7 @@ where
   }
 
   /// Adds a task to the batch.
-  pub fn add<T>(&mut self, task: impl Task<T, E>)
+  pub fn add<T>(&mut self, task: impl task::Future<Result<T, E>>)
   where
     T: Send + 'static,
   {
@@ -37,7 +37,7 @@ where
   }
 
   /// Adds a named task to the batch.
-  pub fn add_as<T>(&mut self, name: impl Into<SharedString>, task: impl Task<T, E>)
+  pub fn add_as<T>(&mut self, name: impl Into<SharedString>, task: impl task::Future<Result<T, E>>)
   where
     T: Send + 'static,
   {
@@ -46,10 +46,12 @@ where
 
   /// Runs the batch until all tasks exit successfully or a task fails.
   pub async fn run(mut self) -> Result<E> {
-    match self.tasks.next_failed().await {
-      None => Ok(()),
+    while let Some(task) = self.tasks.next().await {
+      if task.result.is_ok() {
+        continue;
+      }
+    }
 
-      Some(failed_task) => {
         // If a canceler was provided, cancel the tasks and wait for them to
         // exit while logging errors.
 
@@ -58,8 +60,8 @@ where
 
           while let Some(ft) = self.tasks.next_failed().await {
             match ft.name.as_str() {
-              "" => warn!("Task #{} failed. {}", ft.index, ft.failure),
-              name => warn!("Task `{}` failed. {}", name, ft.failure),
+              "" => warn!("task::Future #{} failed. {}", ft.index, ft.failure),
+              name => warn!("task::Future `{}` failed. {}", name, ft.failure),
             }
           }
         }
@@ -74,9 +76,6 @@ where
     self.canceler = Some(canceler);
   }
 }
-
-/// The result of a [`Batch`].
-pub type Result<E> = std::result::Result<(), FailedTask<E>>;
 
 /// The error that caused a [`Batch`] to exit.
 #[derive(Debug)]
@@ -94,9 +93,9 @@ where
 {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     if self.task_name.is_empty() {
-      write!(f, "Task #{} failed. {}", self.task_index, self.failure)
+      write!(f, "task::Future #{} failed. {}", self.task_index, self.failure)
     } else {
-      write!(f, "Task `{}` failed. {}", self.task_name, self.failure)
+      write!(f, "task::Future `{}` failed. {}", self.task_name, self.failure)
     }
   }
 }

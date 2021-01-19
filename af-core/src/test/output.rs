@@ -13,7 +13,7 @@ use crate::test::Path;
 pub struct OutputStream {
   pub(super) remaining: usize,
   pub(super) rx: channel::Receiver<Output>,
-  pub(super) _task: task::Handle<(), Infallible>,
+  pub(super) _task: task::Handle<()>,
 }
 
 /// A single test result.

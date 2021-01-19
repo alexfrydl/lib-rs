@@ -12,7 +12,7 @@ use std::sync::atomic::{self, AtomicBool};
 /// A task canceler that triggers a cloneable [`CancelSignal`].
 pub struct Canceler {
   inner: Arc<Inner>,
-  _inherit: Option<task::Handle<(), ()>>,
+  _inherit: Option<task::Handle<()>>,
 }
 
 /// An awaitable cancel signal triggered by a [`Canceler`].
@@ -56,8 +56,6 @@ impl Canceler {
       _inherit: Some(task::start(async move {
         cancel.await;
         linked.cancel();
-
-        Ok(())
       })),
     }
   }

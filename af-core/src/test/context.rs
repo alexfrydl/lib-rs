@@ -5,10 +5,9 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use super::{Output, OutputStream, Path};
-use crate::channel;
 use crate::prelude::*;
 use crate::string::SharedString;
-use crate::task::{self, Task};
+use crate::{channel, task};
 use std::collections::BTreeMap;
 
 /// A test context that groups related tests together.
@@ -22,7 +21,7 @@ pub struct Context {
 /// A child of a [`Context`].
 enum Child {
   Context(Context),
-  Test(Box<dyn FnOnce() -> task::Handle<(), fail::Error> + Send>),
+  Test(Box<dyn FnOnce() -> task::Handle<Result<(), fail::Error>> + Send>),
 }
 
 impl Context {
@@ -50,7 +49,7 @@ impl Context {
   }
 
   /// Adds a test to the context.
-  pub fn test(&mut self, name: impl Into<SharedString>, test: impl Task<(), fail::Error>) {
+  pub fn test(&mut self, name: impl Into<SharedString>, test: impl task::Future<Result>) {
     let name = name.into();
 
     assert!(!name.is_empty(), "A test cannot be named \"\".");
@@ -67,7 +66,7 @@ impl Context {
   pub fn start(self) -> OutputStream {
     let remaining = self.len;
     let (tx, rx) = channel::unbounded();
-    let _task = task::start(self.run(default(), tx).ok());
+    let _task = task::start(self.run(default(), tx));
 
     OutputStream { remaining, rx, _task }
   }
@@ -87,13 +86,7 @@ impl Context {
         Child::Context(ctx) => tasks.add(ctx.run(path, output).ok()),
 
         Child::Test(start) => tasks.add(async move {
-          let result = start().await.map_err(|f| match f {
-            task::Failure::Err(err) => err.into(),
-
-            task::Failure::Panic(panic) => {
-              fail::err!("{}", panic.display_value().unwrap_or(&"Panicked."))
-            }
-          });
+          let result = start().await.map_err(fail::from).and_then(|res| res.map_err(fail::from));
 
           output.send(Output { path, result }).await.unwrap();
 
@@ -102,8 +95,10 @@ impl Context {
       };
     }
 
-    while let Some(task) = tasks.next_failed().await {
-      error!("Internal test runner error. {}", task);
+    while let Some(task) = tasks.next().await {
+      if task.result.is_err() {
+        error!("Internal test runner panic.");
+      }
     }
   }
 }

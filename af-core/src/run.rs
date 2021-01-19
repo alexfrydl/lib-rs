@@ -5,7 +5,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use crate::prelude::*;
-use crate::task::{self, Task};
+use crate::task;
 use crate::thread;
 use signal_hook::consts::TERM_SIGNALS;
 use signal_hook::iterator::Signals;
@@ -16,7 +16,7 @@ use std::process::exit;
 ///
 /// If the task fails, this function logs the error and exits the process with
 /// a non-zero exit code.
-pub fn run<T, E>(future: impl Task<T, E>) -> !
+pub fn run<T, E>(future: impl task::Future<Result<T, E>>) -> !
 where
   T: Send + 'static,
   E: Display + Send + 'static,
@@ -24,7 +24,14 @@ where
   let task = task::start(future);
 
   match thread::block_on(task) {
-    Err(task::Failure::Panic(err)) => {
+    Ok(Err(err)) => {
+      error!("The main task failed. {}", err);
+
+      thread::sleep(Duration::hz(60));
+      exit(1)
+    }
+
+    Err(err) => {
       if let Some(value) = err.display_value() {
         error!("The main task panicked with `{}`.", value);
       } else {
@@ -33,13 +40,6 @@ where
 
       thread::sleep(Duration::hz(60));
       exit(-1)
-    }
-
-    Err(task::Failure::Err(err)) => {
-      error!("The main task failed. {}", err);
-
-      thread::sleep(Duration::hz(60));
-      exit(1)
     }
 
     _ => exit(0),
@@ -59,7 +59,7 @@ pub fn run_with<T, E, F>(func: impl FnOnce(task::CancelSignal) -> F + Send + 'st
 where
   T: Send + 'static,
   E: Display + Send + 'static,
-  F: Task<T, E>,
+  F: task::Future<Result<T, E>>,
 {
   let canceler = task::Canceler::new();
   let cancel = canceler.signal();

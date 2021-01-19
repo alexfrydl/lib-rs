@@ -4,35 +4,31 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//! Task-based concurrency.
+//! task::Future-based concurrency.
 
-mod batch;
 mod cancel;
 mod handle;
 mod output;
 mod parallel;
 
-pub use self::batch::{Batch, BatchError};
 pub use self::cancel::{CancelSignal, Canceled, Canceler};
 pub use self::handle::Handle;
-pub use self::output::{Failure, Output, Panicked};
+pub use self::output::{Failure, Panicked, Result};
 pub use self::parallel::Parallel;
 
 use crate::prelude::*;
 
-/// A trait marking futures that can be started as tasks.
-pub trait Task<T, E>: TryFuture<T, E> + Send + Sized + 'static
+/// A future that can be used as a task.
+pub trait Future<T>: future::Future<Output = T> + Send + Sized + 'static
 where
   T: Send + 'static,
-  E: Send + 'static,
 {
 }
 
-impl<F, T, E> Task<T, E> for F
+impl<T, U> Future<T> for U
 where
-  F: TryFuture<T, E> + Send + 'static,
-  T: Send + 'static,
-  E: Send + 'static,
+  T: Send + Sized + 'static,
+  U: future::Future<Output = T> + Send + Sized + 'static,
 {
 }
 
@@ -46,11 +42,7 @@ pub async fn sleep(duration: Duration) {
 }
 
 /// Starts a new task.
-pub fn start<T, E>(future: impl Task<T, E>) -> Handle<T, E>
-where
-  T: Send + 'static,
-  E: Send + 'static,
-{
+pub fn start<T: Send + 'static>(future: impl Future<T>) -> Handle<T> {
   let task = async_global_executor::spawn(output::capture(future));
 
   task.into()

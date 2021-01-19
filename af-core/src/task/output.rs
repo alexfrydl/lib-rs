@@ -4,21 +4,18 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use super::*;
+use crate::prelude::*;
+use crate::task;
 
-/// The output of a task.
-pub type Output<T, E> = Result<T, Failure<E>>;
+/// The result of a task.
+pub type Result<T = (), E = Panicked> = std::result::Result<T, E>;
 
 /// Waits for a task to complete and captures its output.
-pub async fn capture<T, E>(task: impl Task<T, E>) -> Output<T, E>
+pub async fn capture<T>(task: impl task::Future<T>) -> Result<T>
 where
   T: Send + 'static,
-  E: Send + 'static,
 {
-  future::catch_unwind(panic::AssertUnwindSafe(task))
-    .await
-    .map_err(|value| Failure::Panic(Panicked { value }))
-    .and_then(|res| res.map_err(Failure::Err))
+  future::catch_unwind(panic::AssertUnwindSafe(task)).await.map_err(|value| Panicked { value })
 }
 
 /// A task failure.
