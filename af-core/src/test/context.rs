@@ -74,7 +74,7 @@ impl Context {
   /// Runs the tests in this context and its child contexts in separate tasks.
   #[future::boxed]
   async fn run(self, path: Path, output: channel::Sender<Output>) {
-    let mut tasks = task::Parallel::new();
+    let mut tasks = task::Joiner::new();
 
     for (name, child) in self.children {
       let output = output.clone();
@@ -83,14 +83,12 @@ impl Context {
       path.components.push_back(name);
 
       match child {
-        Child::Context(ctx) => tasks.add(ctx.run(path, output).ok()),
+        Child::Context(ctx) => tasks.add_new(ctx.run(path, output)),
 
-        Child::Test(start) => tasks.add(async move {
+        Child::Test(start) => tasks.add_new(async move {
           let result = start().await.map_err(fail::from).and_then(|res| res.map_err(fail::from));
 
           output.send(Output { path, result }).await.unwrap();
-
-          Ok(())
         }),
       };
     }

@@ -16,7 +16,7 @@ use crate::task;
 /// and wait for them to exit, provide a [`Canceler`] with [`set_canceler()`].
 pub struct Batch<E> {
   canceler: Option<task::Canceler>,
-  tasks: task::Parallel<Result<(), E>>,
+  tasks: task::Joiner<Result<(), E>>,
 }
 
 impl<E> Batch<E>
@@ -25,7 +25,7 @@ where
 {
   /// Creates a new task batch.
   pub fn new() -> Self {
-    Self { canceler: None, tasks: task::Parallel::new() }
+    Self { canceler: None, tasks: task::Joiner::new() }
   }
 
   /// Adds a task to the batch.

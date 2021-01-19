@@ -8,13 +8,13 @@
 
 mod cancel;
 mod handle;
+mod joiner;
 mod output;
-mod parallel;
 
 pub use self::cancel::{CancelSignal, Canceled, Canceler};
 pub use self::handle::Handle;
+pub use self::joiner::Joiner;
 pub use self::output::{Failure, Panicked, Result};
-pub use self::parallel::Parallel;
 
 use crate::prelude::*;
 
