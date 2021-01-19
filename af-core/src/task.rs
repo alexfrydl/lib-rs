@@ -4,17 +4,17 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//! task::Future-based concurrency.
+//! Task-based concurrency.
 
 mod cancel;
+mod error;
 mod handle;
 mod joiner;
-mod output;
 
 pub use self::cancel::{CancelSignal, Canceled, Canceler};
+pub use self::error::{Error, Panic, Result, ResultResultExt};
 pub use self::handle::Handle;
 pub use self::joiner::Joiner;
-pub use self::output::{Failure, Panicked, Result};
 
 use crate::prelude::*;
 
@@ -43,7 +43,9 @@ pub async fn sleep(duration: Duration) {
 
 /// Starts a new task.
 pub fn start<T: Send + 'static>(future: impl Future<T>) -> Handle<T> {
-  let task = async_global_executor::spawn(output::capture(future));
+  let task = async_global_executor::spawn(async move {
+    future::catch_unwind(panic::AssertUnwindSafe(future)).await.map_err(|value| Panic { value })
+  });
 
   task.into()
 }

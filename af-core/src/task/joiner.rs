@@ -58,11 +58,6 @@ where
     self.add_as("", task)
   }
 
-  /// Starts a new task and adds it to the joiner, returning its index.
-  pub fn add_new(&mut self, future: impl task::Future<T>) -> Index {
-    self.add_as("", task::start(future))
-  }
-
   /// Adds a named task to the joiner, returning its index.
   pub fn add_as(&mut self, name: impl Into<SharedString>, task: task::Handle<T>) -> Index {
     // Get next index.
@@ -85,6 +80,18 @@ where
     self.children.insert(index, Task { name: name.into(), _monitor });
 
     index
+  }
+
+  /// Starts a task from a future and adds it to the joiner, returning its
+  /// index.
+  pub fn start(&mut self, future: impl task::Future<T>) -> Index {
+    self.start_as("", future)
+  }
+
+  /// Starts a task from a future and adds it to the joiner with the given name,
+  /// returning its index.
+  pub fn start_as(&mut self, name: impl Into<SharedString>, future: impl task::Future<T>) -> Index {
+    self.add_as(name, task::start(future))
   }
 
   /// Waits for the result of the next completed task.

@@ -29,7 +29,7 @@ where
   }
 
   /// Adds a task to the batch.
-  pub fn add<T>(&mut self, task: impl task::Future<Result<T, E>>)
+  pub fn add<T>(&mut self, task: task::Handle<Result<T, E>>)
   where
     T: Send + 'static,
   {
@@ -37,7 +37,7 @@ where
   }
 
   /// Adds a named task to the batch.
-  pub fn add_as<T>(&mut self, name: impl Into<SharedString>, task: impl task::Future<Result<T, E>>)
+  pub fn add_as<T>(&mut self, name: impl Into<SharedString>, task: task::Handle<Result<T, E>>)
   where
     T: Send + 'static,
   {
@@ -60,8 +60,8 @@ where
 
           while let Some(ft) = self.tasks.next_failed().await {
             match ft.name.as_str() {
-              "" => warn!("task::Future #{} failed. {}", ft.index, ft.failure),
-              name => warn!("task::Future `{}` failed. {}", name, ft.failure),
+              "" => warn!("Task #{} failed. {}", ft.index, ft.failure),
+              name => warn!("Task `{}` failed. {}", name, ft.failure),
             }
           }
         }
@@ -93,9 +93,9 @@ where
 {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     if self.task_name.is_empty() {
-      write!(f, "task::Future #{} failed. {}", self.task_index, self.failure)
+      write!(f, "Task #{} failed. {}", self.task_index, self.failure)
     } else {
-      write!(f, "task::Future `{}` failed. {}", self.task_name, self.failure)
+      write!(f, "Task `{}` failed. {}", self.task_name, self.failure)
     }
   }
 }

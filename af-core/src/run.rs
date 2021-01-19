@@ -32,7 +32,7 @@ where
     }
 
     Err(err) => {
-      if let Some(value) = err.display_value() {
+      if let Some(value) = err.value_str() {
         error!("The main task panicked with `{}`.", value);
       } else {
         error!("The main task panicked.")

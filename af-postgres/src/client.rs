@@ -26,15 +26,13 @@ pub struct Client {
 /// task must be polled (for example, by adding it to a
 /// [`Batch`][af_core::task::Batch]) to communicate with the server and report
 /// errors. The client can be cloned and shared between tasks.
-pub async fn connect(
-  config: &Config,
-) -> Result<(Client, impl task::Future<Result<(), Error>>), Error> {
+pub async fn connect(config: &Config) -> Result<(Client, task::Handle<Result>)> {
   use native_tls::TlsConnector;
   use postgres_native_tls::MakeTlsConnector;
 
   let tls_connector = TlsConnector::builder().danger_accept_invalid_certs(true).build().unwrap();
   let (client, connection) = config.connect(MakeTlsConnector::new(tls_connector)).await?;
-  let task = async move { connection.await.map_err(Error::from) };
+  let task = task::start(connection.map_err(Error::from));
 
   Ok((Client::wrap(client), task))
 }

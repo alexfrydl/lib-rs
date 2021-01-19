@@ -83,9 +83,9 @@ impl Context {
       path.components.push_back(name);
 
       match child {
-        Child::Context(ctx) => tasks.add_new(ctx.run(path, output)),
+        Child::Context(ctx) => tasks.start(ctx.run(path, output)),
 
-        Child::Test(start) => tasks.add_new(async move {
+        Child::Test(start) => tasks.start(async move {
           let result = start().await.map_err(fail::from).and_then(|res| res.map_err(fail::from));
 
           output.send(Output { path, result }).await.unwrap();
