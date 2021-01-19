@@ -74,7 +74,7 @@ impl Context {
   /// Runs the tests in this context and its child contexts in separate tasks.
   #[future::boxed]
   async fn run(self, path: Path, output: channel::Sender<Output>) {
-    let mut tasks = task::Joiner::new();
+    let mut tasks = task::Join::new();
 
     for (name, child) in self.children {
       let output = output.clone();

@@ -6,31 +6,30 @@
 
 //! Task-based concurrency.
 
+pub mod join;
+pub mod try_join;
+
 mod cancel;
 mod error;
 mod handle;
-mod joiner;
 
 pub use self::cancel::{CancelSignal, Canceled, Canceler};
 pub use self::error::{Error, Panic, Result, ResultResultExt};
 pub use self::handle::Handle;
-pub use self::joiner::Joiner;
+pub use self::join::Join;
+pub use self::try_join::TryJoin;
 
 use crate::prelude::*;
 
 /// A future that can be used as a task.
-pub trait Future<T>: future::Future<Output = T> + Send + Sized + 'static
-where
-  T: Send + 'static,
-{
-}
+pub trait Future<T>: future::Future<Output = T> + Send + Sized + 'static {}
 
-impl<T, U> Future<T> for U
-where
-  T: Send + Sized + 'static,
-  U: future::Future<Output = T> + Send + Sized + 'static,
-{
-}
+impl<T, F> Future<T> for F where F: future::Future<Output = T> + Send + Sized + 'static {}
+
+/// A [`Future`] that returns a result.
+pub trait TryFuture<T, E>: Future<Result<T, E>> {}
+
+impl<T, E, F> TryFuture<T, E> for F where F: Future<Result<T, E>> {}
 
 /// Waits for the given duration to elapse.
 pub async fn sleep(duration: Duration) {
