@@ -23,7 +23,7 @@ where
 {
   let task = task::start(future);
 
-  match thread::block_on(task) {
+  match thread::block_on(task.join()) {
     Ok(Err(err)) => {
       error!("The main task failed. {}", err);
 

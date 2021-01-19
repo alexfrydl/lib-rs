@@ -87,7 +87,7 @@ impl Context {
         Child::Context(ctx) => tasks.start(ctx.run(path, output)),
 
         Child::Test(start) => tasks.start(async move {
-          let result = start().await.map_err(fail::from).and_then(|res| res.map_err(fail::from));
+          let result = start().try_join().await;
 
           output.send(Output { path, result }).await.unwrap();
         }),

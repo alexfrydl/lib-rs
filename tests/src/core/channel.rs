@@ -110,7 +110,7 @@ fn test_unbounded(cx: &mut test::Context) {
 
       fail::when!(future::poll(&mut recv).is_some(), "Completed immediately.");
 
-      send.await??;
+      send.join().await??;
       recv.await?;
     });
   });
@@ -259,7 +259,7 @@ fn test_with_capacity(cx: &mut test::Context) {
 
       fail::when!(future::poll(&mut recv).is_some(), "Completed immediately.");
 
-      send.await??;
+      send.join().await??;
       recv.await?;
     });
   });
@@ -338,7 +338,7 @@ fn test_with_capacity(cx: &mut test::Context) {
       fail::when!(future::poll(&mut send).is_some(), "Sent immediately.");
 
       send.await?;
-      recv.await??;
+      recv.join().await??;
     });
   });
 }

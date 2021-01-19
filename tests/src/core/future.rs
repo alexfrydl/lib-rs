@@ -109,14 +109,6 @@ pub fn test(cx: &mut test::Context) {
     });
   });
 
-  cx.scope("::FutureExt", |cx| {
-    test!(cx, "::ok()", timeout = immediate, {
-      let output = async { true }.ok().await?;
-
-      fail::when!(!output);
-    });
-  });
-
   cx.scope("::TryFutureExt", |cx| {
     test!(cx, "::map_err()", timeout = immediate, {
       let fut = async {

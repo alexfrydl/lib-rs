@@ -6,34 +6,20 @@
 
 use crate::prelude::*;
 use crate::task::{self, Task};
-use event_listener::{Event, EventListener};
+use event_listener::Event;
 use std::sync::atomic::{self, AtomicBool};
-
-/// A task canceler that triggers a cloneable [`CancelSignal`].
-pub struct Canceler {
-  inner: Arc<Inner>,
-  _inherit: Option<Task<()>>,
-}
-
-/// An awaitable cancel signal triggered by a [`Canceler`].
-#[pin_project]
-#[derive(Default)]
-pub struct CancelSignal {
-  inner: Option<Arc<Inner>>,
-  #[pin]
-  listener: Option<EventListener>,
-}
-
-/// An error indicating a task was canceled.
-#[derive(Debug, Error)]
-#[error("Canceled.")]
-pub struct Canceled;
 
 /// Inner state of an canceler/signal pair.
 #[derive(Default)]
 struct Inner {
   event: Event,
   flag: AtomicBool,
+}
+
+/// A task canceler that triggers a cloneable [`CancelSignal`].
+pub struct Canceler {
+  inner: Arc<Inner>,
+  _inherit: Option<Task<()>>,
 }
 
 impl Canceler {
@@ -54,7 +40,7 @@ impl Canceler {
       inner: linked.inner.clone(),
 
       _inherit: Some(task::start(async move {
-        cancel.await;
+        cancel.listen().await;
         linked.cancel();
       })),
     }
@@ -74,8 +60,14 @@ impl Canceler {
 
   /// Returns a [`CancelSignal`] that is triggered by this canceler.
   pub fn signal(&self) -> CancelSignal {
-    CancelSignal { inner: Some(self.inner.clone()), listener: None }
+    CancelSignal { inner: Some(self.inner.clone()) }
   }
+}
+
+/// An awaitable cancel signal triggered by a [`Canceler`].
+#[derive(Default)]
+pub struct CancelSignal {
+  inner: Option<Arc<Inner>>,
 }
 
 impl CancelSignal {
@@ -83,14 +75,14 @@ impl CancelSignal {
   ///
   /// If the signal is triggered, this function drops the future and returns a
   /// [`Canceled`] error.
-  pub async fn guard<F>(self, future: F) -> Result<F::Output, Canceled>
+  pub async fn guard<F>(&self, future: F) -> Result<F::Output, Canceled>
   where
     F: Future,
   {
     let future = async { Ok(future.await) };
 
     let signal = async {
-      self.await;
+      self.listen().await;
 
       Err(Canceled)
     };
@@ -105,48 +97,33 @@ impl CancelSignal {
       None => false,
     }
   }
-}
 
-// Implement Clone for CancelSignal to clone without the listener.
+  /// Waits for the cancel signal to be triggered.
+  pub async fn listen(&self) {
+    let inner = match &self.inner {
+      Some(inner) => inner,
+      None => return future::forever().await,
+    };
+
+    while !inner.flag.load(atomic::Ordering::Relaxed) {
+      let listener = inner.event.listen();
+
+      if self.is_triggered() {
+        return;
+      }
+
+      listener.await;
+    }
+  }
+}
 
 impl Clone for CancelSignal {
   fn clone(&self) -> Self {
-    Self { inner: self.inner.clone(), listener: None }
+    Self { inner: self.inner.clone() }
   }
 }
 
-// Implement Future for CancelSignal to wait for the cancel signal to trigger.
-
-impl Future for CancelSignal {
-  type Output = ();
-
-  fn poll(self: Pin<&mut Self>, cx: &mut future::Context) -> future::Poll<Self::Output> {
-    if self.inner.is_none() {
-      return future::Poll::Pending;
-    }
-
-    if self.is_triggered() {
-      return future::Poll::Ready(());
-    }
-
-    let mut this = self.project();
-
-    if this.listener.is_none() {
-      *this.listener = Some(this.inner.as_ref().unwrap().event.listen());
-    }
-
-    let listener = this.listener.as_mut().get_mut().as_mut().unwrap();
-
-    pin!(listener);
-
-    match listener.poll(cx) {
-      future::Poll::Ready(()) => {
-        this.listener.set(None);
-
-        future::Poll::Ready(())
-      }
-
-      _ => future::Poll::Pending,
-    }
-  }
-}
+/// An error indicating a task was canceled.
+#[derive(Debug, Error)]
+#[error("Canceled.")]
+pub struct Canceled;

@@ -63,16 +63,19 @@ impl<T> Task<T> {
   pub async fn kill(self) {
     self.task.cancel().await;
   }
+
+  /// Waits for the task to stop and returns its result.
+  pub async fn join(self) -> Result<T> {
+    self.task.await
+  }
 }
 
-// Implement Future for Task to poll the underlying task.
-
-impl<T> future::Future for Task<T> {
-  type Output = Result<T>;
-
-  fn poll(self: Pin<&mut Self>, cx: &mut future::Context<'_>) -> future::Poll<Self::Output> {
-    let task = unsafe { Pin::map_unchecked_mut(self, |s| &mut s.task) };
-
-    task.poll(cx)
+impl<T, E> Task<Result<T, E>>
+where
+  E: From<Panic>,
+{
+  /// Waits for the fallible task to stop and returns its result.
+  pub async fn try_join(self) -> Result<T, E> {
+    self.task.await?
   }
 }

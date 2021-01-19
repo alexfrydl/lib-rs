@@ -63,7 +63,7 @@ where
     let tx = self.tx.clone();
 
     let _monitor = task::start(async move {
-      let result = task.await;
+      let result = task.join().await;
 
       tx.send(Exit { index, result }).await.ok();
     });

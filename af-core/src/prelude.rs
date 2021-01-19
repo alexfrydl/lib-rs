@@ -14,7 +14,7 @@ pub use {
   crate::derive::*,
   crate::fail::{self, fail, Result},
   crate::fmt::{self, Debug, Display, Write as _},
-  crate::future::{self, Future, FutureExt as _, TryFuture, TryFutureExt as _},
+  crate::future::{self, Future, TryFuture, TryFutureExt as _},
   crate::iter::{self, Itertools as _},
   crate::log::{debug, error, info, trace, warn},
   crate::math::{FloatExt as _, Number},
