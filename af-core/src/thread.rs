@@ -26,7 +26,7 @@ pub struct PanicError {
   pub value: Box<dyn Any + Send>,
 }
 
-/// Blocks the current thread until the given future completes.
+/// Blocks the current thread until a given future is ready.
 pub fn block_on<T>(future: impl Future<Output = T>) -> T {
   async_io::block_on(future)
 }
@@ -58,10 +58,7 @@ pub fn start<T: Send + 'static>(
 }
 
 impl<T> Thread<T> {
-  /// Waits for the thread to exit and returns its output.
-  ///
-  /// If the thread panicked, this function returns a [`PanicError`] containing
-  /// the value it panicked with.
+  /// Waits for the thread to stop and returns its result.
   pub async fn join(self) -> Result<T, PanicError> {
     if let Ok(output) = self.rx.recv().await {
       return Ok(output);
@@ -71,6 +68,6 @@ impl<T> Thread<T> {
       return Err(PanicError { value });
     }
 
-    unreachable!("Thread exited successfully but did not send output.");
+    unreachable!("Thread finished but did not send output.");
   }
 }

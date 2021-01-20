@@ -17,8 +17,8 @@ pub type Index = usize;
 pub struct Join<T> {
   children: FnvHashMap<Index, Child>,
   next_index: Index,
-  rx: channel::Receiver<Exit<T>>,
-  tx: channel::Sender<Exit<T>>,
+  rx: channel::Receiver<Stopped<T>>,
+  tx: channel::Sender<Stopped<T>>,
 }
 
 /// A task in a [`Join`].
@@ -27,8 +27,8 @@ struct Child {
   _monitor: Task<()>,
 }
 
-/// An exit message sent from a task monitor.
-struct Exit<T> {
+/// A message sent from a task monitor.
+struct Stopped<T> {
   index: usize,
   result: task::Result<T>,
 }
@@ -61,7 +61,7 @@ where
 
     let task = task.start();
 
-    // Start a task to monitor when this task exits and send its result on the
+    // Start a task to monitor when this task stops and send its result on the
     // channel.
 
     let tx = self.tx.clone();
@@ -69,7 +69,7 @@ where
     let _monitor = task::start(async move {
       let result = task.join().await;
 
-      tx.send(Exit { index, result }).await.ok();
+      tx.send(Stopped { index, result }).await.ok();
     });
 
     self.children.insert(index, Child { name: name.into(), _monitor });
@@ -85,7 +85,7 @@ where
       return None;
     }
 
-    let Exit { index, result } = self.rx.recv().await.ok()?;
+    let Stopped { index, result } = self.rx.recv().await.ok()?;
     let child = self.children.remove(&index).expect("Received result from unknown child.");
 
     Some(StoppedTask { index, name: child.name, result })
@@ -100,7 +100,7 @@ where
       return None;
     }
 
-    let Exit { index, result } = self.rx.recv().await.ok()?;
+    let Stopped { index, result } = self.rx.recv().await.ok()?;
     let child = self.children.remove(&index).expect("Received result from unknown child.");
 
     Some(match result {

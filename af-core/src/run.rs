@@ -11,8 +11,8 @@ use signal_hook::consts::TERM_SIGNALS;
 use signal_hook::iterator::Signals;
 use std::process::exit;
 
-/// Starts a task from the given future, waits for it to complete, then exits
-/// the process.
+/// Starts a task from the given future, waits for it to stop, then exits the
+/// process.
 ///
 /// If the task fails, this function logs the error and exits the process with
 /// a non-zero exit code.
@@ -46,8 +46,8 @@ where
   }
 }
 
-/// Starts a task from the given function, waits for it to complete, then
-/// exits the process.
+/// Starts a task from the given function, waits for it to stop, then exits the
+/// process.
 ///
 /// If the task fails, this function logs the error and exits the process with
 /// a non-zero exit code.

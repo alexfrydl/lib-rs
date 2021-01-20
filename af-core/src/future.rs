@@ -42,7 +42,7 @@ pub fn poll<F: Future + Unpin>(f: &mut F) -> Option<F::Output> {
   }
 }
 
-/// Waits for one of two futures to complete and returns its result.
+/// Waits for one of two futures to be ready and returns its result.
 ///
 /// The remaining future is dropped. If both futures are ready at the same time,
 /// the first future has priority.

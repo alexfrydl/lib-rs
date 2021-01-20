@@ -36,9 +36,9 @@ impl OutputStream {
     self.remaining
   }
 
-  /// Waits for the next test to complete and returns its result.
+  /// Waits for the next test to stop and returns its result.
   ///
-  /// If all tests have completed, this function returns `None`.
+  /// If all tests have stopped, this function returns `None`.
   pub async fn next(&mut self) -> Option<Output> {
     let result = self.rx.recv().await.ok();
 
