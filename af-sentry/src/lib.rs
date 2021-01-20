@@ -42,27 +42,6 @@ pub fn is_enabled() -> bool {
   sentry::Hub::with(|hub| hub.client().map(|c| c.is_enabled()).unwrap_or_default())
 }
 
-/// Reports an error to sentry and returns its UUID.
-pub fn report(type_name: impl Into<String>, err: impl Display) -> Uuid {
-  Error::new(type_name).with_description(err).report()
-}
-
-/// Reports an error to sentry and returns its UUID.
-#[macro_export]
-macro_rules! report {
-  ($type_name:expr, $format:literal, $($args:tt)+) => {
-    $crate::Error::new($type_name).with_description(format_args!($format, $($args)+))
-  };
-
-  ($type_name:expr, $($args:tt)+) => {
-    $crate::Error::new($type_name).with_description($($args)+)
-  };
-
-  ($($args:tt)+) => {
-    $crate::Error::new($($args)*)
-  };
-}
-
 /// A sentry error.
 ///
 /// Errors are automatically reported when dropped.
@@ -83,6 +62,8 @@ pub struct Error<'a> {
   pub tags: BTreeMap<String, String>,
   /// User data to send with the error.
   pub user: User,
+  /// The UUID of the event.
+  pub uuid: Uuid,
 }
 
 impl<'a> Error<'a> {
@@ -98,6 +79,7 @@ impl<'a> Error<'a> {
       type_name: type_name.into(),
       tags: default(),
       user: default(),
+      uuid: Uuid::new(),
     }
   }
 
@@ -174,6 +156,8 @@ impl<'a> Error<'a> {
   }
 
   /// Reports this error to sentry.
+  ///
+  /// Equivalent to dropping the error, but returns the error [`Uuid`].
   pub fn report(mut self) -> Uuid {
     let uuid = self.report_mut();
     mem::forget(self);
