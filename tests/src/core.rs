@@ -12,6 +12,7 @@ mod math;
 mod path;
 mod random;
 mod string;
+mod task;
 mod thread;
 mod util;
 
@@ -27,6 +28,7 @@ pub fn test(cx: &mut test::Context) {
   cx.scope("::path", path::test);
   cx.scope("::random", random::test);
   cx.scope("::string", string::test);
+  cx.scope("::task", task::test);
   cx.scope("::thread", thread::test);
   cx.scope("::util", util::test);
 }

@@ -55,7 +55,7 @@ pub fn test(cx: &mut test::Context) {
   test!(cx, "::sleep()", timeout = "1 s", {
     let duration = Duration::ms(50);
 
-    let thread = thread::start("panicker", move || {
+    let thread = thread::start("sleeper", move || {
       thread::sleep(duration);
     });
 

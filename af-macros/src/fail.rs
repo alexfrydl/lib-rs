@@ -176,6 +176,20 @@ macro_rules! fail_when {
     }
   };
 
+  ($value:ident.is_ok()) => {
+    let $value = match $value {
+      Ok(_) => fail!("`{}` is `Ok` on line {} of `{}`.", stringify!($value), line!(), file!()),
+      Err(err) => err,
+    };
+  };
+
+  ($value:ident.is_ok(), $($args:tt)+) => {
+    let $value = match $value {
+      Ok(_) => fail!($($args)+),
+      Err(err) => err,
+    };
+  };
+
   ($value:tt.is_ok()) => {
     if $value.is_ok() {
       fail!("`{}` is `Ok` on line {} of `{}`.", stringify!($value), line!(), file!());

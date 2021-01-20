@@ -134,7 +134,7 @@ pub struct StoppedTask<T> {
 }
 
 /// Information about a stopped task.
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub struct PanickedTask {
   /// The index of the task.
   pub index: Index,
@@ -142,4 +142,21 @@ pub struct PanickedTask {
   pub name: SharedString,
   /// The panic from the task.
   pub panic: task::Panic,
+}
+
+impl Display for PanickedTask {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self.name.as_str() {
+      "" => write!(f, "Task #{} ", self.index)?,
+      name => write!(f, "Task `{}`", name)?,
+    }
+
+    write!(f, "panicked")?;
+
+    if let Some(value) = self.panic.value_str() {
+      write!(f, " with `{}`", value)?;
+    }
+
+    write!(f, ".")
+  }
 }
