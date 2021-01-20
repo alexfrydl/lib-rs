@@ -77,10 +77,10 @@ where
     index
   }
 
-  /// Waits for the result of the next completed task.
+  /// Waits for the next stopped task.
   ///
-  /// If all tasks have been completed, this function returns `None`.x.
-  pub async fn next(&mut self) -> Option<TaskResult<T>> {
+  /// If all tasks have stopped, this function returns `None`.
+  pub async fn next(&mut self) -> Option<StoppedTask<Result<T, task::Panic>>> {
     if self.children.is_empty() {
       return None;
     }
@@ -88,125 +88,58 @@ where
     let Exit { index, result } = self.rx.recv().await.ok()?;
     let child = self.children.remove(&index).expect("Received result from unknown child.");
 
-    Some(TaskResult { index, name: child.name, result })
+    Some(StoppedTask { index, name: child.name, result })
   }
 
-  /// Waits for the result of the next panicked task, dropping the results of
-  /// tasks that complete successfully.
+  /// Waits for the next stopped task and returns its information as a
+  /// [`Result`].
   ///
-  /// If all tasks have been completed, this function returns `None`.
-  pub async fn next_panic(&mut self) -> Option<TaskPanic> {
-    while let Some(task) = self.next().await {
-      match task.result {
-        Ok(_) => continue,
-        Err(panic) => return Some(TaskPanic { index: task.index, name: task.name, panic }),
-      }
+  /// If all tasks have stopped, this function returns `None`.
+  pub async fn try_next(&mut self) -> Option<Result<StoppedTask<T>, PanickedTask>> {
+    if self.children.is_empty() {
+      return None;
     }
 
-    None
+    let Exit { index, result } = self.rx.recv().await.ok()?;
+    let child = self.children.remove(&index).expect("Received result from unknown child.");
+
+    Some(match result {
+      Ok(result) => Ok(StoppedTask { index, name: child.name, result }),
+      Err(panic) => Err(PanickedTask { index, name: child.name, panic }),
+    })
   }
 
-  /// Waits for and drops the results of all remaining tasks.
+  /// Waits for all tasks to stop, dropping their results.
   pub async fn drain(&mut self) {
     while let Some(_) = self.next().await {}
+  }
 
-    self.next_index = 0;
+  /// Waits for all tasks to stop, dropping their results, until a task panics.
+  pub async fn try_drain(&mut self) -> Result<(), PanickedTask> {
+    while let Some(_) = self.try_next().await.transpose()? {}
+
+    Ok(())
   }
 }
 
-impl<T, E> Join<Result<T, E>>
-where
-  T: Send + 'static,
-  E: Send + 'static,
-{
-  /// Waits for the result of the next failed task, dropping the results of
-  /// tasks that complete successfully.
-  ///
-  /// If all tasks have been completed, this function returns `None`.
-  pub async fn next_err(&mut self) -> Option<TaskError<E>> {
-    while let Some(task) = self.next().await {
-      match task.result.flatten_err() {
-        Ok(_) => continue,
-        Err(err) => return Some(TaskError { index: task.index, name: task.name, err }),
-      }
-    }
-
-    None
-  }
-}
-
-/// The result of a task.
-pub struct TaskResult<T> {
+/// Information about a stopped task.
+#[derive(Debug)]
+pub struct StoppedTask<T> {
   /// The index of the task.
   pub index: Index,
   /// The name of the task, if any.
   pub name: SharedString,
   /// The result of the task.
-  pub result: task::Result<T>,
+  pub result: T,
 }
 
-impl<T> Display for TaskResult<T> {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    match self.name.as_str() {
-      "" => write!(f, "Task #{} ", self.index)?,
-      name => write!(f, "Task `{}`", name)?,
-    }
-
-    match &self.result {
-      Ok(_) => write!(f, "succeeded."),
-      Err(panic) => match panic.value_str() {
-        Some(value) => write!(f, "panicked with `{}`.", value),
-        None => write!(f, "panicked."),
-      },
-    }
-  }
-}
-
-/// An error representing a task that panicked.
-#[derive(Debug, Error)]
-pub struct TaskPanic {
+/// Information about a stopped task.
+#[derive(Debug)]
+pub struct PanickedTask {
   /// The index of the task.
   pub index: Index,
   /// The name of the task, if any.
   pub name: SharedString,
   /// The panic from the task.
   pub panic: task::Panic,
-}
-
-impl Display for TaskPanic {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    match self.name.as_str() {
-      "" => write!(f, "Task #{} ", self.index)?,
-      name => write!(f, "Task `{}`", name)?,
-    }
-
-    match self.panic.value_str() {
-      Some(value) => write!(f, "panicked with `{}`.", value),
-      None => write!(f, "panicked."),
-    }
-  }
-}
-
-/// An error representing a task that failed.
-pub struct TaskError<E> {
-  /// The index of the task.
-  pub index: Index,
-  /// The name of the task, if any.
-  pub name: SharedString,
-  /// The error of the task.
-  pub err: task::Error<E>,
-}
-
-impl<E> Display for TaskError<E>
-where
-  E: Display,
-{
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    match self.name.as_str() {
-      "" => write!(f, "Task #{} ", self.index)?,
-      name => write!(f, "Task `{}`", name)?,
-    }
-
-    write!(f, "failed. {}", self.err)
-  }
 }

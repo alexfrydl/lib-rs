@@ -66,19 +66,3 @@ impl Display for Panic {
     write!(f, ".")
   }
 }
-
-/// An extension trait for `Result<Result<T, E>, Panic>`.
-pub trait ResultResultExt<T, E> {
-  /// Flattens this nested result by converting the errors to the same type.
-  fn flatten_err(self) -> Result<T, Error<E>>;
-}
-
-impl<T, E> ResultResultExt<T, E> for Result<Result<T, E>> {
-  fn flatten_err(self) -> Result<T, Error<E>> {
-    match self {
-      Ok(Ok(value)) => Ok(value),
-      Ok(Err(err)) => Err(Error::Err(err)),
-      Err(panic) => Err(panic.into()),
-    }
-  }
-}

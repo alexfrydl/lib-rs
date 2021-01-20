@@ -20,7 +20,6 @@ pub use {
   crate::math::{FloatExt as _, Number},
   crate::random::{self, random, Random},
   crate::stream::{self, Stream, StreamExt},
-  crate::task::ResultResultExt as _,
   crate::time::{self, Date, Duration, Time},
   crate::util::{attempt, attempt_async},
   crate::util::{cfg_if, default, pin, pin_project},

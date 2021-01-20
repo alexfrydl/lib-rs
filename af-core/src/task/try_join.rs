@@ -23,41 +23,100 @@ pub struct TryJoin<T, E> {
 impl<T, E> TryJoin<T, E>
 where
   T: Send + 'static,
-  E: Send + 'static,
+  E: From<task::Panic> + Send + 'static,
 {
   /// Creates an empty join.
   pub fn new() -> Self {
     Self { join: task::Join::new() }
   }
 
-  /// Waits for the result of the next completed task.
-  ///
-  /// If all tasks have been completed, this function returns `None`.
-  pub async fn next(&mut self) -> Option<TaskResult<T, E>> {
-    let result = self.join.next().await?;
+  /// Adds a task to the join, returning its index.
+  pub fn add(&mut self, task: impl task::Start<Result<T, E>>) -> Index {
+    self.join.add(task)
+  }
 
-    Some(result.into())
+  /// Adds a named task to the join, returning its index.
+  pub fn add_as(
+    &mut self,
+    name: impl Into<SharedString>,
+    task: impl task::Start<Result<T, E>>,
+  ) -> Index {
+    self.join.add_as(name, task)
+  }
+
+  /// Waits for the next stopped task.
+  ///
+  /// If all tasks have stopped, this function returns `None`.
+  pub async fn next(&mut self) -> Option<StoppedTask<T, E>> {
+    let task = self.join.next().await?;
+
+    Some(StoppedTask {
+      index: task.index,
+      name: task.name,
+      result: task.result.map_err(E::from).and_then(|res| res),
+    })
+  }
+
+  /// Waits for the next stopped task and returns its information as a
+  /// [`Result`].
+  ///
+  /// If all tasks have stopped, this function returns `None`.
+  pub async fn try_next(&mut self) -> Option<Result<FinishedTask<T>, FailedTask<E>>> {
+    let task = self.next().await?;
+
+    Some(match task.result {
+      Ok(output) => Ok(FinishedTask { index: task.index, name: task.name, output }),
+      Err(error) => Err(FailedTask { index: task.index, name: task.name, error }),
+    })
+  }
+
+  /// Waits for all tasks to stop, dropping their results.
+  pub async fn drain(&mut self) {
+    self.join.drain().await
+  }
+
+  /// Waits for all tasks to stop, dropping their results, until a task fails.
+  pub async fn try_drain(&mut self) -> Result<(), FailedTask<E>> {
+    while let Some(_) = self.try_next().await.transpose()? {}
+
+    Ok(())
   }
 }
 
-/// The result of a [`TryJoin`] task.
+/// Information about a stopped task.
 #[derive(Debug)]
-pub struct TaskResult<T, E> {
+pub struct StoppedTask<T, E> {
   /// The index of the task.
   pub index: Index,
   /// The name of the task, if any.
   pub name: SharedString,
   /// The result of the task.
-  pub result: Result<T, task::Error<E>>,
+  pub result: Result<T, E>,
 }
 
-impl<T, E> From<task::join::TaskResult<Result<T, E>>> for TaskResult<T, E> {
-  fn from(result: task::join::TaskResult<Result<T, E>>) -> Self {
-    Self { index: result.index, name: result.name, result: result.result.flatten_err() }
-  }
+/// Information about a finished task.
+#[derive(Debug)]
+pub struct FinishedTask<T> {
+  /// The index of the task.
+  pub index: Index,
+  /// The name of the task, if any.
+  pub name: SharedString,
+  /// The output of the task.
+  pub output: T,
 }
 
-impl<T, E> Display for TaskResult<T, E>
+/// Information about a failed task.
+#[derive(Debug)]
+pub struct FailedTask<E> {
+  /// The index of the task.
+  pub index: Index,
+  /// The name of the task, if any.
+  pub name: SharedString,
+  /// The error of the task.
+  pub error: E,
+}
+
+impl<E> Display for FailedTask<E>
 where
   E: Display,
 {
@@ -67,13 +126,8 @@ where
       name => write!(f, "Task `{}`", name)?,
     }
 
-    match &self.result {
-      Ok(_) => write!(f, "succeeded."),
-      Err(task::Error::Err(err)) => write!(f, "failed. {}", err),
-      Err(task::Error::Panic(panic)) => match panic.value_str() {
-        Some(value) => write!(f, "panicked with `{}`.", value),
-        None => write!(f, "panicked."),
-      },
-    }
+    write!(f, "failed. {}", self.error)
   }
 }
+
+impl<E> Error for FailedTask<E> where E: Debug + Display {}

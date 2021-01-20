@@ -13,7 +13,7 @@ mod cancel;
 mod error;
 
 pub use self::cancel::{CancelSignal, Canceled, Canceler};
-pub use self::error::{Error, Panic, Result, ResultResultExt};
+pub use self::error::{Error, Panic, Result};
 pub use self::join::Join;
 pub use self::try_join::TryJoin;
 
