@@ -16,7 +16,7 @@ use std::process::exit;
 ///
 /// If the task fails, this function logs the error and exits the process with
 /// a non-zero exit code.
-pub fn run<T, E>(future: impl task::Future<Result<T, E>>) -> !
+pub fn run<T, E>(future: impl Future<Output = Result<T, E>> + Send + 'static) -> !
 where
   T: Send + 'static,
   E: Display + Send + 'static,
@@ -59,7 +59,7 @@ pub fn run_with<T, E, F>(func: impl FnOnce(task::CancelSignal) -> F + Send + 'st
 where
   T: Send + 'static,
   E: Display + Send + 'static,
-  F: task::Future<Result<T, E>>,
+  F: Future<Output = Result<T, E>> + Send + 'static,
 {
   let canceler = task::Canceler::new();
   let cancel = canceler.signal();

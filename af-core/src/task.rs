@@ -19,16 +19,6 @@ pub use self::try_join::TryJoin;
 
 use crate::prelude::*;
 
-/// A future that can be used as a task.
-pub trait Future<T>: future::Future<Output = T> + Send + Sized + 'static {}
-
-impl<T, F> Future<T> for F where F: future::Future<Output = T> + Send + Sized + 'static {}
-
-/// A [`Future`] that returns a result.
-pub trait TryFuture<T, E>: Future<Result<T, E>> {}
-
-impl<T, E, F> TryFuture<T, E> for F where F: Future<Result<T, E>> {}
-
 /// Waits for the given duration to elapse.
 pub async fn sleep(duration: Duration) {
   if duration.is_infinite() {
@@ -39,7 +29,18 @@ pub async fn sleep(duration: Duration) {
 }
 
 /// Starts a new task.
-pub fn start<T: Send + 'static>(future: impl Future<T>) -> Task<T> {
+pub fn start<T>(task: impl Start<T>) -> Task<T>
+where
+  T: Send + 'static,
+{
+  task.start()
+}
+
+/// Starts a new task.
+fn start_impl<T>(future: impl Future<Output = T> + Send + 'static) -> Task<T>
+where
+  T: Send + 'static,
+{
   let task = async_global_executor::spawn(async move {
     future::catch_unwind(panic::AssertUnwindSafe(future)).await.map_err(|value| Panic { value })
   });
@@ -77,5 +78,27 @@ where
   /// Waits for the fallible task to stop and returns its result.
   pub async fn try_join(self) -> Result<T, E> {
     self.task.await?
+  }
+}
+
+/// A trait for types that can start tasks.
+pub trait Start<T> {
+  /// Starts a task from this value.
+  fn start(self) -> Task<T>;
+}
+
+impl<T> Start<T> for Task<T> {
+  fn start(self) -> Task<T> {
+    self
+  }
+}
+
+impl<T, F> Start<T> for F
+where
+  T: Send + 'static,
+  F: Future<Output = T> + Send + 'static,
+{
+  fn start(self) -> Task<T> {
+    start_impl(self)
   }
 }

@@ -50,7 +50,11 @@ impl Context {
   }
 
   /// Adds a test to the context.
-  pub fn test(&mut self, name: impl Into<SharedString>, test: impl task::Future<Result>) {
+  pub fn test(
+    &mut self,
+    name: impl Into<SharedString>,
+    test: impl task::Start<Result> + Send + 'static,
+  ) {
     let name = name.into();
 
     assert!(!name.is_empty(), "A test cannot be named \"\".");
@@ -84,9 +88,9 @@ impl Context {
       path.components.push_back(name);
 
       match child {
-        Child::Context(ctx) => tasks.start(ctx.run(path, output)),
+        Child::Context(ctx) => tasks.add(ctx.run(path, output)),
 
-        Child::Test(start) => tasks.start(async move {
+        Child::Test(start) => tasks.add(async move {
           let result = start().try_join().await;
 
           output.send(Output { path, result }).await.unwrap();

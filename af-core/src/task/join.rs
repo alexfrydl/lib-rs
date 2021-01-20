@@ -45,17 +45,21 @@ where
   }
 
   /// Adds a task to the join, returning its index.
-  pub fn add(&mut self, task: Task<T>) -> Index {
+  pub fn add(&mut self, task: impl task::Start<T>) -> Index {
     self.add_as("", task)
   }
 
   /// Adds a named task to the join, returning its index.
-  pub fn add_as(&mut self, name: impl Into<SharedString>, task: Task<T>) -> Index {
+  pub fn add_as(&mut self, name: impl Into<SharedString>, task: impl task::Start<T>) -> Index {
     // Get next index.
 
     let index = self.next_index;
 
     self.next_index += 1;
+
+    // Start the task.
+
+    let task = task.start();
 
     // Start a task to monitor when this task exits and send its result on the
     // channel.
@@ -71,18 +75,6 @@ where
     self.children.insert(index, Child { name: name.into(), _monitor });
 
     index
-  }
-
-  /// Starts a task from a future and adds it to the join, returning its
-  /// index.
-  pub fn start(&mut self, future: impl task::Future<T>) -> Index {
-    self.start_as("", future)
-  }
-
-  /// Starts a task from a future and adds it to the join with the given name,
-  /// returning its index.
-  pub fn start_as(&mut self, name: impl Into<SharedString>, future: impl task::Future<T>) -> Index {
-    self.add_as(name, task::start(future))
   }
 
   /// Waits for the result of the next completed task.
