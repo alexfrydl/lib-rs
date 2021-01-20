@@ -22,7 +22,6 @@ pub fn run(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
       af_core::log::init!();
 
-      let started_at = af_core::time::Time::now();
       let result = af_core::thread::block_on(af_core::test::runner::run(#name));
 
       if result.is_err() {

@@ -5,8 +5,17 @@ name = "tests"
 license = "MPL-2.0"
 version = "0.0.0"
 
+[features]
+default = ["core"]
+
+core = []
+postgres = []
+sentry = ["af-sentry"]
+
 [dependencies]
 af-core = { path = "../af-core", features = ["test-runner"] }
+af-sentry = { path = "../af-sentry", optional = true }
 console = "0.14"
 event-listener = "2"
 indicatif = "0.15"
+structopt = "0.3"

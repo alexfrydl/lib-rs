@@ -52,5 +52,5 @@ publish package=".":
   set -l root (pwd)
   cd {{package}} && cargo publish --all-features --target-dir $root/target
 
-test:
-  @cd tests && cargo run
+test +features:
+  @cd tests && cargo run --no-default-features --features {{features}}
