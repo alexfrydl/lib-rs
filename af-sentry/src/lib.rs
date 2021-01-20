@@ -22,13 +22,17 @@ pub fn init(options: impl Into<ClientOptions>) -> ClientInitGuard {
 /// Creates a sentry error.
 #[macro_export]
 macro_rules! error {
-  ($name:expr, $format:literal, $($args:tt)+) => {
-    $crate::Error::from_err($name, format_args!($format, $($args)+))
+  ($type_name:expr, $format:literal, $($args:tt)+) => {
+    $crate::Error::new($type_name).with_description(format_args!($format, $($args)+))
   };
 
-  ($($args:tt)*) => {
-    $crate::Error::from_err($($args)*)
-  }
+  ($type_name:expr, $($args:tt)+) => {
+    $crate::Error::new($type_name).with_description($($args)+)
+  };
+
+  ($($args:tt)+) => {
+    $crate::Error::new($($args)*)
+  };
 }
 
 /// Returns `true` if error reporting is enabled.
@@ -38,20 +42,30 @@ pub fn is_enabled() -> bool {
   sentry::Hub::with(|hub| hub.client().map(|c| c.is_enabled()).unwrap_or_default())
 }
 
-/// Reports an error to sentry with the given name.
-pub fn report(name: impl Into<String>, err: impl Display) -> Uuid {
-  Error::from_err(name, err).report()
+/// Reports an error to sentry and returns its UUID.
+pub fn report(type_name: impl Into<String>, err: impl Display) -> Uuid {
+  Error::new(type_name).with_description(err).report()
 }
 
-/// Reports an error to sentry.
+/// Reports an error to sentry and returns its UUID.
 #[macro_export]
 macro_rules! report {
-  ($($args:tt)*) => {
-    $crate::error!($($args)*).report()
-  }
+  ($type_name:expr, $format:literal, $($args:tt)+) => {
+    $crate::Error::new($type_name).with_description(format_args!($format, $($args)+))
+  };
+
+  ($type_name:expr, $($args:tt)+) => {
+    $crate::Error::new($type_name).with_description($($args)+)
+  };
+
+  ($($args:tt)+) => {
+    $crate::Error::new($($args)*)
+  };
 }
 
-/// An error to be captured by sentry.
+/// A sentry error.
+///
+/// Errors are automatically reported when dropped.
 #[derive(Debug)]
 pub struct Error<'a> {
   /// A short description of the error.
@@ -61,42 +75,39 @@ pub struct Error<'a> {
   /// The fingerprint of the error.
   ///
   /// Errors with the same fingerprint are grouped together. The default groups
-  /// by [`name`] and [`ClientOptions::environment`].
+  /// by [`type`] and [`ClientOptions::environment`].
   pub fingerprint: Fingerprint<'a>,
-  /// The name of the error.
-  pub name: String,
+  /// The type of the error.
+  pub type_name: String,
   /// Additional tags to apply to the error.
   pub tags: BTreeMap<String, String>,
   /// User data to send with the error.
   pub user: User,
 }
 
-impl<'a> Default for Error<'a> {
-  fn default() -> Self {
-    Error {
+impl<'a> Error<'a> {
+  /// Creates a new error with the given type.
+  pub fn new(type_name: impl Into<String>) -> Self {
+    Self {
       description: default(),
       detail: default(),
       fingerprint: Cow::Borrowed(&[
         Cow::Borrowed("{{ type }}"),
         Cow::Borrowed("{{ tags.environment }}"),
       ]),
-      name: default(),
+      type_name: type_name.into(),
       tags: default(),
       user: default(),
     }
   }
-}
 
-impl<'a> Error<'a> {
-  /// Creates a new error with the given name.
-  pub fn new(name: impl Into<String>) -> Self {
-    Self { name: name.into(), ..default() }
-  }
+  /// Sets the short description of the error.
+  pub fn set_description(&mut self, description: impl ToString) {
+    let mut description = description.to_string();
 
-  /// Creates a new sentry error with the given name from an error.
-  pub fn from_err(name: impl Into<String>, err: impl ToString) -> Self {
-    let mut description = err.to_string();
-    let detail = description.clone();
+    if self.detail.is_empty() {
+      self.detail = description.clone();
+    }
 
     if let Some(i) = description.find('\n') {
       description.truncate(i);
@@ -113,12 +124,7 @@ impl<'a> Error<'a> {
       description.push('…');
     }
 
-    Self { name: name.into(), description, detail, ..default() }
-  }
-
-  /// Sets the short description of the error.
-  pub fn set_description(&mut self, description: impl ToString) {
-    self.description = description.to_string();
+    self.description = description;
   }
 
   /// Sets the detailed description of the error.
@@ -127,19 +133,19 @@ impl<'a> Error<'a> {
   }
 
   /// Adds extra tagged information.
-  pub fn set_tag(&mut self, name: impl Into<String>, value: impl ToString) {
-    self.tags.insert(name.into(), value.to_string());
+  pub fn set_tag(&mut self, type_name: impl Into<String>, value: impl ToString) {
+    self.tags.insert(type_name.into(), value.to_string());
   }
 
   /// Sets the short description of the error.
   pub fn with_description(mut self, description: impl ToString) -> Self {
-    self.description = description.to_string();
+    self.set_description(description);
     self
   }
 
   /// Sets the detailed description of the error.
   pub fn with_detail(mut self, detail: impl ToString) -> Self {
-    self.detail = detail.to_string();
+    self.set_detail(detail);
     self
   }
 
@@ -150,8 +156,8 @@ impl<'a> Error<'a> {
   }
 
   /// Adds extra tagged information.
-  pub fn with_tag(mut self, name: impl Into<String>, value: impl ToString) -> Self {
-    self.set_tag(name, value);
+  pub fn with_tag(mut self, type_name: impl Into<String>, value: impl ToString) -> Self {
+    self.set_tag(type_name, value);
     self
   }
 
@@ -168,22 +174,35 @@ impl<'a> Error<'a> {
   }
 
   /// Reports this error to sentry.
-  pub fn report(self) -> Uuid {
+  pub fn report(mut self) -> Uuid {
+    let uuid = self.report_mut();
+    mem::forget(self);
+    uuid
+  }
+
+  /// Reports this error to sentry.
+  fn report_mut(&mut self) -> Uuid {
     let mut event = sentry::protocol::Event::new();
 
     if !self.detail.is_empty() {
-      event.message = Some(self.detail);
+      event.message = Some(mem::take(&mut self.detail));
     }
 
     event.exception.values.push(sentry::protocol::Exception {
-      ty: self.name,
-      value: Some(self.description),
+      ty: mem::take(&mut self.type_name),
+      value: Some(mem::take(&mut self.description)),
       ..default()
     });
 
-    event.tags = self.tags;
-    event.user = Some(self.user);
+    mem::swap(&mut event.tags, &mut self.tags);
+    event.user = Some(mem::take(&mut self.user));
 
     sentry::capture_event(event).into()
+  }
+}
+
+impl<'a> Drop for Error<'a> {
+  fn drop(&mut self) {
+    self.report_mut();
   }
 }

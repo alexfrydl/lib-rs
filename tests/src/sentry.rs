@@ -13,35 +13,33 @@ pub fn test(cx: &mut test::Context) {
     fail::when!(!sentry::is_enabled(), "Not enabled.");
   });
 
-  test!(cx, "simple report", {
-    sentry::report("Simple report", "A simple report with a description.");
+  test!(cx, "simple error", {
+    sentry::report("Simple error", "A simple error with a description.");
   });
 
-  test!(cx, "macro report", {
-    sentry::report!("Macro report", "A report made with the {}.", "format macro");
+  test!(cx, "macro error", {
+    sentry::report!("Macro error", "An error made with the {}.", "format macro");
   });
 
   test!(cx, "with user", {
-    sentry::error!("With user", "A report containing user info.")
-      .with_user(sentry::User {
-        id: Some("person".into()),
-        email: Some("person@mail.com".into()),
-        ..default()
-      })
-      .report();
+    sentry::error!("With user", "An error containing user info.").with_user(sentry::User {
+      id: Some("person".into()),
+      email: Some("person@mail.com".into()),
+      ..default()
+    });
   });
 
   test!(cx, "long message", {
     sentry::report(
       "Long message",
-      "A report with a long message that should be truncated: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Est ante in nibh mauris. In ornare quam viverra orci sagittis eu. Ornare quam viverra orci sagittis eu. Nibh ipsum consequat nisl vel pretium lectus quam id leo. Quam viverra orci sagittis eu volutpat odio facilisis mauris. Elementum tempus egestas sed sed risus pretium quam vulputate dignissim. Ut ornare lectus sit amet est placerat in. Turpis egestas pretium aenean pharetra magna ac placerat vestibulum. Vitae purus faucibus ornare suspendisse sed nisi lacus sed. Semper feugiat nibh sed pulvinar proin gravida. Vestibulum mattis ullamcorper velit sed. Nunc consequat interdum varius sit. Fermentum et sollicitudin ac orci phasellus egestas tellus rutrum tellus. Luctus venenatis lectus magna fringilla. Sit amet purus gravida quis blandit turpis cursus. Hac habitasse platea dictumst quisque sagittis. Faucibus turpis in eu mi bibendum neque egestas congue quisque. Vulputate ut pharetra sit amet aliquam id.",
+      "An error with a long message that should be truncated: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Est ante in nibh mauris. In ornare quam viverra orci sagittis eu. Ornare quam viverra orci sagittis eu. Nibh ipsum consequat nisl vel pretium lectus quam id leo. Quam viverra orci sagittis eu volutpat odio facilisis mauris. Elementum tempus egestas sed sed risus pretium quam vulputate dignissim. Ut ornare lectus sit amet est placerat in. Turpis egestas pretium aenean pharetra magna ac placerat vestibulum. Vitae purus faucibus ornare suspendisse sed nisi lacus sed. Semper feugiat nibh sed pulvinar proin gravida. Vestibulum mattis ullamcorper velit sed. Nunc consequat interdum varius sit. Fermentum et sollicitudin ac orci phasellus egestas tellus rutrum tellus. Luctus venenatis lectus magna fringilla. Sit amet purus gravida quis blandit turpis cursus. Hac habitasse platea dictumst quisque sagittis. Faucibus turpis in eu mi bibendum neque egestas congue quisque. Vulputate ut pharetra sit amet aliquam id.",
     );
   });
 
   test!(cx, "summarized message", {
     sentry::report(
       "Summarized message",
-      r#"A report with a summary followed by a long message:
+      r#"An error with a summary followed by a long message:
 
 Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Est ante in nibh mauris. In ornare quam viverra orci sagittis eu. Ornare quam viverra orci sagittis eu. Nibh ipsum consequat nisl vel pretium lectus quam id leo. Quam viverra orci sagittis eu volutpat odio facilisis mauris. Elementum tempus egestas sed sed risus pretium quam vulputate dignissim. Ut ornare lectus sit amet est placerat in. Turpis egestas pretium aenean pharetra magna ac placerat vestibulum. Vitae purus faucibus ornare suspendisse sed nisi lacus sed. Semper feugiat nibh sed pulvinar proin gravida. Vestibulum mattis ullamcorper velit sed. Nunc consequat interdum varius sit. Fermentum et sollicitudin ac orci phasellus egestas tellus rutrum tellus. Luctus venenatis lectus magna fringilla. Sit amet purus gravida quis blandit turpis cursus. Hac habitasse platea dictumst quisque sagittis. Faucibus turpis in eu mi bibendum neque egestas congue quisque. Vulputate ut pharetra sit amet aliquam id.
 
@@ -51,8 +49,9 @@ Ipsum a arcu cursus vitae congue mauris rhoncus aenean vel. Quisque egestas diam
   });
 
   test!(cx, "tagged error", {
-    let mut error =
-      sentry::Error::from_err("Tagged error", "A tagged error created with the extended API.");
+    let mut error = sentry::Error::new("Tagged error");
+
+    error.set_description("A tagged error created with the extended API.");
 
     error.set_tag("number", 14);
     error.set_tag("string", "hello world");
