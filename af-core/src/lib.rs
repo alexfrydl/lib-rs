@@ -7,6 +7,7 @@
 pub mod channel;
 pub mod derive;
 pub mod env;
+pub mod error;
 pub mod fail;
 pub mod fmt;
 pub mod future;

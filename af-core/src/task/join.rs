@@ -30,7 +30,7 @@ struct Child {
 /// A message sent from a task monitor.
 struct Stopped<T> {
   index: usize,
-  result: task::Result<T>,
+  result: Result<T, Panic>,
 }
 
 impl<T> Join<T>

@@ -12,6 +12,7 @@ pub use crate as af_core;
 #[doc(no_inline)]
 pub use {
   crate::derive::*,
+  crate::error::{Error, Panic},
   crate::fail::{self, fail, Result},
   crate::fmt::{self, Debug, Display, Write as _},
   crate::future::{self, Future, TryFuture, TryFutureExt as _},

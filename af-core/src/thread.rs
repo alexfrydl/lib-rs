@@ -18,14 +18,6 @@ pub struct Thread<T> {
   rx: channel::Receiver<T>,
 }
 
-/// An error returned from [`Thread::join()`] when the thread panics.
-#[derive(Debug, Error)]
-#[error("Thread panicked.")]
-pub struct PanicError {
-  /// The value the thread panicked with.
-  pub value: Box<dyn Any + Send>,
-}
-
 /// Blocks the current thread until a given future is ready.
 pub fn block_on<T>(future: impl Future<Output = T>) -> T {
   async_io::block_on(future)
@@ -59,15 +51,25 @@ pub fn start<T: Send + 'static>(
 
 impl<T> Thread<T> {
   /// Waits for the thread to stop and returns its result.
-  pub async fn join(self) -> Result<T, PanicError> {
+  pub async fn join(self) -> Result<T, Panic> {
     if let Ok(output) = self.rx.recv().await {
       return Ok(output);
     }
 
     if let Err(value) = self.inner.join() {
-      return Err(PanicError { value });
+      return Err(Panic { value });
     }
 
     unreachable!("Thread finished but did not send output.");
+  }
+}
+
+impl<T, E> Thread<Result<T, E>>
+where
+  E: From<Panic>,
+{
+  /// Waits for the thread to stop and returns its result.
+  pub async fn try_join(self) -> Result<T, E> {
+    self.join().await?
   }
 }

@@ -10,10 +10,8 @@ pub mod join;
 pub mod try_join;
 
 mod cancel;
-mod error;
 
 pub use self::cancel::{CancelSignal, Canceled, Canceler};
-pub use self::error::{Error, Panic, Result};
 pub use self::join::Join;
 pub use self::try_join::TryJoin;
 
@@ -56,7 +54,7 @@ pub async fn yield_now() {
 /// An asynchronous task.
 #[must_use = "Tasks are killed when dropped."]
 pub struct Task<T> {
-  task: async_executor::Task<Result<T>>,
+  task: async_executor::Task<Result<T, Panic>>,
 }
 
 impl<T> Task<T> {
@@ -66,7 +64,7 @@ impl<T> Task<T> {
   }
 
   /// Waits for the task to stop and returns its result.
-  pub async fn join(self) -> Result<T> {
+  pub async fn join(self) -> Result<T, Panic> {
     self.task.await
   }
 }

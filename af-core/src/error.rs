@@ -1,32 +1,12 @@
-// Copyright © 2021 Alexandra Frydl
-//
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+pub use std::error::Error;
+pub use thiserror::Error;
 
 use crate::prelude::*;
 
-/// The result of a task.
-pub type Result<T = (), E = Panic> = std::result::Result<T, E>;
-
-/// A task error.
-#[derive(Debug, Display, From)]
-pub enum Error<E> {
-  /// An error returned from the task.
-  #[display(fmt = "{}", _0)]
-  Err(E),
-  /// A panic.
-  #[display(fmt = "{}", _0)]
-  #[from]
-  Panic(Panic),
-}
-
-impl<E> std::error::Error for Error<E> where E: Debug + Display {}
-
-/// An error indicating a task panicked.
+/// An error representing a panic.
 #[derive(Error, From)]
 pub struct Panic {
-  /// The value the task panicked with.
+  /// The panic value.
   pub value: Box<dyn Any + Send>,
 }
 
