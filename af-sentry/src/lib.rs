@@ -10,7 +10,7 @@ use af_core::prelude::*;
 use std::collections::BTreeMap;
 
 /// The type of the [`Error::fingerprint`] field.
-pub type Fingerprint<'a> = Cow<'a, [Cow<'a, str>]>;
+pub type Fingerprint = Cow<'static, [Cow<'static, str>]>;
 
 /// Initializes Sentry with the given DSN or [`ClientOptions`].
 pub fn init(options: impl Into<ClientOptions>) -> ClientInitGuard {
@@ -46,7 +46,7 @@ pub fn is_enabled() -> bool {
 ///
 /// Errors are automatically reported when dropped.
 #[derive(Debug)]
-pub struct Error<'a> {
+pub struct Error {
   /// A short description of the error.
   pub description: String,
   /// A detailed description of the error.
@@ -55,7 +55,7 @@ pub struct Error<'a> {
   ///
   /// Errors with the same fingerprint are grouped together. The default groups
   /// by [`type`] and [`ClientOptions::environment`].
-  pub fingerprint: Fingerprint<'a>,
+  pub fingerprint: Fingerprint,
   /// The type of the error.
   pub type_name: String,
   /// Additional tags to apply to the error.
@@ -66,16 +66,16 @@ pub struct Error<'a> {
   pub uuid: Uuid,
 }
 
-impl<'a> Error<'a> {
+const DEFAULT_FINGERPRINT: Fingerprint =
+  Cow::Borrowed(&[Cow::Borrowed("{{ type }}"), Cow::Borrowed("{{ tags.environment }}")]);
+
+impl Error {
   /// Creates a new error with the given type.
   pub fn new(type_name: impl Into<String>) -> Self {
     Self {
       description: default(),
       detail: default(),
-      fingerprint: Cow::Borrowed(&[
-        Cow::Borrowed("{{ type }}"),
-        Cow::Borrowed("{{ tags.environment }}"),
-      ]),
+      fingerprint: DEFAULT_FINGERPRINT,
       type_name: type_name.into(),
       tags: default(),
       user: default(),
@@ -115,8 +115,8 @@ impl<'a> Error<'a> {
   }
 
   /// Adds extra tagged information.
-  pub fn set_tag(&mut self, type_name: impl Into<String>, value: impl ToString) {
-    self.tags.insert(type_name.into(), value.to_string());
+  pub fn set_tag(&mut self, name: impl Into<String>, value: impl ToString) {
+    self.tags.insert(name.into(), value.to_string());
   }
 
   /// Sets the short description of the error.
@@ -132,14 +132,14 @@ impl<'a> Error<'a> {
   }
 
   /// Sets the fingerprint used to group the error.
-  pub fn with_fingerprint(mut self, fingerprint: Fingerprint<'a>) -> Self {
+  pub fn with_fingerprint(mut self, fingerprint: Fingerprint) -> Self {
     self.fingerprint = fingerprint;
     self
   }
 
   /// Adds extra tagged information.
-  pub fn with_tag(mut self, type_name: impl Into<String>, value: impl ToString) -> Self {
-    self.set_tag(type_name, value);
+  pub fn with_tag(mut self, name: impl Into<String>, value: impl ToString) -> Self {
+    self.set_tag(name, value);
     self
   }
 
@@ -178,14 +178,21 @@ impl<'a> Error<'a> {
       ..default()
     });
 
+    event.fingerprint = mem::replace(&mut self.fingerprint, DEFAULT_FINGERPRINT);
+
     mem::swap(&mut event.tags, &mut self.tags);
+
+    if let Some(env) = event.tags.remove("environment") {
+      event.environment = Some(env.into());
+    }
+
     event.user = Some(mem::take(&mut self.user));
 
     sentry::capture_event(event).into()
   }
 }
 
-impl<'a> Drop for Error<'a> {
+impl Drop for Error {
   fn drop(&mut self) {
     self.report_mut();
   }

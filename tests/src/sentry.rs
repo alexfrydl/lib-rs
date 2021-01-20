@@ -17,6 +17,12 @@ pub fn test(cx: &mut test::Context) {
     sentry::error!("Simple error", "A simple error with a description.");
   });
 
+  test!(cx, "double error", {
+    sentry::error!("Double error", "An error that should show up twice.");
+    sentry::error!("Double error", "An error that should show up twice.")
+      .with_tag("environment", "second");
+  });
+
   test!(cx, "macro error", {
     sentry::error!("Macro error", "An error made with the {}.", "format macro");
   });
