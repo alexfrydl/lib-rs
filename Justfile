@@ -46,9 +46,6 @@ license:
     and mv $file{.tmp,}
   end
 
-release *options:
-  @cargo release --workspace --exclude tests --all-features --skip-tag {{options}}
-
 test +features:
   @cd tests && cargo run --no-default-features --features {{features}}
 
