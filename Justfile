@@ -46,11 +46,8 @@ license:
     and mv $file{.tmp,}
   end
 
-publish package=".":
-  #!/bin/fish 
-
-  set -l root (pwd)
-  cd {{package}} && cargo publish --all-features --target-dir $root/target
+release *options:
+  @cargo release --workspace --exclude tests --all-features --skip-tag {{options}}
 
 test +features:
   @cd tests && cargo run --no-default-features --features {{features}}
