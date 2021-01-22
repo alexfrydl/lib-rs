@@ -6,7 +6,8 @@
 
 #[cfg(feature = "core")]
 mod core;
-
+#[cfg(feature = "postgres")]
+mod postgres;
 #[cfg(feature = "sentry")]
 mod sentry;
 
@@ -15,10 +16,15 @@ use structopt::*;
 
 #[derive(StructOpt)]
 pub struct Options {
-  /// The Sentry DSN to use for tests.
   #[cfg(feature = "sentry")]
+  /// The Sentry DSN to use.
   #[structopt(long, env = "SENTRY_DSN")]
   dsn: String,
+
+  #[cfg(feature = "postgres")]
+  /// The Postgres URL to connect to.
+  #[structopt(long, env = "POSTGRES_URL")]
+  postgres_url: af_postgres::Config,
 }
 
 #[af_core::main]
@@ -28,9 +34,9 @@ async fn main() {
 
   let result = {
     #[cfg(feature = "sentry")]
-    let _guard = af_sentry::init(options.dsn);
+    let _guard = af_sentry::init(options.dsn.as_str());
 
-    af_core::test::runner::run(test).await
+    af_core::test::runner::run(|cx| test(cx, options)).await
   };
 
   if result.is_err() {
@@ -39,9 +45,12 @@ async fn main() {
 }
 
 /// Entry point of the test suite.
-fn test(cx: &mut test::Context) {
+fn test(cx: &mut test::Context, options: Options) {
   #[cfg(feature = "core")]
   cx.scope("af_core", core::test);
+
+  #[cfg(feature = "postgres")]
+  cx.scope("postgres", |cx| postgres::test(cx, &options));
 
   #[cfg(feature = "sentry")]
   cx.scope("sentry", sentry::test);

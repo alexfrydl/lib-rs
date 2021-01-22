@@ -40,7 +40,9 @@ pub async fn connect(config: &Config) -> Result<(Client, Task<Result>)> {
 /// Iterates over a slice of [`ToSql`] values, for providing statement params.
 ///
 /// This is needed because Rust cannot infer types from this expression.
-fn param_iter<'a>(p: &'a [&'a dyn ToSql]) -> impl ExactSizeIterator<Item = &'a dyn ToSql> + 'a {
+fn param_iter<'a>(
+  p: &'a [&'a (dyn ToSql + Sync)],
+) -> impl ExactSizeIterator<Item = &'a dyn ToSql> + 'a {
   p.iter().map(|p| *p as _)
 }
 
@@ -51,7 +53,11 @@ impl Client {
   }
 
   /// Executes a statement and returns the number of rows affected.
-  pub async fn execute(&self, statement: &impl ToStatement, params: &[&dyn ToSql]) -> Result<u64> {
+  pub async fn execute(
+    &self,
+    statement: &impl ToStatement,
+    params: &[&(dyn ToSql + Sync)],
+  ) -> Result<u64> {
     Ok(self.inner.execute_raw(statement, param_iter(params)).await?)
   }
 
@@ -99,7 +105,11 @@ impl Client {
   }
 
   /// Executes a statement and returns its results as a stream of rows.
-  pub async fn query(&self, query: &impl ToStatement, params: &[&dyn ToSql]) -> Result<RowStream> {
+  pub async fn query(
+    &self,
+    query: &(impl ToStatement + ?Sized),
+    params: &[&(dyn ToSql + Sync)],
+  ) -> Result<RowStream> {
     Ok(self.inner.query_raw(query, param_iter(params)).await?)
   }
 
@@ -108,8 +118,8 @@ impl Client {
   /// If no rows are returned, this function returns `None`.
   pub async fn query_opt(
     &self,
-    query: &impl ToStatement,
-    params: &[&dyn ToSql],
+    query: &(impl ToStatement + ?Sized),
+    params: &[&(dyn ToSql + Sync)],
   ) -> Result<Option<Row>> {
     let rows = self.query(query, params).await?;
 
@@ -123,8 +133,8 @@ impl Client {
   /// If no rows are returned, this function returns a [`NoRowsReturned`] error.
   pub async fn query_one(
     &self,
-    query: &impl ToStatement,
-    params: &[&dyn ToSql],
+    query: &(impl ToStatement + ?Sized),
+    params: &[&(dyn ToSql + Sync)],
   ) -> Result<Row, QueryOneError> {
     self.query_opt(query, params).await?.ok_or(NoRowsReturned)
   }

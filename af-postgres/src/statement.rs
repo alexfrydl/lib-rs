@@ -16,7 +16,7 @@ use smallvec::SmallVec;
 #[derive(Debug)]
 pub struct StatementBuilder<'a> {
   text: SmallString<[u8; 2048]>,
-  params: SmallVec<[&'a dyn ToSql; 32]>,
+  params: SmallVec<[&'a (dyn ToSql + Sync); 32]>,
 }
 
 impl<'a> StatementBuilder<'a> {
@@ -39,13 +39,13 @@ impl<'a> StatementBuilder<'a> {
   /// write!(builder, "WHERE id = ${}", builder.add_param(id))?;
   /// ```
   ///
-  pub fn add_param(&mut self, param: &'a dyn ToSql) -> usize {
+  pub fn add_param(&mut self, param: &'a (dyn ToSql + Sync)) -> usize {
     self.params.push(param);
     self.params.len()
   }
 
   /// Returns a reference to the statement params.
-  pub fn params(&self) -> &[&'a dyn ToSql] {
+  pub fn params(&self) -> &[&'a (dyn ToSql + Sync)] {
     &self.params
   }
 

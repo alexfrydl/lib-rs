@@ -54,3 +54,7 @@ publish package=".":
 
 test +features:
   @cd tests && cargo run --no-default-features --features {{features}}
+
+test-docker +features:
+  @cd tests && cargo build --no-default-features --features {{features}}
+  @docker-compose run tests

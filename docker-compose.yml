@@ -1,0 +1,24 @@
+version: "3.9"
+services:
+  tests:
+    image: archlinux
+    entrypoint: tests
+    volumes:
+      - .:/app
+      - ./target/debug:/usr/local/bin
+    environment:
+      CARGO_MANIFEST_DIR: /app
+      POSTGRES_URL: postgres://postgres:postgres@postgres/postgres
+      SENTRY_DSN: ${SENTRY_DSN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+  postgres:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5

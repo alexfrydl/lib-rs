@@ -9,11 +9,12 @@ version = "0.0.0"
 default = ["core"]
 
 core = []
-postgres = []
+postgres = ["af-postgres"]
 sentry = ["af-sentry"]
 
 [dependencies]
 af-core = { path = "../af-core", features = ["test-runner"] }
+af-postgres = { path = "../af-postgres", optional = true }
 af-sentry = { path = "../af-sentry", optional = true }
 console = "0.14"
 event-listener = "2"
