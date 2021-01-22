@@ -7,6 +7,5 @@
 //! Common derive macros.
 
 pub use derive_more::*;
+pub use serde::{Deserialize, Serialize};
 pub use thiserror::{self, Error};
-
-pub(crate) use serde::{Deserialize, Serialize};
