@@ -11,6 +11,7 @@ use af_core::test::prelude::*;
 pub fn test(cx: &mut test::Context) {
   cx.scope("::Date", test_date);
   cx.scope("::Duration", test_duration);
+  cx.scope("::Span", test_span);
   cx.scope("::Time", test_time);
   cx.scope("::Zone", test_zone);
 }
@@ -236,6 +237,151 @@ fn test_duration(cx: &mut test::Context) {
     let neg = Duration::secs(1) / -2.0;
 
     fail::when!(neg != Duration::ZERO);
+  });
+}
+
+/// Tests `Span`.
+fn test_span(cx: &mut test::Context) {
+  use time::Span;
+
+  test!(cx, "::new()", {
+    let start = Time::now();
+    let end = start + Duration::secs(random::range(0..100_000));
+
+    let span = Span::new(start, end);
+
+    fail::when!(span.start() != start);
+    fail::when!(span.end() != end);
+  });
+
+  test!(cx, "::new() always orders start and end time correctly", {
+    let earlier = Time::now();
+    let later = earlier + Duration::secs(random::range(0..100_000));
+
+    let normal = Span::new(earlier, later);
+    let flipped = Span::new(later, earlier);
+
+    fail::when!(normal != flipped);
+  });
+
+  test!(cx, "::contains()", {
+    let start = Time::now();
+    let middle = start + Duration::secs(random::range(1..50_000));
+    let end = start + Duration::secs(random::range(50_000..100_000));
+    let span = Span::new(start, end);
+
+    fail::when!(span.contains(start - Duration::ms(0.001)));
+    fail::when!(!span.contains(start));
+    fail::when!(!span.contains(middle));
+    fail::when!(!span.contains(end));
+    fail::when!(span.contains(end + Duration::ms(0.001)));
+  });
+
+  test!(cx, "::duration()", repeat = 100, {
+    let start = Time::now();
+    let end = start + Duration::secs(random::range(50_000..100_000));
+    let span = Span::new(start, end);
+
+    let expected = end - start;
+    let actual = span.duration();
+
+    fail::when!(actual != expected);
+  });
+
+  test!(cx, "::overlaps()", {
+    let start = Time::now();
+    let end = start + Duration::secs(random::range(50_000..100_000));
+    let span = Span::new(start, end);
+
+    fail::when!(!span.overlaps(span));
+
+    let one_s = Duration::secs(1.0);
+    let five_s = Duration::secs(5.0);
+
+    let before = Span::new(start - five_s, start - one_s);
+    let before_eq = Span::new(start - one_s, start);
+    let during_eq_start = Span::new(start, start + one_s);
+    let during = Span::new(start + one_s, end + one_s);
+    let during_eq_end = Span::new(start + one_s, end);
+    let after_eq = Span::new(end, end + one_s);
+    let after = Span::new(end + one_s, end + five_s);
+
+    fail::when!(span.overlaps(before));
+    fail::when!(!span.overlaps(before_eq));
+    fail::when!(!span.overlaps(during_eq_start));
+    fail::when!(!span.overlaps(during));
+    fail::when!(!span.overlaps(during_eq_end));
+    fail::when!(!span.overlaps(after_eq));
+    fail::when!(span.overlaps(after));
+  });
+
+  test!(cx, " + Time", {
+    let start = Time::now();
+    let end = start + Duration::secs(1.0);
+
+    let before = start - Duration::secs(1.0);
+    let during = start + Duration::secs(0.5);
+    let after = end + Duration::secs(1.0);
+
+    let mut span = Span::new(start, end);
+
+    span += before;
+
+    fail::when!(span.start() != before);
+    fail::when!(span.end() != end);
+
+    span += during;
+
+    fail::when!(span.start() != before);
+    fail::when!(span.end() != end);
+
+    span += after;
+
+    fail::when!(span.start() != before);
+    fail::when!(span.end() != after);
+  });
+
+  test!(cx, " + Self", {
+    let start = Time::now();
+    let end = start + Duration::secs(1.0);
+
+    let before_3 = start - Duration::secs(3.0);
+    let before_2 = start - Duration::secs(2.0);
+    let before_1 = start - Duration::secs(1.0);
+    let during_1 = start + Duration::secs(0.1);
+    let during_9 = end - Duration::secs(0.9);
+    let after_1 = end + Duration::secs(1.0);
+    let after_2 = end + Duration::secs(2.0);
+    let after_3 = end + Duration::secs(3.0);
+
+    let mut span = Span::new(start, end);
+
+    span += Span::new(before_1, start);
+
+    fail::when!(span.start() != before_1);
+    fail::when!(span.end() != end);
+
+    span += Span::new(before_3, before_2);
+
+    fail::when!(span.start() != before_3);
+    fail::when!(span.end() != end);
+
+    span += Span::new(start, during_1);
+    span += Span::new(during_1, during_9);
+    span += Span::new(during_9, end);
+
+    fail::when!(span.start() != before_3);
+    fail::when!(span.end() != end);
+
+    span += Span::new(end, after_1);
+
+    fail::when!(span.start() != before_3);
+    fail::when!(span.end() != after_1);
+
+    span += Span::new(after_2, after_3);
+
+    fail::when!(span.start() != before_3);
+    fail::when!(span.end() != after_3);
   });
 }
 

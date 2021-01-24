@@ -7,11 +7,13 @@
 //! Types and utilities for working with times, dates, and durations.
 
 mod date;
-pub mod duration;
+mod duration;
+mod span;
 mod zone;
 
 pub use self::date::Date;
 pub use self::duration::Duration;
+pub use self::span::Span;
 pub use self::zone::{Zone, LOCAL, UTC};
 
 use crate::prelude::*;
@@ -162,6 +164,12 @@ impl Debug for Time {
   }
 }
 
+impl Display for Time {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    self.as_rfc3339().fmt(f)
+  }
+}
+
 impl Eq for Time {}
 
 impl Ord for Time {
@@ -191,12 +199,6 @@ impl Sub<Time> for Time {
 
   fn sub(self, rhs: Time) -> Self::Output {
     (self.inner - rhs.inner).into()
-  }
-}
-
-impl Display for Time {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.format("%c"))
   }
 }
 

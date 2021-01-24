@@ -85,6 +85,23 @@ macro_rules! fail_when {
     }
   }};
 
+  ($actual:tt . $method:ident () != $expected:expr) => {{
+    let actual = $actual.$method();
+    let expected = $expected;
+
+    if actual != expected {
+      fail!(
+        "Expected `{}.{}()` to equal `{:?}` on line {} of `{}`, but got `{:?}`.",
+        stringify!($actual),
+        stringify!($method),
+        expected,
+        line!(),
+        file!(),
+        actual
+      );
+    }
+  }};
+
   ($left:tt > $right:tt) => {
     if $left > $right {
       fail!(
