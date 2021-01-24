@@ -5,13 +5,13 @@ edition = "2018"
 name = "af-postgres"
 license = "MPL-2.0"
 repository = "https://gitlab.com/alexfrydl/lib-rs"
-version = "0.1.0"
+version = "0.1.1"
 
 [package.metadata.docs.rs]
 all-features = true
 
 [dependencies]
-af-core = { version = "0.1", path = "../af-core", features = ["postgres", "tokio"] }
+af-core = { version = "0.2", path = "../af-core", features = ["postgres", "tokio"] }
 bytes = "1"
 native-tls = "0.2"
 postgres-native-tls = "0.5"
