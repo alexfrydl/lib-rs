@@ -119,70 +119,18 @@ impl Duration {
   }
 }
 
-// Implement conversion traits.
-
-impl FromStr for Duration {
-  type Err = ParseError;
-
-  fn from_str(s: &str) -> Result<Self, Self::Err> {
-    parse(s).map(From::from)
-  }
-}
-
-impl From<std::time::Duration> for Duration {
-  fn from(value: std::time::Duration) -> Self {
-    Self::secs(value.as_secs_f64())
-  }
-}
-
-impl From<chrono::Duration> for Duration {
-  fn from(value: chrono::Duration) -> Self {
-    value.to_std().unwrap_or_default().into()
-  }
-}
-
-impl From<Duration> for std::time::Duration {
-  fn from(value: Duration) -> Self {
-    value.to_std()
-  }
-}
-
-impl From<Duration> for chrono::Duration {
-  fn from(value: Duration) -> Self {
-    Self::from_std(value.to_std())
-      .expect("Failed to convert std::time::Duration to chrono::Duration")
-  }
-}
-
-// Implement operators.
-
-impl Eq for Duration {}
-
-impl Ord for Duration {
-  fn cmp(&self, other: &Self) -> cmp::Ordering {
-    self.secs.partial_cmp(&other.secs).unwrap()
-  }
-}
-
-impl<T> Mul<T> for Duration
-where
-  T: AsPrimitive<f64>,
-{
+impl Add<Self> for Duration {
   type Output = Self;
 
-  fn mul(self, rhs: T) -> Self::Output {
-    Self::secs(self.secs * rhs.as_())
+  fn add(mut self, rhs: Self) -> Self::Output {
+    self += rhs;
+    self
   }
 }
 
-impl<T> Div<T> for Duration
-where
-  T: AsPrimitive<f64>,
-{
-  type Output = Self;
-
-  fn div(self, rhs: T) -> Self::Output {
-    Self::secs(self.secs / rhs.as_())
+impl AddAssign<Self> for Duration {
+  fn add_assign(&mut self, rhs: Self) {
+    self.secs += rhs.secs;
   }
 }
 
@@ -211,5 +159,103 @@ impl Display for Duration {
     } else {
       write!(f, "{} years", (self.secs / 31_557_600.0).round_to_places(1))
     }
+  }
+}
+
+impl<T> Div<T> for Duration
+where
+  T: AsPrimitive<f64>,
+{
+  type Output = Self;
+
+  fn div(mut self, rhs: T) -> Self::Output {
+    self /= rhs;
+    self
+  }
+}
+
+impl<T> DivAssign<T> for Duration
+where
+  T: AsPrimitive<f64>,
+{
+  fn div_assign(&mut self, rhs: T) {
+    self.secs = f64::max(self.secs / rhs.as_(), 0.0);
+  }
+}
+
+impl Eq for Duration {}
+
+impl From<std::time::Duration> for Duration {
+  fn from(value: std::time::Duration) -> Self {
+    Self::secs(value.as_secs_f64())
+  }
+}
+
+impl From<chrono::Duration> for Duration {
+  fn from(value: chrono::Duration) -> Self {
+    value.to_std().unwrap_or_default().into()
+  }
+}
+
+impl From<Duration> for std::time::Duration {
+  fn from(value: Duration) -> Self {
+    value.to_std()
+  }
+}
+
+impl From<Duration> for chrono::Duration {
+  fn from(value: Duration) -> Self {
+    Self::from_std(value.to_std())
+      .expect("Failed to convert std::time::Duration to chrono::Duration")
+  }
+}
+
+impl FromStr for Duration {
+  type Err = ParseError;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    parse(s).map(From::from)
+  }
+}
+
+impl<T> Mul<T> for Duration
+where
+  T: AsPrimitive<f64>,
+{
+  type Output = Self;
+
+  fn mul(mut self, rhs: T) -> Self::Output {
+    self *= rhs;
+    self
+  }
+}
+
+impl<T> MulAssign<T> for Duration
+where
+  T: AsPrimitive<f64>,
+{
+  fn mul_assign(&mut self, rhs: T) {
+    self.secs = f64::max(self.secs * rhs.as_(), 0.0);
+  }
+}
+
+impl Ord for Duration {
+  fn cmp(&self, other: &Self) -> cmp::Ordering {
+    self.secs.partial_cmp(&other.secs).unwrap()
+  }
+}
+
+impl Sub<Self> for Duration {
+  type Output = Self;
+
+  fn sub(mut self, rhs: Self) -> Self::Output {
+    self -= rhs;
+    self
+  }
+}
+
+impl SubAssign<Self> for Duration {
+  fn sub_assign(&mut self, rhs: Self) {
+    self.secs = f64::max(self.secs - rhs.secs, 0.0);
   }
 }

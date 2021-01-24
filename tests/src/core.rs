@@ -14,6 +14,7 @@ mod random;
 mod string;
 mod task;
 mod thread;
+mod time;
 mod util;
 
 use af_core::test::prelude::*;
@@ -30,5 +31,6 @@ pub fn test(cx: &mut test::Context) {
   cx.scope("::string", string::test);
   cx.scope("::task", task::test);
   cx.scope("::thread", thread::test);
+  cx.scope("::time", time::test);
   cx.scope("::util", util::test);
 }

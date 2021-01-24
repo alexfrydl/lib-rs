@@ -21,6 +21,19 @@ macro_rules! test {
     )
   };
 
+  ($cx:expr, $name:expr, repeat = $times:literal, $($rest:tt)+) => {
+    $cx.test($name, async move {
+      for _ in 0..$times {
+        $($rest)+;
+
+        af_core::task::yield_now().await;
+      }
+
+      #[allow(unreachable_code)]
+      Ok(())
+    })
+  };
+
   ($cx:expr, $name:expr, timeout = $timeout:literal, $($rest:tt)+) => {
     $cx.test(
       $name,
@@ -47,5 +60,4 @@ macro_rules! test {
       Ok(())
     })
   };
-
 }

@@ -69,17 +69,21 @@ macro_rules! fail_when {
     }
   };
 
-  ($left:tt != $right:tt) => {
-    if $left != $right {
+  ($actual:tt != $expected:expr) => {{
+    let actual = $actual;
+    let expected = $expected;
+
+    if actual != expected {
       fail!(
-        "`{}` does not equal `{}` on line {} of `{}`.",
-        stringify!($left),
-        stringify!($right),
+        "Expected `{}` to equal `{:?}` on line {} of `{}`, but got `{:?}`.",
+        stringify!($actual),
+        expected,
         line!(),
         file!(),
+        actual
       );
     }
-  };
+  }};
 
   ($left:tt > $right:tt) => {
     if $left > $right {

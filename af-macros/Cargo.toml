@@ -4,7 +4,7 @@ description = "Macros for the indigo crate."
 edition = "2018"
 license = "MPL-2.0"
 name = "af-macros"
-version = "0.1.1"
+version = "0.1.2"
 
 [package.metadata.docs.rs]
 all-features = true

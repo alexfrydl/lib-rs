@@ -15,13 +15,29 @@ pub use self::duration::Duration;
 pub use self::zone::{Zone, LOCAL, UTC};
 
 use crate::prelude::*;
-use chrono::TimeZone;
+use chrono::{TimeZone, Timelike};
 
 /// A timestamp with a time zone.
 #[derive(Clone, Copy)]
 pub struct Time {
   inner: chrono::DateTime<chrono::Utc>,
   zone: Zone,
+}
+
+macro_rules! in_zone {
+  ($self:tt, |$var:ident| $expr:expr) => {
+    match $self.zone {
+      Zone::Local => {
+        let $var = $self.inner.with_timezone(&chrono::Local);
+        $expr
+      }
+
+      Zone::Tz(tz) => {
+        let $var = $self.inner.with_timezone(&tz);
+        $expr
+      }
+    }
+  };
 }
 
 impl Time {
@@ -45,13 +61,17 @@ impl Time {
     Self { inner: chrono::Utc.timestamp_millis(timestamp), zone: Zone::Local }
   }
 
+  /// Formats the time according to RFC 3339.
+  pub fn as_rfc3339<'a>(&'a self) -> impl Display + 'a {
+    match self.zone == UTC {
+      true => self.format("%FT%T%.fZ"),
+      false => self.format("%FT%T%.f%:z"),
+    }
+  }
+
   /// Returns the date component of the time.
   pub fn date(&self) -> Date {
-    match self.zone {
-      Zone::Local => self.inner.with_timezone(&chrono::Local).date().naive_local(),
-      Zone::Tz(tz) => self.inner.with_timezone(&tz).date().naive_local(),
-    }
-    .into()
+    in_zone!(self, |t| t.date().naive_local().into())
   }
 
   /// Returns the duration elapsed since this time occurred.
@@ -61,26 +81,38 @@ impl Time {
     Self::now() - *self
   }
 
-  /// Returns the start time of the day represented by this time value.
-  pub fn start_of_day(&self) -> Time {
-    let inner = match &self.zone {
-      Zone::Local => {
-        self.inner.with_timezone(&chrono::Local).date().and_hms(0, 0, 0).with_timezone(&chrono::Utc)
-      }
-
-      Zone::Tz(tz) => {
-        self.inner.with_timezone(tz).date().and_hms(0, 0, 0).with_timezone(&chrono::Utc)
-      }
-    };
-
-    Time { inner, zone: self.zone }
-  }
-
   /// Format the time for display.
   pub fn format<'a>(&self, fmt: &'a str) -> impl Display + 'a {
-    match self.zone {
-      Zone::Local => self.inner.with_timezone(&chrono::Local).format(fmt),
-      Zone::Tz(tz) => self.inner.with_timezone(&tz).format(fmt),
+    in_zone!(self, |t| t.format(fmt))
+  }
+
+  /// Returns the hour, minute, and second numbers.
+  ///
+  /// Equivalent to `(time.hour(), time.minute(), time.second())`.
+  pub fn hms(&self) -> (usize, usize, usize) {
+    in_zone!(self, |t| (t.hour() as usize, t.minute() as usize, t.second() as usize))
+  }
+
+  /// Returns the hour from 0 to 23.
+  pub fn hour(&self) -> usize {
+    in_zone!(self, |t| t.hour() as usize)
+  }
+
+  /// Returns the minute from 0 to 59.
+  pub fn minute(&self) -> usize {
+    in_zone!(self, |t| t.minute() as usize)
+  }
+
+  /// Returns the second number from 0 to 59.
+  pub fn second(&self) -> usize {
+    in_zone!(self, |t| t.second() as usize)
+  }
+
+  /// Returns the start time of the day represented by this time value.
+  pub fn start_of_day(&self) -> Time {
+    Time {
+      inner: in_zone!(self, |t| t.date().and_hms(0, 0, 0).with_timezone(&chrono::Utc)),
+      zone: self.zone,
     }
   }
 
@@ -102,10 +134,7 @@ impl Time {
   /// Converts to a `NaiveDateTime`.
   #[cfg(feature = "postgres")]
   fn to_naive(&self) -> chrono::NaiveDateTime {
-    match &self.zone {
-      Zone::Local => self.inner.with_timezone(&chrono::Local).naive_local(),
-      Zone::Tz(tz) => self.inner.with_timezone(tz).naive_local(),
-    }
+    in_zone!(self, |t| t.naive_local())
   }
 }
 
@@ -117,20 +146,6 @@ impl PartialEq for Time {
   }
 }
 
-impl Eq for Time {}
-
-impl PartialOrd for Time {
-  fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-    self.inner.partial_cmp(&other.inner)
-  }
-}
-
-impl Ord for Time {
-  fn cmp(&self, other: &Self) -> cmp::Ordering {
-    self.inner.cmp(&other.inner)
-  }
-}
-
 impl Add<Duration> for Time {
   type Output = Self;
 
@@ -138,6 +153,26 @@ impl Add<Duration> for Time {
     let rhs: chrono::Duration = rhs.into();
 
     Self { inner: self.inner + rhs, zone: self.zone }
+  }
+}
+
+impl Debug for Time {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "\"{}\"", self.format("%+"))
+  }
+}
+
+impl Eq for Time {}
+
+impl Ord for Time {
+  fn cmp(&self, other: &Self) -> cmp::Ordering {
+    self.inner.cmp(&other.inner)
+  }
+}
+
+impl PartialOrd for Time {
+  fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+    self.inner.partial_cmp(&other.inner)
   }
 }
 
@@ -156,14 +191,6 @@ impl Sub<Time> for Time {
 
   fn sub(self, rhs: Time) -> Self::Output {
     (self.inner - rhs.inner).into()
-  }
-}
-
-// Implement formatting.
-
-impl Debug for Time {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "\"{}\"", self.format("%+"))
   }
 }
 
