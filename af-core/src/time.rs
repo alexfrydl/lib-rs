@@ -159,13 +159,13 @@ impl Add<Duration> for Time {
 }
 
 impl Debug for Time {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     write!(f, "\"{}\"", self.format("%+"))
   }
 }
 
 impl Display for Time {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     self.as_rfc3339().fmt(f)
   }
 }

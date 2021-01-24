@@ -34,9 +34,9 @@ pub fn clamp<T: Number>(mut value: T, min: T, max: T) -> T {
 
 /// Clamps a number in-place so that it is between a minimum and maximum bound.
 pub fn clamp_mut<T: Number>(value: &mut T, min: T, max: T) {
-  if &*value < &min {
+  if *value < min {
     *value = min;
-  } else if &*value > &max {
+  } else if *value > max {
     *value = max;
   }
 }

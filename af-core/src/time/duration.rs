@@ -239,6 +239,7 @@ where
   }
 }
 
+#[allow(clippy::derive_ord_xor_partial_ord)]
 impl Ord for Duration {
   fn cmp(&self, other: &Self) -> cmp::Ordering {
     self.secs.partial_cmp(&other.secs).unwrap()

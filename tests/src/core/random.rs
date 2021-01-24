@@ -63,8 +63,8 @@ pub fn test(cx: &mut test::Context) {
     fail::when!(a == initial);
     fail::when!(b == initial);
 
-    a.sort();
-    b.sort();
+    a.sort_unstable();
+    b.sort_unstable();
 
     fail::when!(a != initial, "`a` has different elements.");
     fail::when!(b != initial, "`b` has different elements.");
@@ -132,8 +132,8 @@ pub fn test(cx: &mut test::Context) {
       fail::when!(a == initial);
       fail::when!(b == initial);
 
-      a.sort();
-      b.sort();
+      a.sort_unstable();
+      b.sort_unstable();
 
       fail::when!(a != initial, "`a` has different elements.");
       fail::when!(b != initial, "`b` has different elements.");

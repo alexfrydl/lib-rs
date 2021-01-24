@@ -15,28 +15,6 @@ use rand::{Rng as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256StarStar;
 use std::cell::RefCell;
 
-/// A random number generator.
-#[derive(Clone)]
-pub struct Rng {
-  inner: Xoshiro256StarStar,
-}
-
-/// The global RNG to use to create thread-local RNGs.
-static GLOBAL_RNG: Lazy<Mutex<Rng>> =
-  Lazy::new(|| Mutex::new(Rng { inner: Xoshiro256StarStar::from_entropy() }));
-
-thread_local! {
-  /// The thread-local RNG.
-  static THREAD_RNG: RefCell<Rng> = {
-    let mut global_rng = GLOBAL_RNG.lock();
-    let thread_rng = global_rng.clone();
-
-    global_rng.inner.long_jump();
-
-    RefCell::new(thread_rng)
-  };
-}
-
 /// Returns `true` with a given probability.
 ///
 /// The `probability` is the chance from `0.0` (never) to `1.0` (always) that
@@ -80,6 +58,39 @@ pub trait Random: Sized {
   fn random() -> Self {
     random()
   }
+}
+
+// Implement `Random` for all types that can be used with `rng.gen()`.
+
+impl<T> Random for T
+where
+  distributions::Standard: Distribution<T>,
+{
+  fn random_with(rng: &mut Rng) -> Self {
+    rng.inner.gen()
+  }
+}
+
+/// A random number generator.
+#[derive(Clone)]
+pub struct Rng {
+  inner: Xoshiro256StarStar,
+}
+
+/// The global RNG to use to create thread-local RNGs.
+static GLOBAL_RNG: Lazy<Mutex<Rng>> =
+  Lazy::new(|| Mutex::new(Rng { inner: Xoshiro256StarStar::from_entropy() }));
+
+thread_local! {
+  /// The thread-local RNG.
+  static THREAD_RNG: RefCell<Rng> = {
+    let mut global_rng = GLOBAL_RNG.lock();
+    let thread_rng = global_rng.clone();
+
+    global_rng.inner.long_jump();
+
+    RefCell::new(thread_rng)
+  };
 }
 
 impl Rng {
@@ -132,13 +143,8 @@ impl Rng {
   }
 }
 
-// Implement `Random` for all types that can be used with `rng.gen()`.
-
-impl<T> Random for T
-where
-  distributions::Standard: Distribution<T>,
-{
-  fn random_with(rng: &mut Rng) -> Self {
-    rng.inner.gen()
+impl Default for Rng {
+  fn default() -> Self {
+    Self::new()
   }
 }

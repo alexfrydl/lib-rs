@@ -64,6 +64,12 @@ impl Canceler {
   }
 }
 
+impl Default for Canceler {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 /// An awaitable cancel signal triggered by a [`Canceler`].
 #[derive(Default)]
 pub struct CancelSignal {

@@ -77,9 +77,19 @@ where
 
   /// Waits for all tasks to stop, dropping their results, until a task fails.
   pub async fn try_drain(&mut self) -> Result<(), FailedTask<E>> {
-    while let Some(_) = self.try_next().await.transpose()? {}
+    while self.try_next().await.transpose()?.is_some() {}
 
     Ok(())
+  }
+}
+
+impl<T, E> Default for TryJoin<T, E>
+where
+  T: Send + 'static,
+  E: From<Panic> + Send + 'static,
+{
+  fn default() -> Self {
+    Self::new()
   }
 }
 
