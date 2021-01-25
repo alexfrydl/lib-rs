@@ -21,7 +21,7 @@ test-runner = ["af-core/test-runner"]
 tokio = ["af-core/tokio"]
 
 [dependencies]
-af-core = { version = "0.2", path = "../af-core" }
-af-postgres = { version = "0.2", path = "../af-postgres", optional = true }
-af-sentry = { version = "0.2", path = "../af-sentry", optional = true }
-af-slack = { version = "0.2", path = "../af-slack", optional = true }
+af-core = { version = "^0.2.0", path = "../af-core" }
+af-postgres = { version = "^0.2.0", path = "../af-postgres", optional = true }
+af-sentry = { version = "^0.2.0", path = "../af-sentry", optional = true }
+af-slack = { version = "^0.2.0", path = "../af-slack", optional = true }
