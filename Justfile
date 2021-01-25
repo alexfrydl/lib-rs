@@ -46,8 +46,8 @@ license:
     and mv $file{.tmp,}
   end
 
-release *options:
-  @cargo release --workspace --exclude tests --all-features --skip-tag {{options}}
+publish package:
+  @cd {{package}} && cargo publish --all-features
 
 test component:
   #!/bin/fish
