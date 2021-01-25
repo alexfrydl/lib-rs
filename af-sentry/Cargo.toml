@@ -10,6 +10,17 @@ version = "0.2.0"
 [package.metadata.docs.rs]
 all-features = true
 
+[lib]
+
+[[bin]]
+name = "test-sentry"
+path = "test/main.rs"
+required-features = ["test"]
+
+[features]
+test = ["af-core/test-runner", "structopt"]
+
 [dependencies]
 af-core = { version = "^0.2.0", path = "../af-core" }
 sentry = "0.21"
+structopt = { version = "0.3", optional = true }

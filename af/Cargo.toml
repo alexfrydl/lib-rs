@@ -1,0 +1,27 @@
+[package]
+authors = ["Alexandra Frydl <me@alexfrydl.com>"]
+description = "A core library and async runtime for Rust applications."
+edition = "2018"
+name = "af-lib"
+license = "MPL-2.0"
+repository = "https://gitlab.com/alexfrydl/lib-rs"
+version = "0.2.0"
+
+[package.metadata.docs.rs]
+all-features = true
+
+[features]
+default = ["logger"]
+
+logger = ["af-core/logger"]
+postgres = ["af-postgres"]
+sentry = ["af-sentry"]
+slack = ["af-slack"]
+test-runner = ["af-core/test-runner"]
+tokio = ["af-core/tokio"]
+
+[dependencies]
+af-core = { version = "^0.2.0", path = "../af-core" }
+af-postgres = { version = "^0.2.0", path = "../af-postgres", optional = true }
+af-sentry = { version = "^0.2.0", path = "../af-sentry", optional = true }
+af-slack = { version = "^0.2.0", path = "../af-slack", optional = true }

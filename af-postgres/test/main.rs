@@ -6,18 +6,29 @@
 
 use af_core::test::prelude::*;
 use af_postgres as pg;
+use structopt::*;
 
+/// Test schema.
 const SCHEMA: &str = r#"
   DROP TABLE IF EXISTS test;
   CREATE TABLE test (id SERIAL PRIMARY KEY, value int);
 "#;
 
+/// Command line options.
+#[derive(StructOpt)]
+pub struct Options {
+  /// Sets the URL of the PostgreSQL database to connect to.
+  #[structopt(long, env = "POSTGRES_URL")]
+  url: af_postgres::Config,
+}
+
 /// Tests the `af_postgres` package.
-pub fn test(cx: &mut test::Context, options: &crate::Options) {
-  let postgres_url = options.postgres_url.clone();
+#[test::main]
+fn main(cx: &mut test::Context) {
+  let options = Options::from_args();
 
   test!(cx, "can execute a transaction", {
-    let (mut client, _conn) = pg::connect(&postgres_url).await?;
+    let (mut client, _conn) = pg::connect(&options.url).await?;
 
     client.batch_execute(SCHEMA).await?;
 

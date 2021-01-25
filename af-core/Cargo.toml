@@ -11,15 +11,22 @@ version = "0.2.0"
 [package.metadata.docs.rs]
 all-features = true
 
+[lib]
+
+[[bin]]
+name = "test-core"
+path = "test/main.rs"
+required-features = ["test-runner"]
+
 [features]
 default = ["logger"]
-logger = ["af-macros/logger", "console", "dashmap"]
+logger = ["af-core-macros/logger", "console", "dashmap"]
 postgres = ["postgres-types"]
 test-runner = ["console", "indicatif", "logger"]
 tokio = ["async-global-executor/tokio"]
 
 [dependencies]
-af-macros = { version = "^0.2.0", path = "../af-macros" }
+af-core-macros = { version = "^0.2.0", path = "macros" }
 arrayvec = "0.5"
 async-channel = "1"
 async-lock = "2"
