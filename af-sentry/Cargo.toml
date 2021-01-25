@@ -11,5 +11,5 @@ version = "0.2.0"
 all-features = true
 
 [dependencies]
-af-core = { version = "0.2", path = "../af-core" }
+af-core = { version = "^0.2.0", path = "../af-core" }
 sentry = "0.21"

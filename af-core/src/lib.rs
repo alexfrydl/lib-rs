@@ -4,6 +4,26 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+//! A core library and async runtime for Rust applications.
+//!
+//! # Quick start
+//!
+//! In `Cargo.toml`:
+//! ```toml
+//! [dependencies]
+//! af-core = "0.1"
+//! ```
+//!
+//! In `src/main.rs`:
+//! ```ignore
+//! use af_core::prelude::*;
+//!
+//! #[af_core::main]
+//! async fn main() {
+//!   info!("Hello world!");
+//! }
+//! ```
+
 pub mod channel;
 pub mod derive;
 pub mod env;

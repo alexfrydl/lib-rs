@@ -13,4 +13,4 @@ all-features = true
 logger = ["af-proc-macros/logger" ]
 
 [dependencies]
-af-proc-macros = { version = "0.2", path = "../af-proc-macros" }
+af-proc-macros = { version = "^0.2.0", path = "../af-proc-macros" }

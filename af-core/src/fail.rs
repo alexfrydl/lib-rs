@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//! Provides the `fail!` macro and a generic cloneable error type.
+//! A general purpose error type.
 
 pub use af_macros::{fail, fail_err as err, fail_when as when, fail_wrap as wrap};
 

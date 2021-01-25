@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//! Path string manipulation and inspection.
+//! Functions for working with Unicode file system paths.
 
 pub use af_macros::{path_join as join, path_normalize as normalize, path_resolve as resolve};
 

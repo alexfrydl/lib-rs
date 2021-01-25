@@ -11,7 +11,7 @@ version = "0.2.0"
 all-features = true
 
 [dependencies]
-af-core = { version = "0.2", path = "../af-core", features = ["postgres", "tokio"] }
+af-core = { version = "^0.2.0", path = "../af-core", features = ["postgres", "tokio"] }
 bytes = "1"
 native-tls = "0.2"
 postgres-native-tls = "0.5"

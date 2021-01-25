@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//! Utilities for working with futures and async logic.
+//! Common [`Future`] types and utilities.
 
 pub use af_macros::{future_boxed as boxed, future_boxed_local as boxed_local};
 pub use std::future::Future;

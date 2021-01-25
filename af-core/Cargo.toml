@@ -19,7 +19,7 @@ test-runner = ["console", "indicatif", "logger"]
 tokio = ["async-global-executor/tokio"]
 
 [dependencies]
-af-macros = { version = "0.2", path = "../af-macros" }
+af-macros = { version = "^0.2.0", path = "../af-macros" }
 arrayvec = "0.5"
 async-channel = "1"
 async-lock = "2"
