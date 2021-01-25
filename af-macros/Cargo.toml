@@ -4,7 +4,7 @@ description = "Macros for the indigo crate."
 edition = "2018"
 license = "MPL-2.0"
 name = "af-macros"
-version = "0.1.3"
+version = "0.2.0"
 
 [package.metadata.docs.rs]
 all-features = true
@@ -13,4 +13,4 @@ all-features = true
 logger = ["af-proc-macros/logger" ]
 
 [dependencies]
-af-proc-macros = { version = "0.1", path = "../af-proc-macros" }
+af-proc-macros = { version = "0.2", path = "../af-proc-macros" }

@@ -22,6 +22,6 @@ tokio = ["af-core/tokio"]
 
 [dependencies]
 af-core = { version = "0.2", path = "../af-core" }
-af-postgres = { version = "0.1", path = "../af-postgres", optional = true }
-af-sentry = { version = "0.1", path = "../af-sentry", optional = true }
-af-slack = { version = "0.1", path = "../af-slack", optional = true }
+af-postgres = { version = "0.2", path = "../af-postgres", optional = true }
+af-sentry = { version = "0.2", path = "../af-sentry", optional = true }
+af-slack = { version = "0.2", path = "../af-slack", optional = true }
