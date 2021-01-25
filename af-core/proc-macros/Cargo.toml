@@ -3,8 +3,8 @@ authors = ["Alexandra Frydl <me@alexfrydl.com>"]
 description = "Macros for the indigo crate."
 edition = "2018"
 license = "MPL-2.0"
-name = "af-proc-macros"
-version = "0.1.2"
+name = "af-core-proc-macros"
+version = "0.1.0"
 
 [package.metadata.docs.rs]
 all-features = true

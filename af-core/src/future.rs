@@ -6,7 +6,7 @@
 
 //! Common [`Future`] types and utilities.
 
-pub use af_macros::{future_boxed as boxed, future_boxed_local as boxed_local};
+pub use af_core_macros::{future_boxed as boxed, future_boxed_local as boxed_local};
 pub use std::future::Future;
 pub use std::task::{Context, Poll};
 

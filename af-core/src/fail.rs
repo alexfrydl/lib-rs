@@ -6,7 +6,7 @@
 
 //! A general purpose error type.
 
-pub use af_macros::{fail, fail_err as err, fail_when as when, fail_wrap as wrap};
+pub use af_core_macros::{fail, fail_err as err, fail_when as when, fail_wrap as wrap};
 
 use crate::prelude::*;
 use crate::string::SharedString;

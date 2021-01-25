@@ -50,5 +50,5 @@ pub mod util;
 pub use self::fail::fail;
 pub use self::random::random;
 pub use self::run::{run, run_with};
-pub use af_macros::main;
+pub use af_core_macros::main;
 pub use serde_json as json;

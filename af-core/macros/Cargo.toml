@@ -3,14 +3,14 @@ authors = ["Alexandra Frydl <me@alexfrydl.com>"]
 description = "Macros for the indigo crate."
 edition = "2018"
 license = "MPL-2.0"
-name = "af-macros"
-version = "0.1.4"
+name = "af-core-macros"
+version = "0.1.0"
 
 [package.metadata.docs.rs]
 all-features = true
 
 [features]
-logger = ["af-proc-macros/logger" ]
+logger = ["af-core-proc-macros/logger" ]
 
 [dependencies]
-af-proc-macros = { version = "^0.1.2", path = "../af-proc-macros" }
+af-core-proc-macros = { version = "^0.1.0", path = "../proc-macros" }
