@@ -1,15 +1,14 @@
 version: "3.9"
 services:
-  tests:
+  test-postgres:
     image: archlinux
-    entrypoint: tests
+    entrypoint: test-postgres
     volumes:
       - .:/app
       - ./target/debug:/usr/local/bin
     environment:
       CARGO_MANIFEST_DIR: /app
       POSTGRES_URL: postgres://postgres:postgres@postgres/postgres
-      SENTRY_DSN: ${SENTRY_DSN}
     depends_on:
       postgres:
         condition: service_healthy

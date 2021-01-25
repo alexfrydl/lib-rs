@@ -177,7 +177,7 @@ fn test_duration(cx: &mut test::Context) {
   });
 
   test!(cx, "::to_std()", {
-    let ms = random::<u32>() as u128;
+    let ms = random::<u16>() as u128;
     let duration = Duration::ms(ms);
 
     let std_ms = duration.to_std().as_millis();

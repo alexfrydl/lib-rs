@@ -10,6 +10,16 @@ version = "0.1.2"
 [package.metadata.docs.rs]
 all-features = true
 
+[lib]
+
+[[bin]]
+name = "test-postgres"
+path = "test/main.rs"
+required-features = ["test"]
+
+[features]
+test = ["af-core/test-runner", "structopt"]
+
 [dependencies]
 af-core = { version = "^0.1.5", path = "../af-core", features = ["postgres", "tokio"] }
 bytes = "1"
@@ -17,4 +27,5 @@ native-tls = "0.2"
 postgres-native-tls = "0.5"
 smallstr = "0.2"
 smallvec = "1"
+structopt = { version = "0.3", optional = true }
 tokio-postgres = { version = "0.7", features = ["with-chrono-0_4", "with-serde_json-1", "with-uuid-0_8"] }

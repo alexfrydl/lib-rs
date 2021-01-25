@@ -11,6 +11,13 @@ version = "0.1.5"
 [package.metadata.docs.rs]
 all-features = true
 
+[lib]
+
+[[bin]]
+name = "test-core"
+path = "test/main.rs"
+required-features = ["test-runner"]
+
 [features]
 default = ["logger"]
 logger = ["af-macros/logger", "console", "dashmap"]

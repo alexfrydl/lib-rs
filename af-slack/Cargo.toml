@@ -15,11 +15,11 @@ all-features = true
 [[bin]]
 name = "test-slack"
 path = "test/main.rs"
-required-features = ["af-core/test-runner"]
+required-features = ["af-core/test-runner", "structopt"]
 
 [dependencies]
 af-core = { version = "^0.1.5", path = "../af-core", features = ["tokio"] }
 reqwest = { version = "0.11", features = ["json"] }
 serde = "1"
 serde_qs = "0.8"
-structopt = "0.3"
+structopt = { version = "0.3", optional = true }

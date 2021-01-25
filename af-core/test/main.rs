@@ -4,6 +4,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+#![allow(clippy::float_cmp)]
+
 mod channel;
 mod env;
 mod fmt;
@@ -20,7 +22,8 @@ mod util;
 use af_core::test::prelude::*;
 
 /// Tests the `af_core` package.
-pub fn test(cx: &mut test::Context) {
+#[test::main]
+fn main(cx: &mut test::Context) {
   cx.scope("::channel", channel::test);
   cx.scope("::env", env::test);
   cx.scope("::fmt", fmt::test);

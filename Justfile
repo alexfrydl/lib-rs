@@ -53,12 +53,15 @@ test component:
   #!/bin/fish
 
   switch {{component}}
+  case core
+    cd af-core && cargo run --all-features
+  case postgres
+    cd af-postgres && cargo build --all-features && cd .. && docker-compose run test-postgres
   case slack
-    cargo run --bin test-slack
+    cd af-slack && cargo run --all-features
+  case sentry
+    cd af-sentry && cargo run --all-features
   case '*'
-    cd tests && cargo run --no-default-features --features {{component}}
+    echo 'Unrecgonized component `{{component}}`.' >&2
+    exit 1
   end
-
-test-docker +features:
-  @cd tests && cargo build --no-default-features --features {{features}}
-  @docker-compose run tests

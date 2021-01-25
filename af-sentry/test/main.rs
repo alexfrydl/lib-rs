@@ -6,9 +6,34 @@
 
 use af_core::test::prelude::*;
 use af_sentry as sentry;
+use structopt::*;
+
+#[derive(StructOpt)]
+pub struct Options {
+  /// Sets the Sentry DSN to use.
+  #[structopt(long, env = "SENTRY_DSN")]
+  dsn: String,
+}
+
+/// Main entry point.
+#[af_core::main]
+async fn main() {
+  #[allow(unused_variables)]
+  let options = Options::from_args();
+
+  let result = {
+    let _guard = sentry::init(options.dsn.as_str());
+
+    af_core::test::runner::run(test).await
+  };
+
+  if result.is_err() {
+    std::process::exit(1);
+  }
+}
 
 /// Tests the `af_sentry` package.
-pub fn test(cx: &mut test::Context) {
+fn test(cx: &mut test::Context) {
   test!(cx, "is_enabled()", {
     fail::when!(!sentry::is_enabled(), "Not enabled.");
   });
