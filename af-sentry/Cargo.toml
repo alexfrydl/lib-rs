@@ -5,7 +5,7 @@ edition = "2018"
 name = "af-sentry"
 license = "MPL-2.0"
 repository = "https://gitlab.com/alexfrydl/lib-rs"
-version = "0.1.0"
+version = "0.1.1"
 
 [package.metadata.docs.rs]
 all-features = true
