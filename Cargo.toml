@@ -1,9 +1,9 @@
 [workspace]
 members = [
+  "af",
   "af-core",
   "af-core/macros",
   "af-core/proc-macros",
-  "af-lib",
   "af-postgres",
   "af-sentry",
   "af-slack"
