@@ -4,8 +4,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//! Common derive macros.
+//! Slack integration for af-core.
 
-pub use derive_more::*;
-pub use serde::{Deserialize, Deserializer, Serialize, Serializer};
-pub use thiserror::{self, Error};
+pub mod api;
+pub mod block;
+pub mod chat;
+
+pub use self::api::Client;
+pub use self::chat::{permalink_to, post, reply, Attachment, Message, MessageId};

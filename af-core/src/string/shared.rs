@@ -58,6 +58,15 @@ impl Deref for SharedString {
   }
 }
 
+impl<'de> Deserialize<'de> for SharedString {
+  fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+  where
+    D: Deserializer<'de>,
+  {
+    String::deserialize(deserializer).map(SharedString::from)
+  }
+}
+
 impl From<&'static str> for SharedString {
   fn from(value: &'static str) -> Self {
     Self(Inner::StaticStr(value))

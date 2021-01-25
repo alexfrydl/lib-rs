@@ -47,7 +47,7 @@ async fn main() {
 }
 
 /// Entry point of the test suite.
-fn test(cx: &mut test::Context, options: Options) {
+fn test(cx: &mut test::Context, #[allow(unused_variables)] options: Options) {
   #[cfg(feature = "core")]
   cx.scope("af_core", core::test);
 

@@ -49,8 +49,15 @@ license:
 release *options:
   @cargo release --workspace --exclude tests --all-features --skip-tag {{options}}
 
-test +features:
-  @cd tests && cargo run --no-default-features --features {{features}}
+test component:
+  #!/bin/fish
+
+  switch {{component}}
+  case slack
+    cargo run --bin test-slack
+  case '*'
+    cd tests && cargo run --no-default-features --features {{component}}
+  end
 
 test-docker +features:
   @cd tests && cargo build --no-default-features --features {{features}}

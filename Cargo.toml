@@ -5,5 +5,6 @@ members = [
   "af-postgres",
   "af-proc-macros",
   "af-sentry",
+  "af-slack",
   "tests"
 ]

@@ -64,7 +64,7 @@ impl Time {
   }
 
   /// Formats the time according to RFC 3339.
-  pub fn as_rfc3339<'a>(&'a self) -> impl Display + 'a {
+  pub fn as_rfc3339(&self) -> impl Display {
     match self.zone == UTC {
       true => self.format("%FT%T%.fZ"),
       false => self.format("%FT%T%.f%:z"),

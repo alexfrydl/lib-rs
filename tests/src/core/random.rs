@@ -13,7 +13,7 @@ pub fn test(cx: &mut test::Context) {
     let chance = sample_chance(|| random::chance(0.42)).await;
 
     fail::when!(
-      chance < 0.40 || chance > 0.44,
+      !(0.40..=0.44).contains(&chance),
       "Expected a chance of 42%, was {}%.",
       (chance * 100.0).round_to_places(2),
     );
@@ -44,7 +44,7 @@ pub fn test(cx: &mut test::Context) {
     let chance = sample_chance(|| random::ratio(7, 8)).await;
 
     fail::when!(
-      chance < 0.85 || chance > 0.9,
+      !(0.85..=0.9).contains(&chance),
       "Expected a chance of 87.5%, was {}%.",
       (chance * 100.0).round_to_places(2),
     );
@@ -92,7 +92,7 @@ pub fn test(cx: &mut test::Context) {
       let chance = sample_chance(|| rng.gen_chance(0.71)).await;
 
       fail::when!(
-        chance < 0.69 || chance > 0.73,
+        !(0.69..=0.73).contains(&chance),
         "Expected a chance of 71%, was {}%.",
         (chance * 100.0).round_to_places(2),
       );
@@ -111,7 +111,7 @@ pub fn test(cx: &mut test::Context) {
       let chance = sample_chance(|| rng.gen_ratio(4, 9)).await;
 
       fail::when!(
-        chance < 0.434 || chance > 0.464,
+        !(0.434..=0.464).contains(&chance),
         "Expected a chance of 87.5%, was {}%.",
         (chance * 100.0).round_to_places(2),
       );
