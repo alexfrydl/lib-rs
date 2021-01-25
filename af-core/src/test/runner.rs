@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//! A default test runner with a progress bar and formatted output.
+//! Runs tests concurrently with a progress bar.
 
 pub use af_macros::test_main as main;
 

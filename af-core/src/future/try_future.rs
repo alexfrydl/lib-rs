@@ -24,7 +24,7 @@ pub trait TryFutureExt<T, E>: Sized {
 
 impl<F, T, E> TryFutureExt<T, E> for F where F: TryFuture<T, E> {}
 
-/// A future returned from [`TryFutureExt::map_err()`].
+/// A [`TryFuture`] that modifies the original error.
 #[pin_project]
 pub struct MapErr<F, M> {
   #[pin]

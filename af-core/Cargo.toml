@@ -6,7 +6,7 @@ edition = "2018"
 name = "af-core"
 license = "MPL-2.0"
 repository = "https://gitlab.com/alexfrydl/lib-rs"
-version = "0.1.4"
+version = "0.1.5"
 
 [package.metadata.docs.rs]
 all-features = true
@@ -19,7 +19,7 @@ test-runner = ["console", "indicatif", "logger"]
 tokio = ["async-global-executor/tokio"]
 
 [dependencies]
-af-macros = { version = "0.1", path = "../af-macros" }
+af-macros = { version = "^0.1.4", path = "../af-macros" }
 arrayvec = "0.5"
 async-channel = "1"
 async-lock = "2"

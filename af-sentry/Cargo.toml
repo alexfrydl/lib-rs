@@ -5,11 +5,11 @@ edition = "2018"
 name = "af-sentry"
 license = "MPL-2.0"
 repository = "https://gitlab.com/alexfrydl/lib-rs"
-version = "0.1.1"
+version = "0.1.2"
 
 [package.metadata.docs.rs]
 all-features = true
 
 [dependencies]
-af-core = { version = "0.1", path = "../af-core" }
+af-core = { version = "^0.1.5", path = "../af-core" }
 sentry = "0.21"

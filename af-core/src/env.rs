@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//! Functions for inspecting the environment of the current process.
+//! Provides access to environment variables and well-known paths.
 
 use crate::path;
 use crate::prelude::*;

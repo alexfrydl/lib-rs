@@ -4,6 +4,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+//! Proc macros for [af-core](https://docs.rs/af-core/0.1).
+
 mod attr_future_boxed;
 mod attr_main;
 mod attr_test_main;
