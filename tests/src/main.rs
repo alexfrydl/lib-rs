@@ -4,6 +4,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+#![allow(clippy::float_cmp)]
+
 #[cfg(feature = "core")]
 mod core;
 #[cfg(feature = "postgres")]
@@ -45,7 +47,7 @@ async fn main() {
 }
 
 /// Entry point of the test suite.
-fn test(cx: &mut test::Context, options: Options) {
+fn test(cx: &mut test::Context, #[allow(unused_variables)] options: Options) {
   #[cfg(feature = "core")]
   cx.scope("af_core", core::test);
 

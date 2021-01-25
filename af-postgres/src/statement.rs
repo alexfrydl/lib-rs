@@ -55,6 +55,12 @@ impl<'a> StatementBuilder<'a> {
   }
 }
 
+impl Default for StatementBuilder<'_> {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 // Implement fmt::Write for StatementBuilder to support the write! macro.
 
 impl<'a> fmt::Write for StatementBuilder<'a> {

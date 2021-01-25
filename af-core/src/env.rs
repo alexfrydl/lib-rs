@@ -42,7 +42,7 @@ static EXE_PATH: Lazy<Result<(String, String), String>> = Lazy::new(|| {
   let mut path: String = std::env::current_exe()
     .map_err(|err| format!("IO error. {}.", err))?
     .to_str()
-    .ok_or_else(|| "non-unicode path name.")?
+    .ok_or("non-unicode path name.")?
     .into();
 
   let file = path::pop(&mut path).unwrap_or_default();
@@ -92,7 +92,7 @@ pub fn working_path() -> Result<String, WorkingPathError> {
     _ => panic!("{}", err),
   })?;
 
-  Ok(path.to_str().map(String::from).ok_or_else(|| WorkingPathError::NotUnicode(path))?)
+  Ok(path.to_str().map(String::from).ok_or(WorkingPathError::NotUnicode(path))?)
 }
 
 /// Returns the full file system path to the cargo workspace of the currently

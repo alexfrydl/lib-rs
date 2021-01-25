@@ -92,7 +92,7 @@ pub fn normalized<'a>(path: impl PathLike<'a>) -> Cow<'a, str> {
     buffer.clear();
     normalize_into(&path, &mut buffer);
 
-    match path.as_ref() == &*buffer {
+    match path.as_ref() == *buffer {
       true => path,
       false => buffer.clone().into(),
     }

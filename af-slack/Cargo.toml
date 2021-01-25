@@ -1,0 +1,25 @@
+[package]
+authors = ["Alexandra Frydl <me@alexfrydl.com>"]
+description = "A Slack client for af-core applications."
+edition = "2018"
+name = "af-slack"
+license = "MPL-2.0"
+repository = "https://gitlab.com/alexfrydl/lib-rs"
+version = "0.1.0"
+
+[package.metadata.docs.rs]
+all-features = true
+
+[lib]
+
+[[bin]]
+name = "test-slack"
+path = "test/main.rs"
+required-features = ["af-core/test-runner"]
+
+[dependencies]
+af-core = { version = "0.2", path = "../af-core", features = ["tokio"] }
+reqwest = { version = "0.11", features = ["json"] }
+serde = "1"
+serde_qs = "0.8"
+structopt = "0.3"

@@ -67,9 +67,9 @@ where
   let mut signals = Signals::new(TERM_SIGNALS).expect("Failed to register signal handler");
 
   thread::start("af_core::run canceler", move || {
-    for _ in &mut signals {
-      break;
-    }
+    let mut iter = signals.into_iter();
+
+    iter.next();
 
     warn!("The process received a termination signal. Canceling the main task…");
 

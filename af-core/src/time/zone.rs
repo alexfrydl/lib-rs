@@ -14,13 +14,19 @@ pub const LOCAL: Zone = Zone::Local;
 pub const UTC: Zone = Zone::Tz(Tz::UTC);
 
 /// A time zone.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Zone {
   Local,
   Tz(Tz),
 }
 
 impl Zone {
+  /// Returns a time zone from the given name, or `None` if no such timezone
+  /// exists.
+  pub fn from_name(name: impl AsRef<str>) -> Result<Zone, Unrecognized> {
+    name.as_ref().parse()
+  }
+
   /// Returns an iterator over all time zones.
   pub fn all() -> impl Iterator<Item = Self> {
     TZ_VARIANTS.iter().cloned().map(Zone::Tz)
@@ -35,17 +41,18 @@ impl Zone {
   }
 }
 
-// Implement parsing of zone names.
-
 impl FromStr for Zone {
-  type Err = fail::Error;
+  type Err = Unrecognized;
 
-  fn from_str(s: &str) -> Result<Self> {
-    let tz = s.parse().map_err(fail::Error::new)?;
-
-    match tz {
-      Tz::UTC => Ok(UTC),
-      tz => Ok(Zone::Tz(tz)),
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    match s.parse() {
+      Ok(tz) => Ok(Zone::Tz(tz)),
+      Err(_) => Err(Unrecognized),
     }
   }
 }
+
+/// An error returned when a time zone name is not recognized.
+#[derive(Debug, Error)]
+#[error("Unrecognized time zone.")]
+pub struct Unrecognized;

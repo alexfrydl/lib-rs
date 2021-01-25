@@ -129,7 +129,7 @@ fn test_join(cx: &mut test::Context) {
 
     let mut count = 0;
 
-    while let Some(_) = join.next().await {
+    while join.next().await.is_some() {
       count += 1;
     }
 

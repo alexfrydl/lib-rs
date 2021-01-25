@@ -17,6 +17,7 @@ pub use {
   crate::fmt::{self, Debug, Display, Write as _},
   crate::future::{self, Future, TryFuture, TryFutureExt as _},
   crate::iter::{self, Itertools as _},
+  crate::json,
   crate::log::{debug, error, info, trace, warn},
   crate::math::{FloatExt as _, Number},
   crate::random::{self, random, Random},

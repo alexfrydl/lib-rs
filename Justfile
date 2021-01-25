@@ -46,8 +46,18 @@ license:
     and mv $file{.tmp,}
   end
 
-test +features:
-  @cd tests && cargo run --no-default-features --features {{features}}
+publish package:
+  @cd {{package}} && cargo publish --all-features
+
+test component:
+  #!/bin/fish
+
+  switch {{component}}
+  case slack
+    cargo run --bin test-slack
+  case '*'
+    cd tests && cargo run --no-default-features --features {{component}}
+  end
 
 test-docker +features:
   @cd tests && cargo build --no-default-features --features {{features}}

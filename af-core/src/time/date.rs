@@ -6,15 +6,30 @@
 
 use super::Zone;
 use crate::prelude::*;
-use chrono::TimeZone;
+use chrono::{Datelike, TimeZone};
 
 #[derive(Clone, Copy, Eq, From, Into, Ord, PartialEq, PartialOrd)]
 pub struct Date(chrono::NaiveDate);
 
 impl Date {
+  /// Creates a date from a given year, month, and day number.
+  pub fn from_ymd(year: isize, month: usize, day: usize) -> Self {
+    Self(chrono::NaiveDate::from_ymd(year as i32, month as u32, day as u32))
+  }
+
+  /// Returns the day of the month starting from `1`.
+  pub fn day(&self) -> usize {
+    self.0.day() as usize
+  }
+
   /// Formats the date according to the given format string.
   pub fn format<'a>(&self, fmt: &'a str) -> impl Display + 'a {
     self.0.format(fmt)
+  }
+
+  /// Returns the month of the year starting from `1`.
+  pub fn month(&self) -> usize {
+    self.0.month() as usize
   }
 
   /// Returns the next day.
@@ -52,6 +67,18 @@ impl Date {
   /// Convert the date to a time in UTC.
   pub fn to_utc_time(&self) -> Time {
     self.to_time(super::UTC)
+  }
+
+  /// Returns the year number.
+  pub fn year(&self) -> isize {
+    self.0.year() as isize
+  }
+
+  /// Returns the year, month of the year, and day of the month.
+  ///
+  /// Equivalent to `(date.year(), date.month(), date.day())`.
+  pub fn ymd(&self) -> (isize, usize, usize) {
+    (self.year(), self.month(), self.day())
   }
 }
 

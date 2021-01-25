@@ -111,14 +111,23 @@ where
 
   /// Waits for all tasks to stop, dropping their results.
   pub async fn drain(&mut self) {
-    while let Some(_) = self.next().await {}
+    while self.next().await.is_some() {}
   }
 
   /// Waits for all tasks to stop, dropping their results, until a task panics.
   pub async fn try_drain(&mut self) -> Result<(), PanickedTask> {
-    while let Some(_) = self.try_next().await.transpose()? {}
+    while self.try_next().await.transpose()?.is_some() {}
 
     Ok(())
+  }
+}
+
+impl<T> Default for Join<T>
+where
+  T: Send + 'static,
+{
+  fn default() -> Self {
+    Self::new()
   }
 }
 
