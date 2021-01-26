@@ -12,18 +12,6 @@ help:
 build:
   cargo build --workspace --all-features
 
-# Compiles shaders to SPIR-V.
-compile-shaders:
-  #!/bin/fish
-
-  set -l cwd (pwd)
-
-  for shader in **/*.vert **/*.frag
-    cd $cwd/(dirname $shader)
-    and glslc -c *.vert *.frag
-    or exit 1
-  end
-
 # Adds the MPL license header to all source files.
 license:
   #!/bin/fish
@@ -62,6 +50,6 @@ test component:
   case sentry
     cd af-sentry && cargo run --all-features
   case '*'
-    echo 'Unrecgonized component `{{component}}`.' >&2
+    echo 'Unrecgonized component `'{{component}}'`.' >&2
     exit 1
   end
