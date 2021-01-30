@@ -21,7 +21,7 @@ required-features = ["test"]
 test = ["af-core/test-runner", "structopt"]
 
 [dependencies]
-af-core = { version = "^0.2.0", path = "../af-core", features = ["postgres", "tokio"] }
+af-core = { version = "^0.2.0", path = "../af-core", features = ["postgres"] }
 bytes = "1"
 native-tls = "0.2"
 postgres-native-tls = "0.5"

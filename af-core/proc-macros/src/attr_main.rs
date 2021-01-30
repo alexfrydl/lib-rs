@@ -40,7 +40,7 @@ pub fn run(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
   let run = match sig.inputs.len() {
     0 => quote! {
-      af_core::run(async {
+      af_core::task::runtime::run(async {
         let output = #name().await;
 
         #wrap_result
@@ -48,7 +48,7 @@ pub fn run(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     },
 
     _ => quote! {
-      af_core::run_with(|cancel| async {
+      af_core::task::runtime::run_with(|cancel| async {
         let output = #name(cancel).await;
 
         #wrap_result

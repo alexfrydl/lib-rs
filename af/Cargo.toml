@@ -18,7 +18,6 @@ postgres = ["af-postgres"]
 sentry = ["af-sentry"]
 slack = ["af-slack"]
 test-runner = ["af-core/test-runner"]
-tokio = ["af-core/tokio"]
 
 [dependencies]
 af-core = { version = "^0.2.0", path = "../af-core" }

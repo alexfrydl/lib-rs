@@ -7,12 +7,13 @@
 pub use af_core_macros::logger_init as init;
 
 use super::*;
-use crate::{channel, thread};
+use crate::channel;
 use dashmap::DashMap;
 use log::{Level, LevelFilter, Log, Metadata, Record, RecordBuilder};
 use parking_lot::RwLock;
 use std::cell::RefCell;
 use std::sync::atomic::{self, AtomicUsize};
+use std::thread;
 
 /// A logger to register with the `log` crate.
 struct Logger {
@@ -51,7 +52,10 @@ pub fn init() {
     },
   );
 
-  thread::start("af_runtime::logger", || thread::block_on(output_messages()));
+  thread::Builder::new()
+    .name("af_runtime::logger".into())
+    .spawn(|| futures_lite::future::block_on(output_messages()))
+    .unwrap();
 }
 
 /// Sets the level of the logger.

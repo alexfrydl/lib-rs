@@ -10,6 +10,7 @@ pub use std::thread::yield_now;
 
 use crate::channel;
 use crate::prelude::*;
+use crate::task;
 use std::thread::{Builder, JoinHandle};
 
 /// An operating system thread.
@@ -20,7 +21,9 @@ pub struct Thread<T> {
 
 /// Blocks the current thread until a given future is ready.
 pub fn block_on<T>(future: impl Future<Output = T>) -> T {
-  async_io::block_on(future)
+  let _guard = task::runtime::handle().enter();
+
+  futures_lite::future::block_on(future)
 }
 
 /// Blocks the current thread for a given duration.
@@ -40,6 +43,7 @@ pub fn start<T: Send + 'static>(
   let (tx, rx) = channel::with_capacity(1);
 
   let func = move || {
+    let _guard = task::runtime::handle().enter();
     let output = func();
     let _ = tx.try_send(output);
   };

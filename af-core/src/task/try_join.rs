@@ -25,7 +25,7 @@ pub struct TryJoin<T, E> {
 impl<T, E> TryJoin<T, E>
 where
   T: Send + 'static,
-  E: From<task::Panic> + Send + 'static,
+  E: From<task::JoinError> + Send + 'static,
 {
   /// Creates an empty join.
   pub fn new() -> Self {
@@ -88,7 +88,7 @@ where
 impl<T, E> Default for TryJoin<T, E>
 where
   T: Send + 'static,
-  E: From<Panic> + Send + 'static,
+  E: From<task::JoinError> + Send + 'static,
 {
   fn default() -> Self {
     Self::new()

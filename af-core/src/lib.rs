@@ -38,7 +38,6 @@ pub mod math;
 pub mod path;
 pub mod prelude;
 pub mod random;
-mod run;
 pub mod stream;
 pub mod string;
 pub mod task;
@@ -49,6 +48,5 @@ pub mod util;
 
 pub use self::fail::fail;
 pub use self::random::random;
-pub use self::run::{run, run_with};
 pub use af_core_macros::main;
 pub use serde_json as json;

@@ -162,59 +162,6 @@ fn test_join(cx: &mut test::Context) {
     fail::when!(result.is_none());
     fail::when!(result.is_ok());
   });
-
-  cx.scope("::try_next()", |cx| {
-    test!(cx, "returns finished results", {
-      let mut join = task::Join::new();
-
-      join.add(async move { true });
-
-      let task = join.try_next().await;
-
-      fail::when!(task.is_none());
-      fail::when!(!task?.result);
-    });
-
-    test!(cx, "reports panics as errors", {
-      let mut join = task::Join::new();
-
-      join.add(async move { panic!("lolol") });
-
-      let task = join.try_next().await;
-
-      fail::when!(task.is_none());
-      fail::when!(task.is_ok());
-      fail::when!(!task.to_string().contains("lolol"), "Did not display panic message.");
-    });
-  });
-
-  test!(cx, "::try_drain()", timeout = "1 s", {
-    let (tx, rx) = channel::unbounded::<()>();
-    let mut join = task::Join::new();
-
-    join.add({
-      let tx = tx.clone();
-
-      async move {
-        let _guard = tx;
-      }
-    });
-
-    join.add(async move {
-      let _guard = tx;
-      task::sleep(Duration::hz(60)).await;
-      panic!("nah")
-    });
-
-    let result = join.try_drain().await;
-
-    fail::when!(result.is_ok());
-
-    let result = future::try_resolve(rx.recv());
-
-    fail::when!(result.is_none());
-    fail::when!(result.is_ok());
-  });
 }
 
 /// Tests the `TryJoin` struct.

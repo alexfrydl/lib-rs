@@ -32,7 +32,7 @@ struct Child {
 /// A message sent from a task monitor.
 struct Stopped<T> {
   index: usize,
-  result: Result<T, Panic>,
+  result: Result<T, task::JoinError>,
 }
 
 impl<T> Join<T>
@@ -82,7 +82,7 @@ where
   /// Waits for the next stopped task.
   ///
   /// If all tasks have stopped, this function returns `None`.
-  pub async fn next(&mut self) -> Option<StoppedTask<Result<T, task::Panic>>> {
+  pub async fn next(&mut self) -> Option<StoppedTask<Result<T, task::JoinError>>> {
     if self.children.is_empty() {
       return None;
     }
@@ -93,34 +93,9 @@ where
     Some(StoppedTask { index, name: child.name, result })
   }
 
-  /// Waits for the next stopped task and returns its information as a
-  /// [`Result`].
-  ///
-  /// If all tasks have stopped, this function returns `None`.
-  pub async fn try_next(&mut self) -> Option<Result<StoppedTask<T>, PanickedTask>> {
-    if self.children.is_empty() {
-      return None;
-    }
-
-    let Stopped { index, result } = self.rx.recv().await.ok()?;
-    let child = self.children.remove(&index).expect("Received result from unknown child.");
-
-    Some(match result {
-      Ok(result) => Ok(StoppedTask { index, name: child.name, result }),
-      Err(panic) => Err(PanickedTask { index, name: child.name, panic }),
-    })
-  }
-
   /// Waits for all tasks to stop, dropping their results.
   pub async fn drain(&mut self) {
     while self.next().await.is_some() {}
-  }
-
-  /// Waits for all tasks to stop, dropping their results, until a task panics.
-  pub async fn try_drain(&mut self) -> Result<(), PanickedTask> {
-    while self.try_next().await.transpose()?.is_some() {}
-
-    Ok(())
   }
 }
 
@@ -152,7 +127,7 @@ pub struct PanickedTask {
   /// The name of the task, if any.
   pub name: SharedString,
   /// The panic from the task.
-  pub panic: task::Panic,
+  pub panic: Panic,
 }
 
 impl Display for PanickedTask {

@@ -7,6 +7,7 @@
 //! Task-based concurrency.
 
 pub mod join;
+pub mod runtime;
 pub mod try_join;
 
 mod cancel;
@@ -22,7 +23,7 @@ pub async fn sleep(duration: Duration) {
   if duration.is_infinite() {
     future::forever().await
   } else {
-    async_io::Timer::after(duration.into()).await;
+    tokio::time::sleep(duration.into()).await
   }
 }
 
@@ -39,9 +40,7 @@ fn start_impl<T>(future: impl Future<Output = T> + Send + 'static) -> Task<T>
 where
   T: Send + 'static,
 {
-  let task = async_global_executor::spawn(async move {
-    future::catch_unwind(panic::AssertUnwindSafe(future)).await.map_err(|value| Panic { value })
-  });
+  let task = runtime::handle().spawn(future);
 
   Task { task }
 }
@@ -54,28 +53,41 @@ pub async fn yield_now() {
 /// An asynchronous task.
 #[must_use = "Tasks are killed when dropped."]
 pub struct Task<T> {
-  task: async_executor::Task<Result<T, Panic>>,
+  task: tokio::task::JoinHandle<T>,
 }
 
 impl<T> Task<T> {
-  /// Kills the task and waits for its future to be dropped.
-  pub async fn kill(self) {
-    self.task.cancel().await;
+  /// Waits for the task to exit and returns its result.
+  pub async fn join(mut self) -> Result<T, JoinError> {
+    let task = &mut self.task;
+
+    pin!(task);
+
+    task.await.map_err(|err| match err.try_into_panic() {
+      Ok(panic) => JoinError::Panic(panic.into()),
+      Err(_) => JoinError::Killed,
+    })
   }
 
-  /// Waits for the task to stop and returns its result.
-  pub async fn join(self) -> Result<T, Panic> {
-    self.task.await
+  /// Kills the task.
+  pub fn kill(&self) {
+    self.task.abort();
   }
 }
 
 impl<T, E> Task<Result<T, E>>
 where
-  E: From<Panic>,
+  E: From<JoinError>,
 {
   /// Waits for the fallible task to stop and returns its result.
   pub async fn try_join(self) -> Result<T, E> {
-    self.task.await?
+    self.join().await?
+  }
+}
+
+impl<T> Drop for Task<T> {
+  fn drop(&mut self) {
+    self.task.abort();
   }
 }
 
@@ -99,4 +111,13 @@ where
   fn start(self) -> Task<T> {
     start_impl(self)
   }
+}
+
+/// An error returned from [`Task::join()`].
+#[derive(Debug, Error)]
+pub enum JoinError {
+  #[error(transparent)]
+  Panic(Panic),
+  #[error("Killed.")]
+  Killed,
 }

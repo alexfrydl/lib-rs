@@ -1,18 +1,31 @@
-// Copyright © 2021 Alexandra Frydl
+// Copyright © 2020 Alexandra Frydl
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+//! The task runtime.
+
+use crate::lazy::SyncOnceCell;
 use crate::prelude::*;
 use crate::task;
 use crate::thread;
 use signal_hook::consts::TERM_SIGNALS;
 use signal_hook::iterator::Signals;
 use std::process::exit;
+use tokio::runtime::{Handle, Runtime};
 
-/// Starts a task from the given future, waits for it to stop, then exits the
-/// process.
+/// The handle to the global runtime.
+pub(crate) static HANDLE: SyncOnceCell<Handle> = SyncOnceCell::new();
+
+/// Returns a handle to the global runtime.
+pub(crate) fn handle() -> &'static Handle {
+  HANDLE
+    .get()
+    .expect("The runtime must be started with `af_core::runtime::run` before tasks can be spawned.")
+}
+
+/// Starts a task on the runtime, waits for it to exit, then exits the process.
 ///
 /// If the task fails, this function logs the error and exits the process with
 /// a non-zero exit code.
@@ -21,9 +34,15 @@ where
   T: Send + 'static,
   E: Display + Send + 'static,
 {
+  let runtime = Runtime::new().expect("Failed to start tokio runtime");
+
+  if HANDLE.set(runtime.handle().clone()).is_err() {
+    panic!("The runtime is already running.")
+  }
+
   let task = task::start(future);
 
-  match thread::block_on(task.join()) {
+  match runtime.block_on(task.join()) {
     Ok(Err(err)) => {
       error!("The main task failed. {}", err);
 
@@ -31,8 +50,8 @@ where
       exit(1)
     }
 
-    Err(err) => {
-      if let Some(value) = err.value_str() {
+    Err(task::JoinError::Panic(panic)) => {
+      if let Some(value) = panic.value_str() {
         error!("The main task panicked with `{}`.", value);
       } else {
         error!("The main task panicked.")
