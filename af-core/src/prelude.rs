@@ -11,6 +11,7 @@ pub use crate as af_core;
 
 #[doc(no_inline)]
 pub use {
+  crate::atomic::Atomic,
   crate::derive::*,
   crate::error::{Error, Panic},
   crate::fail::{self, fail, Result},

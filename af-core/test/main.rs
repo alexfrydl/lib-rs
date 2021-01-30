@@ -24,16 +24,18 @@ use af_core::test::prelude::*;
 /// Tests the `af_core` package.
 #[test::main]
 fn main(cx: &mut test::Context) {
-  cx.scope("::channel", channel::test);
-  cx.scope("::env", env::test);
-  cx.scope("::fmt", fmt::test);
-  cx.scope("::future", future::test);
-  cx.scope("::math", math::test);
-  cx.scope("::path", path::test);
-  cx.scope("::random", random::test);
-  cx.scope("::string", string::test);
-  cx.scope("::task", task::test);
-  cx.scope("::thread", thread::test);
-  cx.scope("::time", time::test);
-  cx.scope("::util", util::test);
+  cx.scope("af_core", |cx| {
+    cx.scope("::channel", channel::test);
+    cx.scope("::env", env::test);
+    cx.scope("::fmt", fmt::test);
+    cx.scope("::future", future::test);
+    cx.scope("::math", math::test);
+    cx.scope("::path", path::test);
+    cx.scope("::random", random::test);
+    cx.scope("::string", string::test);
+    cx.scope("::task", task::test);
+    cx.scope("::thread", thread::test);
+    cx.scope("::time", time::test);
+    cx.scope("::util", util::test);
+  });
 }

@@ -28,6 +28,7 @@ test-runner = ["console", "indicatif", "logger"]
 af-core-macros = { version = "^0.2.0", path = "macros" }
 arrayvec = "0.5"
 async-channel = "1"
+atomic = "0.5"
 bytes = "1"
 cfg-if = "1"
 chrono = "0.4"

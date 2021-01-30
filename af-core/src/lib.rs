@@ -24,6 +24,7 @@
 //! }
 //! ```
 
+pub mod atomic;
 pub mod channel;
 pub mod derive;
 pub mod env;
