@@ -34,11 +34,20 @@ where
   T: Send + 'static,
   E: Display + Send + 'static,
 {
+  // Force the detection of the local time zone now because it requires blocking
+  // operations to do so.
+
+  time::Zone::local();
+
+  // Start the tokio runtime.
+
   let runtime = Runtime::new().expect("Failed to start tokio runtime");
 
   if HANDLE.set(runtime.handle().clone()).is_err() {
     panic!("The runtime is already running.")
   }
+
+  // Start the main task and wait for it to exit.
 
   let task = task::start(future);
 

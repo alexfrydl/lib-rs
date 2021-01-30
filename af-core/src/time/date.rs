@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use super::Zone;
+use super::{Time, Zone};
 use crate::prelude::*;
 use chrono::{Datelike, TimeZone};
 
@@ -44,24 +44,12 @@ impl Date {
 
   /// Convert the date to a time in the local time zone.
   pub fn to_local_time(&self) -> Time {
-    self.to_time(super::LOCAL)
+    self.to_time(Zone::local())
   }
 
   /// Converts the date to a time in the given time zone.
   pub fn to_time(&self, zone: Zone) -> Time {
-    let inner = match &zone {
-      Zone::Local => chrono::Local
-        .from_local_date(&self.0)
-        .and_hms_opt(0, 0, 0)
-        .unwrap()
-        .with_timezone(&chrono::Utc),
-
-      Zone::Tz(tz) => {
-        tz.from_local_date(&self.0).and_hms_opt(0, 0, 0).unwrap().with_timezone(&chrono::Utc)
-      }
-    };
-
-    Time { inner, zone }
+    Time(zone.as_tz().from_local_date(&self.0).and_hms_opt(0, 0, 0).unwrap())
   }
 
   /// Convert the date to a time in UTC.
