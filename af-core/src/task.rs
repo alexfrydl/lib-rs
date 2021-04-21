@@ -7,7 +7,6 @@
 //! Task-based concurrency.
 
 pub mod join;
-pub mod runtime;
 pub mod try_join;
 
 mod cancel;
@@ -15,6 +14,7 @@ mod cancel;
 pub use self::cancel::{CancelSignal, Canceled, Canceler};
 pub use self::join::Join;
 pub use self::try_join::TryJoin;
+pub use crate::task2::runtime;
 
 use crate::prelude::*;
 

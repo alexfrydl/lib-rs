@@ -42,6 +42,7 @@ pub mod random;
 pub mod stream;
 pub mod string;
 pub mod task;
+pub mod task2;
 pub mod test;
 pub mod thread;
 pub mod time;

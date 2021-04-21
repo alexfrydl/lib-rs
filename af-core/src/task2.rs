@@ -4,6 +4,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+//! Task-based concurrency.
+
+pub mod runtime;
+
 use crate::channel;
 use crate::prelude::*;
 use std::sync::atomic::{self, AtomicU64};
@@ -19,7 +23,7 @@ enum ExitReason {
   Panic(Panic),
 }
 
-pub fn start<F>(func: impl FnOnce() -> F + Send + 'static) -> Id
+pub fn start<F>(func: impl FnOnce() -> F + Send + 'static)
 where
   F: Future + Send + 'static,
   F::Output: IntoResult + Send + 'static,
@@ -38,7 +42,7 @@ where
   let thread_id = THREAD_ID.with(|id| *id);
 
   let id = TASK_ID.with(|cell| {
-    let id = cell.borrow_mut();
+    let mut id = cell.borrow_mut();
     *id += 1;
     *id
   });
