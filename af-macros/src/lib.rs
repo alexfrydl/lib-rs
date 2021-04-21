@@ -8,10 +8,9 @@
 
 mod fail;
 mod path;
-mod test;
 mod util;
 
-pub use af_core_proc_macros::*;
+pub use af_proc_macros::*;
 
 #[cfg(feature = "logger")]
 mod logger;

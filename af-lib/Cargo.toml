@@ -10,17 +10,43 @@ version = "0.2.0"
 [package.metadata.docs.rs]
 all-features = true
 
+[lib]
+
 [features]
 default = ["logger"]
-
-logger = ["af-core/logger"]
-postgres = ["af-postgres"]
-sentry = ["af-sentry"]
-slack = ["af-slack"]
-test-runner = ["af-core/test-runner"]
+logger = ["af-macros/logger", "console", "dashmap"]
 
 [dependencies]
-af-core = { version = "^0.2.0", path = "../af-core" }
-af-postgres = { version = "^0.2.0", path = "../af-postgres", optional = true }
-af-sentry = { version = "^0.2.0", path = "../af-sentry", optional = true }
-af-slack = { version = "^0.2.0", path = "../af-slack", optional = true }
+af-macros = { version = "^0.2.0", path = "../af-macros" }
+arrayvec = "0.5"
+async-channel = "1"
+atomic = "0.5"
+bytes = "1"
+cfg-if = "1"
+chrono = "0.4"
+chrono-tz = { version = "0.5", default-features = false }
+derive_more = "0.99"
+event-listener = "2"
+fnv = "1"
+futures-lite = "1"
+im = "15"
+itertools = "0.10"
+log = "0.4"
+num-traits = "0.2"
+once_cell = { version = "1", features = ["parking_lot"] }
+parking_lot = "0.11"
+parse_duration = "2"
+pin-project = "1"
+rand = "0.8"
+rand_xoshiro = "0.6"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+signal-hook = "0.3"
+thiserror = "1"
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "time"] }
+uuid = { version = "0.8", features = ["serde"] }
+
+# logger deps.
+
+console = { version = "0.14", optional = true }
+dashmap = { version = "4", optional = true }

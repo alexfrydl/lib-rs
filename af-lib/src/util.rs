@@ -11,7 +11,7 @@ mod uuid;
 
 pub use self::defer::{defer, Deferred};
 pub use self::uuid::Uuid;
-pub use af_core_macros::{attempt, attempt_async};
+pub use af_macros::{attempt, attempt_async};
 pub use cfg_if::cfg_if;
 pub use futures_lite::pin;
 pub use once_cell::sync::Lazy;

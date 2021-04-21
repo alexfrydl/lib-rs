@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//! A core library and async runtime for Rust applications.
+//! A modular library for async Rust applications.
 //!
 //! # Quick start
 //!
@@ -12,7 +12,7 @@
 //! ```toml
 //! [dependencies.af]
 //! package = "af-lib"
-//! version = "0.1"
+//! version = "0.2"
 //! ```
 //!
 //! In `src/main.rs`:
@@ -25,23 +25,30 @@
 //! }
 //! ```
 
-pub use af_core::random;
-pub use af_core::*;
+pub mod atomic;
+pub mod channel;
+pub mod derive;
+pub mod env;
+pub mod error;
+pub mod fail;
+pub mod fmt;
+pub mod future;
+pub mod iter;
+pub mod lazy;
+pub mod log;
+pub mod math;
+pub mod path;
+pub mod prelude;
+pub mod random;
+pub mod stream;
+pub mod string;
+pub mod task;
+pub mod task2;
+pub mod thread;
+pub mod time;
+pub mod util;
 
-/// [PostgreSQL](https://postresql.org) database client.
-#[cfg(feature = "postgres")]
-pub mod postgres {
-  pub use af_postgres::*;
-}
-
-/// [Sentry](https://sentry.io) error reporting.
-#[cfg(feature = "sentry")]
-pub mod sentry {
-  pub use af_sentry::*;
-}
-
-#[cfg(feature = "slack")]
-/// [Slack](https://slack.com) app creation.
-pub mod slack {
-  pub use af_slack::*;
-}
+pub use self::fail::fail;
+pub use self::random::random;
+pub use af_macros::main;
+pub use serde_json as json;

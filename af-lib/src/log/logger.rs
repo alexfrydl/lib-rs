@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-pub use af_core_macros::logger_init as init;
+pub use af_macros::logger_init as init;
 
 use super::*;
 use crate::channel;

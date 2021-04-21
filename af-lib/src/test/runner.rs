@@ -6,7 +6,7 @@
 
 //! Runs tests concurrently with a progress bar.
 
-pub use af_core_macros::test_main as main;
+pub use af_macros::test_main as main;
 
 use crate::test::prelude::*;
 use crate::util::defer;

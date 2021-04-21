@@ -13,13 +13,12 @@ mod path;
 /// Exports commonly used imports for writing tests.
 pub mod prelude {
   pub use crate::prelude::*;
-  pub use crate::test::{self, test};
 }
 
 pub use self::context::Context;
 pub use self::output::{Output, OutputStream};
 pub use self::path::Path;
-pub use af_core_macros::test;
+pub use af_macros::test;
 
 #[cfg(feature = "test-runner")]
 pub mod runner;
