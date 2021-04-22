@@ -29,7 +29,7 @@ pub mod channel;
 pub mod derive;
 pub mod env;
 pub mod error;
-pub mod fail;
+pub mod failure;
 pub mod fmt;
 pub mod fs;
 pub mod future;
@@ -45,7 +45,7 @@ pub mod time;
 pub mod util;
 
 pub use self::channel::channel;
-pub use self::fail::fail;
+pub use self::failure::fail;
 pub use self::random::random;
 pub use af_macros::main;
 pub use serde_json as json;

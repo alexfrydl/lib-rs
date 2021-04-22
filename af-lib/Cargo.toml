@@ -12,9 +12,13 @@ all-features = true
 
 [lib]
 
+[[bin]]
+name = "test-af-lib"
+path = "test/main.rs"
+
 [features]
 default = ["logger"]
-logger = ["af-macros/logger", "console", "dashmap"]
+logger = ["af-macros/logger", "dashmap"]
 
 [dependencies]
 af-macros = { version = "^0.2.0", path = "../af-macros" }
@@ -25,6 +29,7 @@ bytes = "1"
 cfg-if = "1"
 chrono = "0.4"
 chrono-tz = { version = "0.5", default-features = false }
+console = "0.14"
 derive_more = "0.99"
 event-listener = "2"
 fnv = "1"
@@ -48,5 +53,4 @@ uuid = { version = "0.8", features = ["serde"] }
 
 # logger deps.
 
-console = { version = "0.14", optional = true }
 dashmap = { version = "4", optional = true }

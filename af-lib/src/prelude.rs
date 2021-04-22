@@ -13,8 +13,8 @@ pub use crate as af_core;
 pub use {
   crate::derive::*,
   crate::error::{Error, Panic},
-  crate::fail::{self, fail, Result},
-  crate::fmt::{self, Debug, Display, Write as _},
+  crate::failure::{self, fail, failure, Failure, Result},
+  crate::fmt::{self, Debug, Display, InColorExt as _, Write as _},
   crate::future::{self, Future},
   crate::iter::{self, Itertools as _},
   crate::json,

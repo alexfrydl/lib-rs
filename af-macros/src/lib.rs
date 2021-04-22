@@ -6,7 +6,7 @@
 
 //! Macros for [af-core](https://docs.rs/af-core/0.1).
 
-mod fail;
+mod failure;
 mod path;
 mod util;
 

@@ -4,38 +4,27 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#![allow(clippy::float_cmp)]
+use af_lib::prelude::*;
 
-mod channel;
-mod env;
-mod fmt;
-mod future;
-mod math;
-mod path;
-mod random;
-mod string;
-mod task;
-mod thread;
-mod time;
-mod util;
+/// Main entry point for tests.
+fn main() {
+  af_lib::log::init!();
 
-use af_core::test::prelude::*;
+  if let Err(err) = test() {
+    error!("Test failed.\n{:#}", fmt::indent("  ", "  ", err.in_color()));
+  }
 
-/// Tests the `af_core` package.
-#[test::main]
-fn main(cx: &mut test::Context) {
-  cx.scope("af_core", |cx| {
-    cx.scope("::channel", channel::test);
-    cx.scope("::env", env::test);
-    cx.scope("::fmt", fmt::test);
-    cx.scope("::future", future::test);
-    cx.scope("::math", math::test);
-    cx.scope("::path", path::test);
-    cx.scope("::random", random::test);
-    cx.scope("::string", string::test);
-    cx.scope("::task", task::test);
-    cx.scope("::thread", thread::test);
-    cx.scope("::time", time::test);
-    cx.scope("::util", util::test);
-  });
+  std::thread::sleep(Duration::secs(1).into());
+}
+
+fn test() -> Result {
+  if let Err(err) = nested() {
+    fail!(err, "This will have a trace.");
+  }
+
+  Ok(())
+}
+
+fn nested() -> Result {
+  fail!("Shit broke.");
 }

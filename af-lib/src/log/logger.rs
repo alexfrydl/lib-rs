@@ -159,7 +159,7 @@ fn write_message(time: Time, record: &Record, f: &mut String) -> fmt::Result {
 
     name = match record.level() {
       Level::Trace => name.black().bright(),
-      _ => name.white(),
+      _ => name,
     };
 
     write!(f, "{}", name)?;
@@ -167,11 +167,11 @@ fn write_message(time: Time, record: &Record, f: &mut String) -> fmt::Result {
 
   // Finally, write the message.
 
-  let message = style(record.args()).bright();
+  let message = style(record.args());
 
   let styled = match record.level() {
-    Level::Trace => message.black(),
-    _ => message.white(),
+    Level::Trace => message.black().bright(),
+    _ => message,
   };
 
   write!(f, "{}", styled)
