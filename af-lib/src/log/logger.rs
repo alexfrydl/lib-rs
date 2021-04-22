@@ -28,7 +28,7 @@ static LOGGER: Lazy<Logger> = Lazy::new(|| Logger {
   dropped_messages: default(),
   max_level: RwLock::new(LevelFilter::Warn),
   max_level_of: default(),
-  output: channel::with_capacity(4096),
+  output: channel(),
 });
 
 thread_local! {
@@ -85,7 +85,7 @@ async fn output_messages() {
   let messages = &logger.output.1;
   let mut stderr = console::Term::stderr();
 
-  while let Ok(message) = messages.recv().await {
+  while let Some(message) = messages.recv().await {
     // If one or more messages were dropped, write an error message about it.
 
     let dropped_messages = logger.dropped_messages.swap(0, atomic::Ordering::Relaxed);
@@ -218,8 +218,10 @@ impl Log for Logger {
     // Send a message to the output task immediately or increment the dropped
     // count.
 
-    if self.output.0.try_send(message).is_err() {
+    if self.output.0.len() > 4096 {
       LOGGER.dropped_messages.fetch_add(1, atomic::Ordering::Relaxed);
+    } else {
+      self.output.0.send(message);
     }
   }
 

@@ -6,7 +6,6 @@
 
 //! The task runtime.
 
-use crate::lazy::SyncOnceCell;
 use crate::prelude::*;
 use crate::task;
 use crate::thread;
@@ -16,7 +15,7 @@ use std::process::exit;
 use tokio::runtime::{Handle, Runtime};
 
 /// The handle to the global runtime.
-pub(crate) static HANDLE: SyncOnceCell<Handle> = SyncOnceCell::new();
+pub(crate) static HANDLE: lazy::Once<Handle> = lazy::Once::new();
 
 /// Returns a handle to the global runtime.
 pub(crate) fn handle() -> &'static Handle {

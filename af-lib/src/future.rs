@@ -6,14 +6,10 @@
 
 //! Common [`Future`] types and utilities.
 
-pub use af_macros::{future_boxed as boxed, future_boxed_local as boxed_local};
 pub use std::future::Future;
 pub use std::task::{Context, Poll};
 
 mod noop_waker;
-mod try_future;
-
-pub use self::try_future::*;
 
 use crate::prelude::*;
 

@@ -22,9 +22,16 @@ impl Semaphore {
     Self(Arc::new(async_lock::Semaphore::new(permits)))
   }
 
-  /// Waits for an available permit.
+  /// Waits for an available permit and acquires it.
   pub async fn acquire(&self) -> Permit {
     Permit(self.0.acquire_arc().await)
+  }
+
+  /// Immediately acquires an available permit.
+  ///
+  /// If no permits are available, this function returns `false`.
+  pub fn acquire_now(&self) -> Option<Permit> {
+    self.0.try_acquire_arc().ok().map(Permit)
   }
 }
 

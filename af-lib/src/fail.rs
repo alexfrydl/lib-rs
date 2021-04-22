@@ -9,13 +9,13 @@
 pub use af_macros::{fail, fail_err as err, fail_when as when, fail_wrap as wrap};
 
 use crate::prelude::*;
-use crate::string::SharedString;
+use crate::string::SharedStr;
 
 /// A generic cloneable error.
 #[derive(Clone)]
 pub struct Error {
-  message: SharedString,
-  trace: im::Vector<SharedString>,
+  message: SharedStr,
+  trace: im::Vector<SharedStr>,
 }
 
 /// Represents either success (`Ok`) or failure (`Err`).
@@ -31,7 +31,7 @@ pub fn from<T: Into<Error>>(err: T) -> Error {
 
 impl Error {
   /// Creates a new error with the given message.
-  pub fn new(message: impl Into<SharedString>) -> Self {
+  pub fn new(message: impl Into<SharedStr>) -> Self {
     Self { message: message.into(), trace: default() }
   }
 

@@ -26,7 +26,7 @@ pub trait FloatExt {
 
 /// Returns a multiplier representing a number of decimal places.
 fn places_f32(places: usize) -> f32 {
-  assert!(places < i32::MAX as usize, "`places` must be less than {}", i32::MAX);
+  debug_assert!(places < i32::MAX as usize, "`places` must be less than {}", i32::MAX);
 
   match places {
     0 => 1.0,
@@ -39,7 +39,7 @@ fn places_f32(places: usize) -> f32 {
 
 /// Returns a multiplier representing a number of decimal places.
 fn places_f64(places: usize) -> f64 {
-  assert!(places < i32::MAX as usize, "`places` must be less than {}", i32::MAX);
+  debug_assert!(places < i32::MAX as usize, "`places` must be less than {}", i32::MAX);
 
   match places {
     0 => 1.0,

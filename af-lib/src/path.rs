@@ -217,12 +217,6 @@ impl<'a> PathLike<'a> for &'a &'_ mut str {
   }
 }
 
-impl<'a> PathLike<'a> for String {
-  fn to_cow(self) -> Cow<'a, str> {
-    self.into()
-  }
-}
-
 impl<'a> PathLike<'a> for &'a String {
   fn to_cow(self) -> Cow<'a, str> {
     self.into()

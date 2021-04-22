@@ -8,7 +8,7 @@
 
 use crate::channel;
 use crate::prelude::*;
-use crate::string::SharedString;
+use crate::string::SharedStr;
 use crate::task::{self, Task};
 use fnv::FnvHashMap;
 
@@ -25,7 +25,7 @@ pub struct Join<T> {
 
 /// A task in a [`Join`].
 struct Child {
-  name: SharedString,
+  name: SharedStr,
   _monitor: Task<()>,
 }
 
@@ -41,7 +41,7 @@ where
 {
   /// Creates an empty join.
   pub fn new() -> Self {
-    let (tx, rx) = channel::unbounded();
+    let (tx, rx) = channel();
 
     Self { children: default(), next_index: 0, rx, tx }
   }
@@ -52,7 +52,7 @@ where
   }
 
   /// Adds a named task to the join, returning its index.
-  pub fn add_as(&mut self, name: impl Into<SharedString>, task: impl task::Start<T>) -> Index {
+  pub fn add_as(&mut self, name: impl Into<SharedStr>, task: impl task::Start<T>) -> Index {
     // Get next index.
 
     let index = self.next_index;
@@ -71,7 +71,7 @@ where
     let _monitor = task::start(async move {
       let result = task.join().await;
 
-      tx.send(Stopped { index, result }).await.ok();
+      tx.send(Stopped { index, result });
     });
 
     self.children.insert(index, Child { name: name.into(), _monitor });
@@ -87,7 +87,7 @@ where
       return None;
     }
 
-    let Stopped { index, result } = self.rx.recv().await.ok()?;
+    let Stopped { index, result } = self.rx.recv().await?;
     let child = self.children.remove(&index).expect("Received result from unknown child.");
 
     Some(StoppedTask { index, name: child.name, result })
@@ -114,7 +114,7 @@ pub struct StoppedTask<T> {
   /// The index of the task.
   pub index: Index,
   /// The name of the task, if any.
-  pub name: SharedString,
+  pub name: SharedStr,
   /// The result of the task.
   pub result: T,
 }
@@ -125,7 +125,7 @@ pub struct PanickedTask {
   /// The index of the task.
   pub index: Index,
   /// The name of the task, if any.
-  pub name: SharedString,
+  pub name: SharedStr,
   /// The panic from the task.
   pub panic: Panic,
 }

@@ -25,33 +25,12 @@ pub struct Sender<T> {
 #[error("Channel is closed.")]
 pub struct ClosedError;
 
-/// An error returned from a [`Sender::send()`] or [`Sender::try_send()`] call.
+/// An error returned from a [`Sender::try_send()`] call.
 #[derive(Clone, Copy)]
-pub struct SendError<M> {
-  /// The message that failed to send.
-  pub msg: M,
-  /// The reason for this error.
-  pub reason: SendErrorReason,
-}
+pub struct SendError<M>(pub M);
 
-/// The reason a [`SendError`] was returned.
-#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
-pub enum SendErrorReason {
-  #[error("Channel is closed.")]
-  Closed,
-  #[error("Channel is full.")]
-  Full,
-}
-
-/// Creates a channel with a buffer of a given capacity.
-pub fn with_capacity<T>(capacity: usize) -> (Sender<T>, Receiver<T>) {
-  let (tx, rx) = async_channel::bounded(capacity);
-
-  (Sender { tx }, Receiver { rx })
-}
-
-/// Creates an channel whose buffer can grow unbounded.
-pub fn unbounded<T>() -> (Sender<T>, Receiver<T>) {
+/// Creates an asynchronous channel.
+pub fn channel<T>() -> (Sender<T>, Receiver<T>) {
   let (tx, rx) = async_channel::unbounded();
 
   (Sender { tx }, Receiver { rx })
@@ -65,15 +44,42 @@ impl<T> Receiver<T> {
     self.rx.is_closed()
   }
 
+  /// Returns `true` if no messages are queued on the channel.
+  pub fn is_empty(&self) -> bool {
+    self.rx.is_empty()
+  }
+
+  /// Returns the number of messages queued in the channel.
+  pub fn len(&self) -> usize {
+    self.rx.len()
+  }
+
   /// Waits for an available message in the channel and receives it.
-  pub async fn recv(&self) -> Result<T, ClosedError> {
+  ///
+  /// If the channel is closed, this function returns `None`.
+  pub async fn recv(&self) -> Option<T> {
+    self.try_recv().await.ok()
+  }
+
+  /// Immediately receives an available message from the channel.
+  ///
+  /// If the channel is empty or closed, this function returns `None`.
+  pub fn recv_now(&self) -> Option<T> {
+    self.try_recv_now().ok()?
+  }
+
+  /// Attempts to wait for an available message in the channel and receive it.
+  ///
+  /// If the channel is closed, this function returns an error.
+  pub async fn try_recv(&self) -> Result<T, ClosedError> {
     self.rx.recv().await.map_err(|_| ClosedError)
   }
 
   /// Attempts to immediately receive an available message from the channel.
   ///
-  /// If the channel is empty, this function returns `None`.
-  pub fn try_recv(&self) -> Result<Option<T>, ClosedError> {
+  /// If the channel is empty, this function returns `Ok(None)`. If the channel is closed, this
+  /// function returns an error
+  pub fn try_recv_now(&self) -> Result<Option<T>, ClosedError> {
     match self.rx.try_recv() {
       Ok(msg) => Ok(Some(msg)),
       Err(TryRecvError::Empty) => Ok(None),
@@ -90,29 +96,33 @@ impl<T> Sender<T> {
     self.tx.is_closed()
   }
 
-  /// Waits for available space in the channel and then sends a message.
-  ///
-  /// If the channel is closed before the message can be sent, this function
-  /// returns a [`SendError`] containing the failed message.
-  pub async fn send(&self, message: T) -> Result<(), SendError<T>> {
-    self
-      .tx
-      .send(message)
-      .await
-      .map_err(|err| SendError { msg: err.0, reason: SendErrorReason::Closed })
+  /// Returns `true` if no messages are queued on the channel.
+  pub fn is_empty(&self) -> bool {
+    self.tx.is_empty()
   }
 
-  /// Attempts to send a message to the channel immediately.
+  /// Returns the number of messages queued in the channel.
+  pub fn len(&self) -> usize {
+    self.tx.len()
+  }
+
+  /// Sends a message on the channel.
   ///
-  /// If the channel is closed or full, this function returns a [`SendError`]
-  /// containing the failed message.
+  /// If the channel is closed, this function returns a `Some(T)` containing the
+  /// failed message.
+  pub fn send(&self, message: T) -> Option<T> {
+    match self.try_send(message) {
+      Ok(_) => None,
+      Err(err) => Some(err.0),
+    }
+  }
+
+  /// Attempts to send a message on the channel.
+  ///
+  /// If the channel is closed, this function returns a [`SendError`] containing
+  /// the failed message.
   pub fn try_send(&self, message: T) -> Result<(), SendError<T>> {
-    self.tx.try_send(message).map_err(|err| match err {
-      async_channel::TrySendError::Full(msg) => SendError { msg, reason: SendErrorReason::Full },
-      async_channel::TrySendError::Closed(msg) => {
-        SendError { msg, reason: SendErrorReason::Closed }
-      }
-    })
+    self.tx.try_send(message).map_err(|err| SendError(err.into_inner()))
   }
 }
 
@@ -130,18 +140,18 @@ impl<T> Clone for Sender<T> {
   }
 }
 
-// Implement SendError`.
+// Implement SendError error functionality.
 
 impl<M> std::error::Error for SendError<M> {}
 
 impl<M> Debug for SendError<M> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    Debug::fmt(&self.reason, f)
+    write!(f, "{:?}", ClosedError)
   }
 }
 
 impl<M> Display for SendError<M> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    Display::fmt(&self.reason, f)
+    write!(f, "{}", ClosedError)
   }
 }

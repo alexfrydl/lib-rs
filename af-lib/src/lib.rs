@@ -25,13 +25,13 @@
 //! }
 //! ```
 
-pub mod atomic;
 pub mod channel;
 pub mod derive;
 pub mod env;
 pub mod error;
 pub mod fail;
 pub mod fmt;
+pub mod fs;
 pub mod future;
 pub mod iter;
 pub mod lazy;
@@ -40,14 +40,11 @@ pub mod math;
 pub mod path;
 pub mod prelude;
 pub mod random;
-pub mod stream;
 pub mod string;
-pub mod task;
-pub mod task2;
-pub mod thread;
 pub mod time;
 pub mod util;
 
+pub use self::channel::channel;
 pub use self::fail::fail;
 pub use self::random::random;
 pub use af_macros::main;

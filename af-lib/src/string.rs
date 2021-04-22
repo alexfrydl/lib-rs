@@ -8,4 +8,4 @@
 
 mod shared;
 
-pub use self::shared::SharedString;
+pub use self::shared::SharedStr;

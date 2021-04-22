@@ -6,10 +6,10 @@
 
 //! Provides access to environment variables and well-known paths.
 
-use crate::path;
 use crate::prelude::*;
+use crate::{fs, path};
+use std::ffi::OsString;
 use std::io;
-use std::path::{Path, PathBuf};
 
 /// One of the possible errors that can occur when reading an environment
 /// variable.
@@ -20,21 +20,24 @@ pub enum VarError {
   NotPresent,
   /// Environment variable contains non-Unicode characters.
   #[error("Environment variable contains non-Unicode characters.")]
-  NotUnicode,
+  NotUnicode(OsString),
 }
 
 /// One of the possible errors returned by [`working_path()`].
-#[derive(Debug, Error)]
+#[derive(Debug, Clone, Error)]
 pub enum WorkingPathError {
   /// The working path was not found.
-  #[error("The current working directory was not found.")]
+  #[error("Not found.")]
   NotFound,
   /// The user does not have permission to access the current working directory.
-  #[error("Permission denied reading the current working directory.")]
+  #[error("Permission denied.")]
   PermissionDenied,
   /// The working path is not unicode.
-  #[error("The current working directory `{}` is not unicode.", .0.display())]
-  NotUnicode(PathBuf),
+  #[error("The path contains non-Unicode characters: `{0:?}`.")]
+  NotUnicode(OsString),
+  /// Some other error occurred.
+  #[error("{0}")]
+  Other(String),
 }
 
 /// The full file system path to the current executable.
@@ -64,24 +67,29 @@ pub fn exe_path() -> &'static str {
 /// Returns the full file system path to the cargo project of the currently
 /// running executable.
 ///
-/// This function panics if the executable was not run with a `cargo` command.
-/// Use [`is_cargo_run()`] to check whether this function will panic.
+/// If the current executable was not run with a `cargo` command, this function
+/// returns `None`.
 pub fn project_path() -> Option<&'static str> {
-  static PATH: Lazy<Option<&'static str>> = Lazy::new(|| {
-    let value = var("CARGO_MANIFEST_DIR").ok()?;
-
-    Some(Box::leak(value.into_boxed_str()))
-  });
+  static PATH: Lazy<Option<&'static str>> =
+    Lazy::new(|| match std::env::var_os("CARGO_MANIFEST_DIR")?.into_string() {
+      Ok(path) => Some(Box::leak(path.into_boxed_str())),
+      Err(path) => {
+        warn!("The project path contains non-Unicode characters: `{:?}`.", path);
+        None
+      }
+    });
 
   *PATH
 }
 
 /// Returns the value of the given environment variable.
-pub fn var(name: &str) -> Result<String, VarError> {
-  std::env::var(name).map_err(|err| match err {
-    std::env::VarError::NotPresent => VarError::NotPresent,
-    std::env::VarError::NotUnicode(_) => VarError::NotUnicode,
-  })
+pub fn var(name: &str) -> Option<String> {
+  std::env::var(name).ok()
+}
+
+/// Returns the value of the given environment variable.
+pub fn var_os(name: &str) -> Option<OsString> {
+  std::env::var_os(name)
 }
 
 /// Returns the full file system path to the current working directory.
@@ -92,7 +100,10 @@ pub fn working_path() -> Result<String, WorkingPathError> {
     _ => panic!("{}", err),
   })?;
 
-  Ok(path.to_str().map(String::from).ok_or(WorkingPathError::NotUnicode(path))?)
+  match path.into_os_string().into_string() {
+    Ok(string) => Ok(string),
+    Err(path) => Err(WorkingPathError::NotUnicode(path.into())),
+  }
 }
 
 /// Returns the full file system path to the cargo workspace of the currently
@@ -110,7 +121,7 @@ pub fn workspace_path() -> Option<&'static str> {
     loop {
       path::append(&mut workspace_path, "Cargo.lock");
 
-      let found = AsRef::<Path>::as_ref(&workspace_path).exists();
+      let found = fs::is_file(&workspace_path).unwrap_or(false);
 
       path::pop(&mut workspace_path);
 

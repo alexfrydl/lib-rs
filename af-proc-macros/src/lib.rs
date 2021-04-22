@@ -6,28 +6,9 @@
 
 //! Proc macros for [af-core](https://docs.rs/af-core/0.1).
 
-mod attr_future_boxed;
 mod attr_main;
 mod attr_test_main;
 mod prelude;
-
-/// Modifies an `async` function to return a `Box<dyn Future + Send>`.
-#[proc_macro_attribute]
-pub fn future_boxed(
-  _: proc_macro::TokenStream,
-  item: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-  attr_future_boxed::run(item, true)
-}
-
-/// Modifies an `async` function to return a `Box<dyn Future>`.
-#[proc_macro_attribute]
-pub fn future_boxed_local(
-  _: proc_macro::TokenStream,
-  item: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-  attr_future_boxed::run(item, false)
-}
 
 /// Defines an async main function for an `af-core` application.
 #[proc_macro_attribute]

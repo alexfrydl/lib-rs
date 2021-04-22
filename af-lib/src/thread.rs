@@ -10,7 +10,6 @@ pub use std::thread::yield_now;
 
 use crate::channel;
 use crate::prelude::*;
-use crate::task;
 use std::sync::atomic::{AtomicU64, Ordering::AcqRel};
 use std::thread::{Builder, JoinHandle};
 
@@ -52,7 +51,7 @@ pub fn start<T: Send + 'static>(
   name: impl Into<String>,
   func: impl FnOnce() -> T + Send + 'static,
 ) -> Thread<T> {
-  let (tx, rx) = channel::with_capacity(1);
+  let (tx, rx) = channel();
 
   let func = move || {
     let _guard = task::runtime::handle().enter();
@@ -68,7 +67,7 @@ pub fn start<T: Send + 'static>(
 impl<T> Thread<T> {
   /// Waits for the thread to stop and returns its result.
   pub async fn join(self) -> Result<T, Panic> {
-    if let Ok(output) = self.rx.recv().await {
+    if let Some(output) = self.rx.recv().await {
       return Ok(output);
     }
 

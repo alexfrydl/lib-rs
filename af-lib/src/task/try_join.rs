@@ -7,7 +7,7 @@
 //! Wait for multiple fallible tasks concurrently.
 
 use crate::prelude::*;
-use crate::string::SharedString;
+use crate::string::SharedStr;
 use crate::task;
 
 /// The index of a [`Join`] task.
@@ -40,7 +40,7 @@ where
   /// Adds a named task to the join, returning its index.
   pub fn add_as(
     &mut self,
-    name: impl Into<SharedString>,
+    name: impl Into<SharedStr>,
     task: impl task::Start<Result<T, E>>,
   ) -> Index {
     self.join.add_as(name, task)
@@ -101,7 +101,7 @@ pub struct StoppedTask<T, E> {
   /// The index of the task.
   pub index: Index,
   /// The name of the task, if any.
-  pub name: SharedString,
+  pub name: SharedStr,
   /// The result of the task.
   pub result: Result<T, E>,
 }
@@ -112,7 +112,7 @@ pub struct FinishedTask<T> {
   /// The index of the task.
   pub index: Index,
   /// The name of the task, if any.
-  pub name: SharedString,
+  pub name: SharedStr,
   /// The output of the task.
   pub output: T,
 }
@@ -123,7 +123,7 @@ pub struct FailedTask<E> {
   /// The index of the task.
   pub index: Index,
   /// The name of the task, if any.
-  pub name: SharedString,
+  pub name: SharedStr,
   /// The error of the task.
   pub error: E,
 }

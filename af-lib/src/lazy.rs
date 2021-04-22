@@ -6,5 +6,4 @@
 
 //! Lazy values and one-time initialization of static data.
 
-pub use once_cell::sync::{Lazy as SyncLazy, OnceCell as SyncOnceCell};
-pub use once_cell::unsync::{Lazy, OnceCell};
+pub use once_cell::sync::{Lazy, OnceCell as Once};

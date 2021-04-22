@@ -5,7 +5,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use crate::env;
-use crate::lazy::SyncLazy;
+use crate::lazy::Lazy;
 use crate::prelude::*;
 use chrono_tz::{Tz, TZ_VARIANTS};
 use std::process::Command;
@@ -31,13 +31,13 @@ impl Zone {
 
   /// Returns the local time zone.
   pub fn local() -> Self {
-    static ZONE: SyncLazy<Zone> = SyncLazy::new(|| {
+    static ZONE: Lazy<Zone> = Lazy::new(|| {
       // First, check the TZ environment variable.
 
-      let tz = attempt! { env::var("TZ").ok()?.parse().ok() };
-
-      if let Some(tz) = tz {
-        return Zone(tz);
+      if let Some(tz) = env::var("TZ") {
+        if let Ok(tz) = tz.parse() {
+          return Zone(tz);
+        }
       }
 
       // Next, try OS-specific solutions.
@@ -45,28 +45,25 @@ impl Zone {
       if cfg!(target_os = "linux") {
         // Try reading from `/etc/timezone`.
 
-        let tz = attempt! { std::fs::read_to_string("/etc/timezone").ok()?.parse().ok() };
-
-        if let Some(tz) = tz {
-          return Zone(tz);
+        if let Ok(tz) = std::fs::read_to_string("/etc/timezone") {
+          if let Ok(tz) = tz.parse() {
+            return Zone(tz);
+          }
         }
 
         // Next, try running a command to find the current time zone.
 
-        let tz = attempt! {
-          let output = Command::new("timedatectl")
-            .args(&["show", "--property=Timezone", "--value"])
-            .output()
-            .ok()?;
+        let output =
+          Command::new("timedatectl").args(&["show", "--property=Timezone", "--value"]).output();
 
-          match output.status.success() {
-            true => str::from_utf8(&output.stdout).ok()?.trim().parse().ok(),
-            false => None,
+        if let Ok(output) = output {
+          if output.status.success() {
+            if let Ok(tz) = str::from_utf8(&output.stdout) {
+              if let Ok(tz) = tz.parse() {
+                return Zone(tz);
+              }
+            }
           }
-        };
-
-        if let Some(tz) = tz {
-          return Zone(tz);
         }
       }
 
