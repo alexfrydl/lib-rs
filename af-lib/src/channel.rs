@@ -8,7 +8,12 @@
 
 use crate::prelude::*;
 
-use async_channel::TryRecvError;
+/// A cloneable channel.
+#[derive(From)]
+pub struct Channel<T> {
+  sender: Sender<T>,
+  receiver: Receiver<T>,
+}
 
 /// A cloneable receiver for a channel.
 pub struct Receiver<T> {
@@ -29,11 +34,69 @@ pub struct ClosedError;
 #[derive(Clone, Copy)]
 pub struct SendError<M>(pub M);
 
-/// Creates an asynchronous channel.
+/// Creates a channel and returns its [`Sender`] and [`Receiver`] halves.
 pub fn channel<T>() -> (Sender<T>, Receiver<T>) {
   let (tx, rx) = async_channel::unbounded();
 
   (Sender { tx }, Receiver { rx })
+}
+
+impl<T> Channel<T> {
+  /// Creates a new channel.
+  pub fn new() -> Self {
+    let (sender, receiver) = channel();
+
+    Self { sender, receiver }
+  }
+
+  /// Converts this channel into a [`Receiver`].
+  pub fn into_receiver(self) -> Receiver<T> {
+    self.receiver
+  }
+
+  /// Converts this channel into a [`Sender`].
+  pub fn into_sender(self) -> Sender<T> {
+    self.sender
+  }
+
+  /// Returns `true` if there are no messages in the channel.
+  pub fn is_empty(&self) -> bool {
+    self.receiver.is_empty()
+  }
+
+  /// Returns the number of messages in the channel.
+  pub fn len(&self) -> usize {
+    self.sender.len()
+  }
+
+  /// Returns a [`Receiver`] which can receive messages from this channel.
+  pub fn receiver(&self) -> Receiver<T> {
+    self.receiver.clone()
+  }
+
+  /// Waits for an available message and receives it.
+  pub async fn recv(&self) -> T {
+    self.receiver.recv().await.unwrap()
+  }
+
+  /// Immediately receives a message if one is available.
+  pub fn recv_now(&self) -> Option<T> {
+    self.receiver.recv_now()
+  }
+
+  /// Sends a message to the channel.
+  pub fn send(&self, message: T) {
+    self.sender.send(message);
+  }
+
+  /// Returns a [`Sender`] which can send messages to this channel.
+  pub fn sender(&self) -> Sender<T> {
+    self.sender.clone()
+  }
+
+  pub fn split(self) -> (Sender<T>, Receiver<T>) {
+    (self.sender, self.receiver)
+  }
 }
 
 impl<T> Receiver<T> {
@@ -82,8 +145,8 @@ impl<T> Receiver<T> {
   pub fn try_recv_now(&self) -> Result<Option<T>, ClosedError> {
     match self.rx.try_recv() {
       Ok(msg) => Ok(Some(msg)),
-      Err(TryRecvError::Empty) => Ok(None),
-      Err(TryRecvError::Closed) => Err(ClosedError),
+      Err(async_channel::TryRecvError::Empty) => Ok(None),
+      Err(async_channel::TryRecvError::Closed) => Err(ClosedError),
     }
   }
 }
@@ -127,6 +190,12 @@ impl<T> Sender<T> {
 }
 
 // Manually implement `Clone` for all `T`.
+
+impl<T> Clone for Channel<T> {
+  fn clone(&self) -> Self {
+    Self { sender: self.sender.clone(), receiver: self.receiver.clone() }
+  }
+}
 
 impl<T> Clone for Receiver<T> {
   fn clone(&self) -> Self {

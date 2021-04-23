@@ -24,6 +24,7 @@ logger = ["af-macros/logger", "dashmap"]
 af-macros = { version = "^0.2.0", path = "../af-macros" }
 arrayvec = "0.5"
 async-channel = "1"
+async-task = "4"
 atomic = "0.5"
 bytes = "1"
 cfg-if = "1"
@@ -37,6 +38,7 @@ futures-lite = "1"
 im = "15"
 itertools = "0.10"
 log = "0.4"
+num_cpus = "1"
 num-traits = "0.2"
 once_cell = { version = "1", features = ["parking_lot"] }
 parking_lot = "0.11"

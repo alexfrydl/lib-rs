@@ -28,7 +28,6 @@
 pub mod channel;
 pub mod derive;
 pub mod env;
-pub mod error;
 pub mod failure;
 pub mod fmt;
 pub mod fs;
@@ -37,12 +36,14 @@ pub mod iter;
 pub mod lazy;
 pub mod log;
 pub mod math;
+pub mod panic;
 pub mod path;
 pub mod prelude;
 pub mod random;
 pub mod string;
+pub mod thread;
 pub mod time;
-pub mod util;
+mod util;
 
 pub use self::channel::channel;
 pub use self::failure::fail;

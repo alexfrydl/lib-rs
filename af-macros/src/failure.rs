@@ -22,6 +22,10 @@ macro_rules! failure {
   ($msg:literal) => {
     Failure::new(file!(), line!(), $msg, None)
   };
+
+  ($err:expr) => {
+    Failure::new(file!(), line!(), $err.to_string(), None)
+  };
 }
 
 /// Creates a new `Failure`.

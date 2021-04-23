@@ -8,21 +8,21 @@ use crate::prelude::*;
 
 /// A deferred function that will be called when dropped.
 #[must_use = "This deferred function runs immediately. Assign it to a guard to run it at the end of the block: `let _guard = defer(…);`"]
-pub struct Deferred<F>(ManuallyDrop<F>)
+pub struct Deferred<F, O>(ManuallyDrop<F>)
 where
-  F: FnOnce();
+  F: FnOnce() -> O;
 
 /// Defers a function so that it is called when dropped.
-pub fn defer<F>(func: F) -> Deferred<F>
+pub fn defer<F, O>(func: F) -> Deferred<F, O>
 where
-  F: FnOnce(),
+  F: FnOnce() -> O,
 {
   Deferred(ManuallyDrop::new(func))
 }
 
-impl<F> Drop for Deferred<F>
+impl<F, O> Drop for Deferred<F, O>
 where
-  F: FnOnce(),
+  F: FnOnce() -> O,
 {
   fn drop(&mut self) {
     let func = unsafe { ManuallyDrop::take(&mut self.0) };

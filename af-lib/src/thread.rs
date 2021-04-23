@@ -4,87 +4,15 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//! Thread management.
+//! Thread-based concurrency.
 
-pub use std::thread::yield_now;
-
-use crate::channel;
 use crate::prelude::*;
-use std::sync::atomic::{AtomicU64, Ordering::AcqRel};
-use std::thread::{Builder, JoinHandle};
 
-/// Returns a unique ID number for the current thread.
-pub fn id() -> u64 {
-  static NEXT_THREAD_ID: AtomicU64 = AtomicU64::new(0);
-
-  thread_local! {
-    static THREAD_ID: u64 = NEXT_THREAD_ID.fetch_add(1, AcqRel);
-  }
-
-  THREAD_ID.with(|id| *id)
-}
-
-/// An operating system thread.
-pub struct Thread<T> {
-  inner: JoinHandle<()>,
-  rx: channel::Receiver<T>,
-}
-
-/// Blocks the current thread until a given future is ready.
-pub fn block_on<T>(future: impl Future<Output = T>) -> T {
-  let _guard = task::runtime::handle().enter();
-
-  futures_lite::future::block_on(future)
-}
-
-/// Blocks the current thread for a given duration.
-pub fn sleep(dur: Duration) {
-  if dur.is_infinite() {
-    std::thread::sleep(std::time::Duration::new(u64::MAX, 0));
-  } else {
-    std::thread::sleep(dur.into());
-  }
-}
-
-/// Starts running an operation on a new thread.
-pub fn start<T: Send + 'static>(
-  name: impl Into<String>,
-  func: impl FnOnce() -> T + Send + 'static,
-) -> Thread<T> {
-  let (tx, rx) = channel();
-
-  let func = move || {
-    let _guard = task::runtime::handle().enter();
-    let output = func();
-    let _ = tx.try_send(output);
-  };
-
-  let inner = Builder::new().name(name.into()).spawn(func).expect("Failed to start thread");
-
-  Thread { inner, rx }
-}
-
-impl<T> Thread<T> {
-  /// Waits for the thread to stop and returns its result.
-  pub async fn join(self) -> Result<T, Panic> {
-    if let Some(output) = self.rx.recv().await {
-      return Ok(output);
-    }
-
-    if let Err(value) = self.inner.join() {
-      return Err(Panic { value });
-    }
-
-    unreachable!("Thread finished but did not send output.");
-  }
-}
-
-impl<T, E> Thread<Result<T, E>>
-where
-  E: From<Panic>,
-{
-  /// Waits for the thread to stop and returns its result.
-  pub async fn try_join(self) -> Result<T, E> {
-    self.join().await?
-  }
+pub fn spawn(name: impl Into<String>, future: impl Future + Send + 'static) {
+  std::thread::Builder::new()
+    .name(name.into())
+    .spawn(move || {
+      futures_lite::future::block_on(future);
+    })
+    .unwrap();
 }

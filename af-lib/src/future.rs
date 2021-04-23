@@ -6,6 +6,7 @@
 
 //! Common [`Future`] types and utilities.
 
+pub use futures_lite::future::block_on;
 pub use std::future::Future;
 pub use std::task::{Context, Poll};
 
@@ -13,16 +14,29 @@ mod noop_waker;
 
 use crate::prelude::*;
 
-/// Waits for a future to be ready or panic.
-///
-/// If the future panics, this function returns an `Err` with the panic value.
-pub async fn catch_unwind<F>(f: F) -> Result<F::Output, Box<dyn Any + Send>>
+/// Waits for a future, capturing panic information if one occurs.
+pub async fn capture_panic<F>(future: F) -> Result<F::Output, Panic>
 where
   F: Future + panic::UnwindSafe,
 {
-  use futures_lite::FutureExt;
+  #[pin_project]
+  struct CapturePanic<F>(#[pin] F);
 
-  f.catch_unwind().await
+  impl<F: Future> Future for CapturePanic<F> {
+    type Output = Result<F::Output, Panic>;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
+      let this = self.project();
+      let result = panic::capture(panic::AssertUnwindSafe(|| this.0.poll(cx)));
+
+      match result {
+        Ok(poll) => poll.map(Ok),
+        Err(panic) => Poll::Ready(Err(panic)),
+      }
+    }
+  }
+
+  CapturePanic(future).await
 }
 
 /// Waits forever.

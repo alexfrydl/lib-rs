@@ -14,7 +14,7 @@ use crate::string::SharedStr;
 use console::style;
 
 /// A general-purpose cloneable error type.
-#[derive(Clone)]
+#[derive(Clone, Error)]
 pub struct Failure {
   cause: Arc<Cause>,
 }

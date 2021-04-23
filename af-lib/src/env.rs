@@ -64,6 +64,13 @@ pub fn exe_path() -> &'static str {
   &EXE_PATH.as_ref().expect("Failed to determine path to current executable").0
 }
 
+/// Returns the number of logical CPUs.
+pub fn num_cpus() -> usize {
+  static VALUE: Lazy<usize> = Lazy::new(num_cpus::get);
+
+  *VALUE
+}
+
 /// Returns the full file system path to the cargo project of the currently
 /// running executable.
 ///
