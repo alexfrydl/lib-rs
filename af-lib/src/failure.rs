@@ -11,25 +11,19 @@ pub use af_macros::{fail, failure};
 use crate::math::AsPrimitive;
 use crate::prelude::*;
 use crate::string::SharedStr;
-use console::style;
 
 /// A general-purpose cloneable error type.
-#[derive(Clone, Error)]
+#[derive(Clone)]
 pub struct Failure {
   cause: Arc<Cause>,
 }
 
 /// The cause of a failure.
 struct Cause {
-  location: Option<Location>,
-  message: SharedStr,
-  cause: Option<Arc<Cause>>,
-}
-
-/// The location of a failure.
-struct Location {
   file: Cow<'static, str>,
   line: usize,
+  message: SharedStr,
+  cause: Option<Arc<Cause>>,
 }
 
 /// Represents either success (`Ok`) or failure (`Err`).
@@ -48,26 +42,22 @@ impl Failure {
   ) -> Self {
     Self {
       cause: Arc::new(Cause {
-        location: Some(Location { file: file.into(), line: line.as_() }),
+        file: file.into(),
+        line: line.as_(),
         message: message.into(),
-        cause: cause.map(|f| f.cause),
+        cause: cause.map(|c| c.cause),
       }),
     }
   }
 
-  /// Returns the name of the file this failure occurred in, if it is known.
-  pub fn file(&self) -> Option<&str> {
-    self.cause.location.as_ref().map(|loc| loc.file.as_ref())
+  /// Returns the name of the file this failure occurred in.
+  pub fn file(&self) -> &str {
+    self.cause.file.as_ref()
   }
 
-  /// Returns a temporary value which displays the failure in color.
-  pub fn in_color(&self) -> fmt::InColor<&Self> {
-    fmt::InColor(self)
-  }
-
-  /// Returns the line number this failure occurred on, if it is known.
-  pub fn line(&self) -> Option<usize> {
-    self.cause.location.as_ref().map(|loc| loc.line)
+  /// Returns the line number this failure occurred on.
+  pub fn line(&self) -> usize {
+    self.cause.line
   }
 
   /// Returns the failure message.
@@ -93,7 +83,7 @@ impl Failure {
   }
 }
 
-// Implement conversion.
+// Implement conversion from panics.
 
 impl From<Panic> for Failure {
   fn from(panic: Panic) -> Self {
@@ -108,41 +98,24 @@ impl From<Panic> for Failure {
 
 impl Debug for Failure {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "Failure({:?})", self.cause.message)
+    let mut s = f.debug_struct("Failure");
+
+    s.field("file", &self.cause.file);
+    s.field("line", &self.cause.line);
+    s.field("message", &self.cause.message);
+
+    s.finish()
   }
 }
 
 impl Display for Failure {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    let mut causes = self.causes().peekable();
-    let f = fmt::IndentedFormatter::new(f, "", "  ");
+    let mut causes = self.causes();
 
-    if causes.peek().and_then(f)
+    write!(f, "{}", causes.next().unwrap())?;
 
-    for (i, cause) in causes.take_while(|c| c.location.is_none()).enumerate() {
-      if i > 0 {
-        write!(f, "; {}", cause);
-      } else {
-        write!(f, "{}", cause);
-      }
-    }
-
-    if !f.alternate() {
-      return Ok(());
-    }
-
-    while let Some(cause) = causes.next() {
+    for cause in causes {
       write!(f, "\n{}", cause)?;
-
-      if cause.location.is_none() {
-        while let Some(cause) = causes.next() {
-          write!(f, "; {}", cause)?;
-
-          if cause.location.is_some() {
-            break;
-          }
-        }
-      }
     }
 
     Ok(())
@@ -151,10 +124,6 @@ impl Display for Failure {
 
 impl Display for Cause {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    if let Some(loc) = &self.location {
-      write!(f, "at {} line {} — ", loc.file, loc.line)?;
-    }
-
-    write!(f, "{}", fmt::indent("", "  ", &self.message))
+    write!(f, "at {} line {} — {}", self.file, self.line, fmt::indent("", "  ", &self.message))
   }
 }
