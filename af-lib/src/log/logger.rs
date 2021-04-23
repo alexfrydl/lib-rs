@@ -4,10 +4,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-pub use af_macros::logger_init as init;
-
-use super::*;
-use crate::channel;
 use dashmap::DashMap;
 use log::{Level, LevelFilter, Log, Metadata, Record, RecordBuilder};
 use parking_lot::RwLock;
@@ -15,12 +11,25 @@ use std::cell::RefCell;
 use std::sync::atomic::{self, AtomicUsize};
 use std::thread;
 
+use crate::channel;
+use crate::channel::Channel;
+
+use super::*;
+
+pub use af_macros::logger_init as init;
+
 /// A logger to register with the `log` crate.
 struct Logger {
   dropped_messages: AtomicUsize,
   max_level: RwLock<LevelFilter>,
   max_level_of: DashMap<String, LevelFilter>,
-  output: (channel::Sender<String>, channel::Receiver<String>),
+  output: Channel<Output>,
+}
+
+/// One of the possible output commands.
+enum Output {
+  Flush(channel::Sender<()>),
+  Write(String),
 }
 
 /// The shared logger instance.
@@ -28,7 +37,7 @@ static LOGGER: Lazy<Logger> = Lazy::new(|| Logger {
   dropped_messages: default(),
   max_level: RwLock::new(LevelFilter::Warn),
   max_level_of: default(),
-  output: channel(),
+  output: Channel::new(),
 });
 
 thread_local! {
@@ -58,6 +67,16 @@ pub fn init() {
     .unwrap();
 }
 
+/// Waits until the logger finishes writing all records created before this
+/// call.
+pub async fn flush() {
+  let (tx, rx) = channel();
+
+  LOGGER.output.send(Output::Flush(tx));
+
+  rx.recv().await;
+}
+
 /// Sets the level of the logger.
 ///
 /// Records above this level are hidden. Use `None` to hide all records.
@@ -82,10 +101,11 @@ pub fn set_level_of(name: impl Into<String>, level: impl Into<Option<Level>>) {
 async fn output_messages() {
   let mut buffer = String::with_capacity(128);
   let logger = &*LOGGER;
-  let messages = &logger.output.1;
   let mut stderr = console::Term::stderr();
 
-  while let Some(message) = messages.recv().await {
+  loop {
+    let cmd = logger.output.recv().await;
+
     // If one or more messages were dropped, write an error message about it.
 
     let dropped_messages = logger.dropped_messages.swap(0, atomic::Ordering::Relaxed);
@@ -114,9 +134,17 @@ async fn output_messages() {
       buffer.clear();
     }
 
-    // Then write the message itself.
+    // Then run the command.
 
-    writeln!(stderr, "{}", message).unwrap();
+    match cmd {
+      Output::Write(message) => {
+        writeln!(stderr, "{}", message).unwrap();
+      }
+
+      Output::Flush(tx) => {
+        tx.send(());
+      }
+    }
   }
 }
 
@@ -218,10 +246,10 @@ impl Log for Logger {
     // Send a message to the output task immediately or increment the dropped
     // count.
 
-    if self.output.0.len() > 4096 {
+    if self.output.len() > 4096 {
       LOGGER.dropped_messages.fetch_add(1, atomic::Ordering::Relaxed);
     } else {
-      self.output.0.send(message);
+      self.output.send(Output::Write(message));
     }
   }
 

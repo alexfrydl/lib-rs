@@ -4,24 +4,18 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use af_lib::log;
 use af_lib::prelude::*;
 
 /// Main entry point for tests.
-fn main() {
-  log::init!();
+#[af_lib::main]
+async fn main() {
+  let result = future::capture_panic(async {
+    let test: Option<bool> = None;
 
-  future::block_on(async {
-    let result = future::capture_panic(async {
-      let test: Option<bool> = None;
-
-      test.expect("Hello world!");
-    });
-
-    if let Err(err) = result.await {
-      error!("{}", err);
-    }
+    test.expect("Hello world!");
   });
 
-  std::thread::sleep_ms(100);
+  if let Err(err) = result.await {
+    error!("{}", err);
+  }
 }

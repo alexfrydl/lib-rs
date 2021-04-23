@@ -13,56 +13,46 @@ pub fn run(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
   let syn::ItemFn { attrs, vis, sig, block } = syn::parse_macro_input!(item as syn::ItemFn);
   let name = &sig.ident;
 
-  // Require an async function.
+  // Check requirements.
 
   if sig.asyncness.is_none() {
-    abort!(sig.fn_token, "The runtime main function must be async.");
+    abort!(sig.fn_token, "main function must be async");
+  }
+
+  if !sig.inputs.is_empty() {
+    abort!(sig.inputs, "main function must not have inputs");
+  }
+
+  if !matches!(&sig.output, syn::ReturnType::Default) {
+    abort!(sig.output, "main function should not have an output");
   }
 
   // Generate the output.
 
-  #[allow(unused_mut)]
-  let mut init = TokenStream::new();
+  let mut code = TokenStream::new();
 
   #[cfg(feature = "logger")]
-  init.append_all(quote! {
-    af_core::log::init!();
+  code.append_all(quote! {
+    af_lib::log::init!();
   });
 
-  // Generate code to wrap the output in a result.
+  code.append_all(quote! {
+    af_lib::future::block_on(#name());
+  });
 
-  let wrap_result = match &sig.output {
-    syn::ReturnType::Default => quote! { Result::<_, i32>::Ok(output) },
-    _ => quote! { output },
-  };
+  #[cfg(feature = "logger")]
+  code.append_all(quote! {
+    af_lib::future::block_on(af_lib::log::flush());
+  });
 
   // Generate code to call the main function.
-
-  let run = match sig.inputs.len() {
-    0 => quote! {
-      af_core::task::runtime::run(async {
-        let output = #name().await;
-
-        #wrap_result
-      });
-    },
-
-    _ => quote! {
-      af_core::task::runtime::run_with(|cancel| async {
-        let output = #name(cancel).await;
-
-        #wrap_result
-      });
-    },
-  };
 
   let result = quote! {
     #vis fn main() {
       #(#attrs)*
       #sig #block
 
-      #init
-      #run
+      #code
     }
   };
 
