@@ -25,7 +25,7 @@
 //! }
 //! ```
 
-pub mod channel;
+pub mod concurrency;
 pub mod derive;
 pub mod env;
 pub mod failure;
@@ -45,7 +45,6 @@ pub mod thread;
 pub mod time;
 mod util;
 
-pub use self::channel::channel;
 pub use self::failure::fail;
 pub use self::random::random;
 pub use af_macros::main;

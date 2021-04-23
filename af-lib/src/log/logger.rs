@@ -11,8 +11,7 @@ use std::cell::RefCell;
 use std::sync::atomic::{self, AtomicUsize};
 use std::thread;
 
-use crate::channel;
-use crate::channel::Channel;
+use crate::concurrency::{channel, Channel};
 
 use super::*;
 
