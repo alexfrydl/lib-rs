@@ -20,12 +20,16 @@ pub struct Failure {
 }
 
 /// The cause of a failure.
-#[derive(Clone)]
 struct Cause {
-  file: &'static str,
-  line: usize,
+  location: Option<Location>,
   message: SharedStr,
   cause: Option<Arc<Cause>>,
+}
+
+/// The location of a failure.
+struct Location {
+  file: Cow<'static, str>,
+  line: usize,
 }
 
 /// Represents either success (`Ok`) or failure (`Err`).
@@ -37,24 +41,23 @@ pub type Result<T = (), E = Failure> = std::result::Result<T, E>;
 impl Failure {
   /// Creates a new failure.
   pub fn new(
-    file: &'static str,
+    file: impl Into<Cow<'static, str>>,
     line: impl AsPrimitive<usize>,
     message: impl Into<SharedStr>,
     cause: Option<Failure>,
   ) -> Self {
     Self {
       cause: Arc::new(Cause {
-        file,
-        line: line.as_(),
+        location: Some(Location { file: file.into(), line: line.as_() }),
         message: message.into(),
         cause: cause.map(|f| f.cause),
       }),
     }
   }
 
-  /// Returns the name of the file this failure occurred in.
-  pub fn file(&self) -> &'static str {
-    self.cause.file
+  /// Returns the name of the file this failure occurred in, if it is known.
+  pub fn file(&self) -> Option<&str> {
+    self.cause.location.as_ref().map(|loc| loc.file.as_ref())
   }
 
   /// Returns a temporary value which displays the failure in color.
@@ -62,9 +65,9 @@ impl Failure {
     fmt::InColor(self)
   }
 
-  /// Returns the line number this failure occurred on.
-  pub fn line(&self) -> usize {
-    self.cause.line
+  /// Returns the line number this failure occurred on, if it is known.
+  pub fn line(&self) -> Option<usize> {
+    self.cause.location.as_ref().map(|loc| loc.line)
   }
 
   /// Returns the failure message.
@@ -90,41 +93,55 @@ impl Failure {
   }
 }
 
+// Implement conversion.
+
+impl From<Panic> for Failure {
+  fn from(panic: Panic) -> Self {
+    match panic.message {
+      Some(message) => Self::new(panic.file, panic.line, format!("panicked: {}", message), None),
+      None => Self::new(panic.file, panic.line, "panicked", None),
+    }
+  }
+}
+
 // Implement formatting.
 
 impl Debug for Failure {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(
-      f,
-      "\"on line {} of `{}`: {}\"",
-      self.cause.line,
-      self.cause.file.escape_debug(),
-      self.cause.message.escape_debug()
-    )
+    write!(f, "Failure({:?})", self.cause.message)
   }
 }
 
 impl Display for Failure {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    Display::fmt(&self.cause, f)?;
+    let mut causes = self.causes().peekable();
+    let f = fmt::IndentedFormatter::new(f, "", "  ");
 
-    if f.alternate() {
-      for cause in self.causes().skip(1) {
-        write!(f, "\n{:#}", cause)?;
+    if causes.peek().and_then(f)
+
+    for (i, cause) in causes.take_while(|c| c.location.is_none()).enumerate() {
+      if i > 0 {
+        write!(f, "; {}", cause);
+      } else {
+        write!(f, "{}", cause);
       }
     }
 
-    Ok(())
-  }
-}
+    if !f.alternate() {
+      return Ok(());
+    }
 
-impl<'a> Display for fmt::InColor<&'a Failure> {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    Display::fmt(&self.0.cause.in_color(), f)?;
+    while let Some(cause) = causes.next() {
+      write!(f, "\n{}", cause)?;
 
-    if f.alternate() {
-      for cause in self.0.causes().skip(1) {
-        write!(f, "\n{:#}", cause.in_color())?;
+      if cause.location.is_none() {
+        while let Some(cause) = causes.next() {
+          write!(f, "; {}", cause)?;
+
+          if cause.location.is_some() {
+            break;
+          }
+        }
       }
     }
 
@@ -134,19 +151,10 @@ impl<'a> Display for fmt::InColor<&'a Failure> {
 
 impl Display for Cause {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "at {} line {} — {}", self.file, self.line, fmt::indent("", "  ", &self.message))
-  }
-}
+    if let Some(loc) = &self.location {
+      write!(f, "at {} line {} — ", loc.file, loc.line)?;
+    }
 
-impl<'a> Display for fmt::InColor<&'a Cause> {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(
-      f,
-      "{} {} line {} — {}",
-      style("at").black().bright(),
-      style(self.0.file).green(),
-      self.0.line,
-      fmt::indent("", "  ", &self.0.message),
-    )
+    write!(f, "{}", fmt::indent("", "  ", &self.message))
   }
 }

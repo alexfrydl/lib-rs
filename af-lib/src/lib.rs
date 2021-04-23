@@ -41,7 +41,6 @@ pub mod path;
 pub mod prelude;
 pub mod random;
 pub mod string;
-pub mod thread;
 pub mod time;
 mod util;
 
