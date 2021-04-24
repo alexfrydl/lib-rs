@@ -6,7 +6,10 @@
 
 use crate::prelude::*;
 
-/// A cloneable reference to a shared string.
+/// A cheaply cloneable shared string.
+///
+/// This type is useful when a value is likely to be a string literal (a
+/// `&'static str`) but could also be a string generated at runtime.
 #[derive(Clone)]
 pub struct SharedStr(Inner);
 

@@ -26,25 +26,12 @@
 //! ```
 
 pub mod concurrency;
-pub mod derive;
 pub mod env;
-pub mod failure;
-pub mod fmt;
 pub mod fs;
-pub mod future;
-pub mod iter;
-pub mod lazy;
 pub mod log;
 pub mod math;
-pub mod panic;
-pub mod path;
 pub mod prelude;
-pub mod random;
-pub mod string;
 pub mod time;
-mod util;
+pub mod util;
 
-pub use self::failure::fail;
-pub use self::random::random;
 pub use af_macros::main;
-pub use serde_json as json;

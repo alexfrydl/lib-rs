@@ -1,5 +1,5 @@
 use super::scope;
-use crate::string::SharedStr;
+use crate::util::SharedStr;
 use crate::{env, prelude::*};
 
 /// An executor which can run futures on multiple threads.

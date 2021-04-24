@@ -7,6 +7,15 @@
 //! Miscellaneous utilities.
 
 mod defer;
+pub mod derive;
+pub mod failure;
+pub mod fmt;
+pub mod future;
+pub mod iter;
+pub mod lazy;
+pub mod panic;
+pub mod random;
+mod shared_str;
 mod uuid;
 
 pub use cfg_if::cfg_if;
@@ -14,6 +23,8 @@ pub use futures_lite::pin;
 pub use pin_project::pin_project;
 
 pub use self::defer::defer;
+pub use self::failure::fail;
+pub use self::shared_str::SharedStr;
 pub use self::uuid::Uuid;
 
 /// Returns the “default value” for a type.

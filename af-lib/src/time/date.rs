@@ -8,6 +8,7 @@ use super::{Time, Zone};
 use crate::prelude::*;
 use chrono::{Datelike, TimeZone};
 
+/// ISO 8601 calendar date without time zone.
 #[derive(Clone, Copy, Eq, From, Into, Ord, PartialEq, PartialOrd)]
 pub struct Date(chrono::NaiveDate);
 

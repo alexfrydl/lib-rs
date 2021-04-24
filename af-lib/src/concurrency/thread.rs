@@ -1,6 +1,6 @@
 use super::{channel, scope};
 use crate::prelude::*;
-use crate::string::SharedStr;
+use crate::util::SharedStr;
 
 /// An executor which runs futures on a single thread.
 type Executor = Rc<async_executor::LocalExecutor<'static>>;

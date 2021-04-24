@@ -5,7 +5,7 @@ use rustc_hash::FxHashMap;
 
 use crate::concurrency::{channel, Channel};
 use crate::prelude::*;
-use crate::string::SharedStr;
+use crate::util::SharedStr;
 
 /// The name of a kind of scope; for example, "thread" or "task".
 pub type Kind = &'static str;

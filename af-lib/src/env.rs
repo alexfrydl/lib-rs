@@ -6,8 +6,8 @@
 
 //! Provides access to environment variables and well-known paths.
 
+use crate::fs;
 use crate::prelude::*;
-use crate::{fs, path};
 use std::ffi::OsString;
 use std::io;
 
@@ -48,7 +48,7 @@ static EXE_PATH: Lazy<Result<(String, String), String>> = Lazy::new(|| {
     .ok_or("non-unicode path name.")?
     .into();
 
-  let file = path::pop(&mut path).unwrap_or_default();
+  let file = fs::path::pop(&mut path).unwrap_or_default();
 
   Ok((path, file))
 });
@@ -126,11 +126,11 @@ pub fn workspace_path() -> Option<&'static str> {
     let mut workspace_path: String = project_path.into();
 
     loop {
-      path::append(&mut workspace_path, "Cargo.lock");
+      fs::path::append(&mut workspace_path, "Cargo.lock");
 
       let found = fs::is_file(&workspace_path).unwrap_or(false);
 
-      path::pop(&mut workspace_path);
+      fs::path::pop(&mut workspace_path);
 
       if found {
         break;
@@ -139,7 +139,7 @@ pub fn workspace_path() -> Option<&'static str> {
       // Try the parent directory next. If there's no parent directory, default to
       // the project path.
 
-      if path::pop(&mut workspace_path).is_none() {
+      if fs::path::pop(&mut workspace_path).is_none() {
         workspace_path.replace_range(.., project_path);
         break;
       }

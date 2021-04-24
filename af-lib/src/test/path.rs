@@ -5,7 +5,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use crate::prelude::*;
-use crate::string::SharedString;
+use crate::util::SharedString;
 
 /// A qualified test path, including scope names.
 #[derive(Clone, Default)]

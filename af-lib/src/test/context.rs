@@ -7,8 +7,8 @@
 use super::{Output, OutputStream, Path};
 use crate::channel;
 use crate::prelude::*;
-use crate::string::SharedString;
 use crate::task::{self, Task};
+use crate::util::SharedString;
 use std::collections::BTreeMap;
 
 /// A test context that groups related tests together.

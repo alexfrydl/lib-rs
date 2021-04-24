@@ -5,7 +5,6 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use crate::env;
-use crate::lazy::Lazy;
 use crate::prelude::*;
 use chrono_tz::{Tz, TZ_VARIANTS};
 use std::process::Command;

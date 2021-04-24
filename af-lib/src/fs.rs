@@ -6,9 +6,11 @@
 
 //! File system utilities.
 
+pub mod path;
+
 use std::io;
 
-use crate::path::PathLike;
+use self::path::PathLike;
 
 /// Checks whether a path exists.
 pub fn exists<'a>(path: impl PathLike<'a>) -> Result<bool, io::Error> {

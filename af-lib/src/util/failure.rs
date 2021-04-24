@@ -10,7 +10,7 @@ pub use af_macros::{fail, failure};
 
 use crate::math::AsPrimitive;
 use crate::prelude::*;
-use crate::string::SharedStr;
+use crate::util::SharedStr;
 
 /// A general-purpose cloneable error type.
 #[derive(Clone)]

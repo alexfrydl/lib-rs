@@ -1,6 +1,6 @@
 use super::{scope, thread};
 use crate::prelude::*;
-use crate::string::SharedStr;
+use crate::util::SharedStr;
 
 /// Starts a new fiber which runs a future to completion on the current thread.
 #[track_caller]
