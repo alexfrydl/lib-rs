@@ -84,7 +84,7 @@ where
           if children.is_empty() {
             for join in join_children.drain(..) {
               if let Some(event) = join.upgrade() {
-                event.notify(1);
+                event.notify_relaxed(1);
               }
             }
           }
@@ -98,6 +98,14 @@ where
 
         Op::JoinChildren(event) => {
           join_children.retain(|j| j.strong_count() > 0);
+
+          if children.is_empty() {
+            if let Some(event) = event.upgrade() {
+              event.notify_relaxed(1);
+              continue;
+            }
+          }
+
           join_children.push(event);
         }
       }
