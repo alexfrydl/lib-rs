@@ -4,10 +4,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use std::process::Command;
+
+use chrono_tz::{Tz, TZ_VARIANTS};
+
 use crate::env;
 use crate::prelude::*;
-use chrono_tz::{Tz, TZ_VARIANTS};
-use std::process::Command;
 
 /// The UTC time zone.
 pub const UTC: Zone = Zone(Tz::UTC);

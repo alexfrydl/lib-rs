@@ -6,19 +6,6 @@
 
 //! A “prelude” module containing common imports.
 
-pub use crate::log::{debug, error, info, trace, warn};
-pub use crate::math::{FloatExt as _, Number};
-pub use crate::time::{self, Date, Duration, Time};
-pub use crate::util::derive::*;
-pub use crate::util::failure::{self, fail, failure, Failure, Result};
-pub use crate::util::fmt::{self, Debug, Display, Write as _};
-pub use crate::util::future::{self, Future};
-pub use crate::util::iter::{self, Itertools as _};
-pub use crate::util::lazy::{self, Lazy};
-pub use crate::util::panic::{self, Panic};
-pub use crate::util::random::{self, random, Random};
-pub use crate::util::Uuid;
-pub use crate::util::{cfg_if, default, pin, pin_project};
 pub use std::any::Any;
 pub use std::borrow::*;
 pub use std::cell::{self, Cell, RefCell};
@@ -39,3 +26,17 @@ pub use std::{char, slice};
 pub use std::{f32, f64};
 pub use std::{i128, i16, i32, i64, i8, isize};
 pub use std::{u128, u16, u32, u64, u8, usize};
+
+pub use crate::log::{debug, error, info, trace, warn};
+pub use crate::math::{FloatExt as _, Number};
+pub use crate::time::{self, Date, Duration, Time};
+pub use crate::util::derive::*;
+pub use crate::util::failure::{self, fail, failure, Failure, Result};
+pub use crate::util::fmt::{self, Debug, Display, Write as _};
+pub use crate::util::future::{self, Future};
+pub use crate::util::iter::{self, Itertools as _};
+pub use crate::util::lazy::{self, Lazy};
+pub use crate::util::panic::{self, Panic};
+pub use crate::util::random::{self, random, Random};
+pub use crate::util::Uuid;
+pub use crate::util::{cfg_if, default, pin, pin_project};

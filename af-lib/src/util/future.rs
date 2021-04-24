@@ -6,14 +6,14 @@
 
 //! Common [`Future`] types and utilities.
 
+pub use std::future::Future;
+pub use std::task::{Context, Poll};
 use std::thread;
+
+pub use futures_lite::future::block_on;
 
 use crate::prelude::*;
 use crate::util::defer;
-
-pub use futures_lite::future::block_on;
-pub use std::future::Future;
-pub use std::task::{Context, Poll};
 
 /// Waits for a future, capturing panic information if one occurs.
 pub async fn capture_panic<F>(future: F) -> Result<F::Output, Panic>

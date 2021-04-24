@@ -4,18 +4,17 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use dashmap::DashMap;
-use log::{Level, LevelFilter, Log, Metadata, Record, RecordBuilder};
-use parking_lot::RwLock;
 use std::cell::RefCell;
 use std::sync::atomic::{self, AtomicUsize};
 use std::thread;
 
-use crate::concurrency::{channel, Channel};
+pub use af_macros::logger_init as init;
+use dashmap::DashMap;
+use log::{Level, LevelFilter, Log, Metadata, Record, RecordBuilder};
+use parking_lot::RwLock;
 
 use super::*;
-
-pub use af_macros::logger_init as init;
+use crate::concurrency::{channel, Channel};
 
 /// A logger to register with the `log` crate.
 struct Logger {

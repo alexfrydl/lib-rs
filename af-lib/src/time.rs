@@ -11,14 +11,14 @@ mod duration;
 mod span;
 mod zone;
 
+use chrono::{TimeZone, Timelike};
+use chrono_tz::Tz;
+
 pub use self::date::Date;
 pub use self::duration::{delay, Duration};
 pub use self::span::Span;
 pub use self::zone::{Zone, UTC};
-
 use crate::prelude::*;
-use chrono::{TimeZone, Timelike};
-use chrono_tz::Tz;
 
 /// A timestamp with a time zone.
 #[derive(Clone, Copy)]

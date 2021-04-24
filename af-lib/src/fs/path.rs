@@ -6,14 +6,14 @@
 
 //! Functions for working with Unicode file system paths.
 
-pub use af_macros::{path_join as join, path_normalize as normalize, path_resolve as resolve};
-
+use std::cell::RefCell;
+use std::path::Path;
 #[doc(inline)]
 pub use std::path::{is_separator, MAIN_SEPARATOR as SEPARATOR};
 
+pub use af_macros::{path_join as join, path_normalize as normalize, path_resolve as resolve};
+
 use crate::{env, prelude::*};
-use std::cell::RefCell;
-use std::path::Path;
 
 thread_local! {
   /// A thread-local buffer for operations that need temporary storage.

@@ -6,9 +6,9 @@
 
 //! Formatted logging using the [log](https://docs.rs/log) crate.
 
-pub use self::Level::*;
 pub use log::{debug, error, info, trace, warn, Level};
 
+pub use self::Level::*;
 use crate::prelude::*;
 
 cfg_if! {

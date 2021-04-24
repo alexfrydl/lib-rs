@@ -4,9 +4,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use chrono::{Datelike, TimeZone};
+
 use super::{Time, Zone};
 use crate::prelude::*;
-use chrono::{Datelike, TimeZone};
 
 /// ISO 8601 calendar date without time zone.
 #[derive(Clone, Copy, Eq, From, Into, Ord, PartialEq, PartialOrd)]

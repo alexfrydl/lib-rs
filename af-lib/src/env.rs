@@ -6,10 +6,11 @@
 
 //! Provides access to environment variables and well-known paths.
 
-use crate::fs;
-use crate::prelude::*;
 use std::ffi::OsString;
 use std::io;
+
+use crate::fs;
+use crate::prelude::*;
 
 /// One of the possible errors that can occur when reading an environment
 /// variable.

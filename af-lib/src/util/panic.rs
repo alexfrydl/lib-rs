@@ -1,6 +1,6 @@
-use crate::prelude::*;
-
 pub use std::panic::{AssertUnwindSafe, RefUnwindSafe, UnwindSafe};
+
+use crate::prelude::*;
 
 /// A captured panic.
 #[derive(Error, Debug, From)]

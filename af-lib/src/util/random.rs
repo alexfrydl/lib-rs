@@ -6,14 +6,16 @@
 
 //! Random number generation.
 
-use crate::prelude::*;
+use std::cell::RefCell;
+
 use parking_lot::Mutex;
 use rand::distributions::uniform::{SampleRange, SampleUniform};
 use rand::distributions::{self, Distribution};
 use rand::seq::SliceRandom;
 use rand::{Rng as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256StarStar;
-use std::cell::RefCell;
+
+use crate::prelude::*;
 
 /// Returns `true` with a given probability.
 ///
