@@ -6,7 +6,6 @@
 
 //! Common [`Iterator`] types and utilities.
 
-#[doc(no_inline)]
 pub use std::iter::*;
 
 pub use itertools::*;

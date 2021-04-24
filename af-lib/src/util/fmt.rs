@@ -6,7 +6,6 @@
 
 //! String formatting utilities.
 
-#[doc(no_inline)]
 pub use std::fmt::*;
 
 mod count;
