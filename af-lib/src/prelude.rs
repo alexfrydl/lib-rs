@@ -6,9 +6,6 @@
 
 //! A “prelude” module containing common imports.
 
-#[doc(hidden)]
-pub use crate as af_core;
-
 #[doc(no_inline)]
 pub use {
   crate::derive::*,

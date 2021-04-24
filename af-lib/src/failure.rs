@@ -124,6 +124,6 @@ impl Display for Failure {
 
 impl Display for Cause {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "at {} line {} — {}", self.file, self.line, fmt::indent("", "  ", &self.message))
+    write!(f, "at {} line {}\n{}", self.file, self.line, fmt::indent("  ", "  ", &self.message))
   }
 }

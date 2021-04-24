@@ -6,13 +6,16 @@
 
 //! Common [`Future`] types and utilities.
 
+mod noop_waker;
+
+use std::thread;
+
+use crate::prelude::*;
+use crate::util::defer;
+
 pub use futures_lite::future::block_on;
 pub use std::future::Future;
 pub use std::task::{Context, Poll};
-
-mod noop_waker;
-
-use crate::prelude::*;
 
 /// Waits for a future, capturing panic information if one occurs.
 pub async fn capture_panic<F>(future: F) -> Result<F::Output, Panic>
@@ -67,4 +70,55 @@ pub async fn race<T>(a: impl Future<Output = T>, b: impl Future<Output = T>) -> 
 pub fn try_resolve<T>(f: impl Future<Output = T>) -> Option<T> {
   pin!(f);
   poll(&mut f)
+}
+
+/// Executes a future, setting a thread local value while it is being polled.
+///
+/// This function can be used to implement “future local” values using a task
+/// local storage cell.
+pub async fn with_tls_value<V, F>(
+  key: &'static thread::LocalKey<RefCell<Option<V>>>,
+  value: V,
+  future: F,
+) -> F::Output
+where
+  V: 'static,
+  F: Future,
+{
+  #[pin_project]
+  struct WithTls<V: 'static, F> {
+    key: &'static thread::LocalKey<RefCell<Option<V>>>,
+    value: Option<V>,
+    #[pin]
+    future: F,
+  }
+
+  impl<V, F> Future for WithTls<V, F>
+  where
+    F: Future,
+  {
+    type Output = F::Output;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut future::Context<'_>) -> future::Poll<Self::Output> {
+      let key = self.key;
+      let mut this = self.project();
+      let local = &mut this.value;
+
+      key.with(|cell| mem::swap(&mut *cell.borrow_mut(), local));
+
+      let reset = defer(|| {
+        key.with(|cell| mem::swap(&mut *cell.borrow_mut(), local));
+      });
+
+      if let future::Poll::Ready(output) = this.future.poll(cx) {
+        reset.run();
+
+        return future::Poll::Ready(output);
+      }
+
+      future::Poll::Pending
+    }
+  }
+
+  WithTls { key, value: Some(value), future }.await
 }

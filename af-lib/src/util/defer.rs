@@ -20,6 +20,13 @@ where
   Deferred(ManuallyDrop::new(func))
 }
 
+impl<F, O> Deferred<F, O>
+where
+  F: FnOnce() -> O,
+{
+  pub fn run(self) {}
+}
+
 impl<F, O> Drop for Deferred<F, O>
 where
   F: FnOnce() -> O,

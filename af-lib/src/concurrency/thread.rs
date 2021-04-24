@@ -1,18 +1,59 @@
-// Copyright © 2020 Alexandra Frydl
-//
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+pub(crate) use async_io::block_on;
 
-//! Thread-based concurrency.
-
+use super::{channel, scope};
 use crate::prelude::*;
+use crate::string::SharedStr;
 
-pub fn spawn(name: impl Into<String>, future: impl Future + Send + 'static) {
+pub(crate) type Executor = Rc<async_executor::LocalExecutor<'static>>;
+
+thread_local! {
+  static EXECUTOR: RefCell<Option<Executor>> = default();
+}
+
+#[track_caller]
+pub fn start<F>(name: impl Into<SharedStr>, future: F)
+where
+  F: Future<Output = Result> + Send + 'static,
+{
+  let parent = scope::current().expect("thread does not support child threads");
+  let name = name.into();
+
   std::thread::Builder::new()
-    .name(name.into())
+    .name(name.to_string())
     .spawn(move || {
-      futures_lite::future::block_on(future);
+      let executor = init_executor();
+      let id = parent.create_child(scope::Kind::Thread, name);
+      let future = parent.run_child(id, future);
+      let (tx, rx) = channel::<()>();
+
+      let child = executor.spawn(async move {
+        let _tx = tx;
+
+        future.await
+      });
+
+      parent.set_child(id, child);
+
+      block_on(executor.run(rx.recv()));
     })
-    .unwrap();
+    .expect("failed to spawn thread");
+}
+
+pub(crate) fn executor() -> Option<Executor> {
+  EXECUTOR.with(|ex| ex.borrow().clone())
+}
+
+fn init_executor() -> Executor {
+  let executor = Executor::default();
+  EXECUTOR.with(|ex| *ex.borrow_mut() = Some(executor.clone()));
+  executor
+}
+
+pub(crate) fn run<F>(future: F) -> Result<(), scope::Error>
+where
+  F: Future<Output = Result> + 'static,
+{
+  let executor = init_executor();
+
+  block_on(executor.run(scope::run(future)))
 }

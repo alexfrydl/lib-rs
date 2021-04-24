@@ -24,6 +24,11 @@ use chrono_tz::Tz;
 #[derive(Clone, Copy)]
 pub struct Time(chrono::DateTime<Tz>);
 
+/// Waits for a duration to elapse.
+pub async fn delay(duration: Duration) {
+  async_io::Timer::after(duration.to_std()).await;
+}
+
 impl Time {
   /// Returns a value representing the maximum local date and time.
   pub fn max_value() -> Time {

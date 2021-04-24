@@ -23,9 +23,18 @@ pub fn run(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     abort!(sig.inputs, "main function must not have inputs");
   }
 
-  if !matches!(&sig.output, syn::ReturnType::Default) {
-    abort!(sig.output, "main function should not have an output");
-  }
+  // Wrap the function call depending on whether it returns a result.
+
+  let run = match sig.output {
+    syn::ReturnType::Default => quote! {
+      #name().await;
+      Ok(())
+    },
+
+    _ => quote! {
+      #name().await.map_err(|err| err.to_string())
+    },
+  };
 
   // Generate the output.
 
@@ -37,12 +46,9 @@ pub fn run(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
   });
 
   code.append_all(quote! {
-    af_lib::future::block_on(#name());
-  });
-
-  #[cfg(feature = "logger")]
-  code.append_all(quote! {
-    af_lib::future::block_on(af_lib::log::flush());
+    unsafe {
+      af_lib::concurrency::runtime::run(module_path!(), async { #run });
+    }
   });
 
   // Generate code to call the main function.
