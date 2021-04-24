@@ -8,9 +8,6 @@
 
 pub use std::future::Future;
 pub use std::task::{Context, Poll};
-use std::thread;
-
-pub use futures_lite::future::block_on;
 
 use crate::prelude::*;
 use crate::util::defer;
@@ -70,7 +67,7 @@ where
 {
   #[pin_project]
   struct WithTls<V: 'static, F> {
-    key: &'static thread::LocalKey<RefCell<V>>,
+    key: &'static std::thread::LocalKey<RefCell<V>>,
     value: V,
     #[pin]
     future: F,
