@@ -19,6 +19,18 @@ pub struct Duration {
   secs: f64,
 }
 
+/// Waits for a duration to elapse.
+pub async fn delay(duration: Duration) {
+  /// A cut-off value which suggests a timer is not needed.
+  const EFFECTIVELY_INFINITE: Duration = Duration { secs: 31536000000.0 };
+
+  if duration > EFFECTIVELY_INFINITE {
+    futures_lite::future::pending::<()>().await;
+  } else {
+    async_io::Timer::after(duration.to_std()).await;
+  }
+}
+
 impl Duration {
   /// An infinite duration.
   pub const INFINITE: Self = Self { secs: f64::INFINITY };

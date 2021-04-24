@@ -6,8 +6,6 @@
 
 //! Common [`Future`] types and utilities.
 
-mod noop_waker;
-
 use std::thread;
 
 use crate::prelude::*;
@@ -43,16 +41,8 @@ where
 }
 
 /// Waits forever.
-pub async fn forever<T>() -> T {
+pub async fn never() -> ! {
   futures_lite::future::pending().await
-}
-
-/// Polls a future and returns its result if it is ready.
-pub fn poll<F: Future + Unpin>(f: &mut F) -> Option<F::Output> {
-  match Pin::new(f).poll(&mut noop_waker::context()) {
-    Poll::Ready(value) => Some(value),
-    _ => None,
-  }
 }
 
 /// Waits for one of two futures to be ready and returns its result.
@@ -65,19 +55,12 @@ pub async fn race<T>(a: impl Future<Output = T>, b: impl Future<Output = T>) -> 
   a.or(b).await
 }
 
-/// Polls the future once then drops it, returning the output if the future was
-/// ready.
-pub fn try_resolve<T>(f: impl Future<Output = T>) -> Option<T> {
-  pin!(f);
-  poll(&mut f)
-}
-
 /// Executes a future, setting a thread local value while it is being polled.
 ///
-/// This function can be used to implement “future local” values using a task
+/// This function can be used to implement “future local” values using a thread
 /// local storage cell.
 pub async fn with_tls_value<V, F>(
-  key: &'static thread::LocalKey<RefCell<Option<V>>>,
+  key: &'static std::thread::LocalKey<RefCell<V>>,
   value: V,
   future: F,
 ) -> F::Output
@@ -87,8 +70,8 @@ where
 {
   #[pin_project]
   struct WithTls<V: 'static, F> {
-    key: &'static thread::LocalKey<RefCell<Option<V>>>,
-    value: Option<V>,
+    key: &'static thread::LocalKey<RefCell<V>>,
+    value: V,
     #[pin]
     future: F,
   }
@@ -120,5 +103,5 @@ where
     }
   }
 
-  WithTls { key, value: Some(value), future }.await
+  WithTls { key, value, future }.await
 }

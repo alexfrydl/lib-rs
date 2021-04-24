@@ -16,21 +16,3 @@ mod surround;
 pub use self::count::{count, Counted};
 pub use self::indent::{indent, Indented, IndentedFormatter};
 pub use self::surround::{surround, Surrounded};
-
-/// A wrapper struct which displays a value in color.
-pub struct InColor<T>(pub T);
-
-/// An extension trait adding the `in_color()` display function.
-pub trait InColorExt {
-  /// Returns a wrapper struct which displays a value in color.
-  fn in_color(&self) -> InColor<&Self>;
-}
-
-impl<T> InColorExt for T
-where
-  for<'a> InColor<&'a T>: Display,
-{
-  fn in_color(&self) -> InColor<&Self> {
-    InColor(self)
-  }
-}

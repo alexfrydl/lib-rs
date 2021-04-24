@@ -129,7 +129,8 @@ where
     }
   };
 
-  future::with_tls_value(&SCOPE, scope.clone(), future::race(main_future, event_listener)).await
+  future::with_tls_value(&SCOPE, Some(scope.clone()), future::race(main_future, event_listener))
+    .await
 }
 
 impl Scope {

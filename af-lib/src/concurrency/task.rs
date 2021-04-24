@@ -14,7 +14,7 @@ static EXECUTOR: Lazy<Executor> = Lazy::new(|| {
 
     std::thread::Builder::new()
       .name(format!("task executor {}", i + 1))
-      .spawn(move || async_io::block_on(executor.run(future::forever::<()>())))
+      .spawn(move || async_io::block_on(executor.run(future::never())))
       .expect("failed to spawn task executor thread");
   }
 

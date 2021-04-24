@@ -12,7 +12,7 @@ mod span;
 mod zone;
 
 pub use self::date::Date;
-pub use self::duration::Duration;
+pub use self::duration::{delay, Duration};
 pub use self::span::Span;
 pub use self::zone::{Zone, UTC};
 
@@ -23,11 +23,6 @@ use chrono_tz::Tz;
 /// A timestamp with a time zone.
 #[derive(Clone, Copy)]
 pub struct Time(chrono::DateTime<Tz>);
-
-/// Waits for a duration to elapse.
-pub async fn delay(duration: Duration) {
-  async_io::Timer::after(duration.to_std()).await;
-}
 
 impl Time {
   /// Returns a value representing the maximum local date and time.
