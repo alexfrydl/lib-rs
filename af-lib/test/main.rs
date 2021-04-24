@@ -13,12 +13,10 @@ async fn main() {
   fiber::start("a", async {
     time::delay(Duration::ms(10)).await;
     info!("Hello world!");
-    Ok(())
   });
 
   fiber::start("b", async {
-    time::delay(Duration::secs(1)).await;
-    Ok(())
+    fail!("Test");
   });
 
   join().await;

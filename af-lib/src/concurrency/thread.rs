@@ -24,9 +24,10 @@ fn init_executor() -> Executor {
 
 /// Starts a new thread which runs a future to completion.
 #[track_caller]
-pub fn start<F>(name: impl Into<SharedStr>, future: F)
+pub fn start<O, F>(name: impl Into<SharedStr>, future: F)
 where
-  F: Future<Output = Result> + Send + 'static,
+  O: scope::IntoOutput + 'static,
+  F: Future<Output = O> + Send + 'static,
 {
   let parent = scope::current().expect("thread does not support child threads");
   let name = name.into();
@@ -54,9 +55,10 @@ where
 
 /// Runs a future to completion on the current thread, as though it were started
 /// with [`start()`].
-pub(super) fn run<F>(future: F) -> Result<(), scope::Error>
+pub(super) fn run<O, F>(future: F) -> Result<(), scope::Error>
 where
-  F: Future<Output = Result> + 'static,
+  O: scope::IntoOutput + 'static,
+  F: Future<Output = O> + 'static,
 {
   let executor = init_executor();
 

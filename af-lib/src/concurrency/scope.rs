@@ -44,6 +44,11 @@ enum Op {
   JoinChildren(ArcWeak<event_listener::Event>),
 }
 
+/// A trait for types which can be used as concurrency scope outputs.
+pub trait IntoOutput {
+  fn into_scope_output(self) -> Result<(), String>;
+}
+
 thread_local! {
   /// The currently running scope.
   static SCOPE: RefCell<Option<Arc<Scope>>> = default();
@@ -55,9 +60,10 @@ pub fn current() -> Option<Arc<Scope>> {
 }
 
 /// Runs a future as a concurrency scope.
-pub async fn run<F>(future: F) -> Result
+pub async fn run<O, F>(future: F) -> Result
 where
-  F: Future<Output = failure::Result> + 'static,
+  O: IntoOutput + 'static,
+  F: Future<Output = O> + 'static,
 {
   let ops = Channel::new();
   let scope = Arc::new(Scope { next_child_id: AtomicUsize::new(1), ops: ops.sender() });
@@ -114,9 +120,12 @@ where
 
   let main_future = async move {
     match future::capture_panic(panic::AssertUnwindSafe(future)).await {
-      Ok(Ok(_)) => Ok(()),
-      Ok(Err(err)) => Err(Error::Error(err.to_string())),
       Err(panic) => Err(Error::Panic(panic)),
+
+      Ok(output) => match output.into_scope_output() {
+        Ok(()) => Ok(()),
+        Err(err) => Err(Error::Error(err)),
+      },
     }
   };
 
@@ -139,9 +148,10 @@ impl Scope {
   }
 
   /// Runs a future as a child scope.
-  pub fn run_child<F>(self: &Arc<Self>, id: usize, future: F) -> impl Future<Output = ()>
+  pub fn run_child<O, F>(self: &Arc<Self>, id: usize, future: F) -> impl Future<Output = ()>
   where
-    F: Future<Output = failure::Result> + 'static,
+    O: IntoOutput + 'static,
+    F: Future<Output = O> + 'static,
   {
     let scope = Arc::downgrade(self);
 
@@ -162,6 +172,26 @@ impl Scope {
     self.ops.send(Op::JoinChildren(Arc::downgrade(&event)));
 
     listener.await;
+  }
+}
+
+// Implement IntoOutput for () and result types.
+
+impl IntoOutput for () {
+  fn into_scope_output(self) -> Result<(), String> {
+    Ok(())
+  }
+}
+
+impl<E> IntoOutput for Result<(), E>
+where
+  E: Display,
+{
+  fn into_scope_output(self) -> Result<(), String> {
+    match self {
+      Ok(_) => Ok(()),
+      Err(err) => Err(err.to_string()),
+    }
   }
 }
 

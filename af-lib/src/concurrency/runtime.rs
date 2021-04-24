@@ -2,13 +2,14 @@ use std::process::exit;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::AcqRel;
 
-use super::thread;
+use super::{scope, thread};
 use crate::log;
 use crate::prelude::*;
 
-pub unsafe fn run<F>(module_path: &'static str, future: F) -> !
+pub unsafe fn run<O, F>(module_path: &'static str, future: F) -> !
 where
-  F: Future<Output = Result> + 'static,
+  O: scope::IntoOutput + 'static,
+  F: Future<Output = O> + 'static,
 {
   static ONCE: AtomicBool = AtomicBool::new(false);
 

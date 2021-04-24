@@ -28,7 +28,8 @@ pub fn run(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
   let run = match sig.output {
     syn::ReturnType::Default => quote! {
       #name().await;
-      Ok(())
+
+      Result::<(), std::convert::Infallible>::Ok(())
     },
 
     _ => quote! {

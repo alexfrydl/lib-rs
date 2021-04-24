@@ -24,9 +24,10 @@ static EXECUTOR: Lazy<Executor> = Lazy::new(|| {
 /// Starts a new task which runs a future to completion on a global, shared
 /// thread pool.
 #[track_caller]
-pub fn start<F>(name: impl Into<SharedStr>, future: F)
+pub fn start<O, F>(name: impl Into<SharedStr>, future: F)
 where
-  F: Future<Output = Result> + Send + 'static,
+  O: scope::IntoOutput + 'static,
+  F: Future<Output = O> + Send + 'static,
 {
   let parent = scope::current().expect("thread does not support tasks");
   let id = parent.register_child("task", name.into());
