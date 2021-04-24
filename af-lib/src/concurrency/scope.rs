@@ -7,80 +7,98 @@ use crate::concurrency::{channel, Channel};
 use crate::prelude::*;
 use crate::string::SharedStr;
 
-pub type Child = async_task::Task<()>;
-pub type Result<T = (), E = Error> = std::result::Result<T, E>;
+/// The name of a kind of scope; for example, "thread" or "task".
+pub type Kind = &'static str;
 
+/// A child of a scope.
+pub type Child = async_task::Task<()>;
+
+/// The result of running a scope to completion.
+type Result<T = (), E = Error> = std::result::Result<T, E>;
+
+/// A running scope.
 pub struct Scope {
   next_child_id: AtomicUsize,
-  child_events: channel::Sender<ChildEvent>,
+  ops: channel::Sender<Op>,
 }
 
-pub enum Kind {
-  Thread,
-  Fiber,
-  Task,
-}
-
+/// Identifying info about a scope
 pub struct Info {
   pub id: usize,
-  pub kind: Kind,
+  pub kind: &'static str,
   pub name: SharedStr,
 }
 
+/// An error returned from a scope.
 pub enum Error {
   Error(String),
   Panic(Panic),
   FromChild { child: Info, error: Box<Error> },
 }
 
-enum Event {
-  Created { kind: Kind, name: SharedStr },
-  Started(Child),
-  Finished(Result),
+/// One of the possible operations the scope controller can run.
+enum Op {
+  RegisterChild(Info),
+  InsertChild { id: usize, child: Child },
+  FinishChild { id: usize, result: Result },
+  JoinChildren(ArcWeak<event_listener::Event>),
 }
 
-type ChildEvent = (usize, Event);
-
 thread_local! {
+  /// The currently running scope.
   static SCOPE: RefCell<Option<Arc<Scope>>> = default();
 }
 
+/// Returns a reference to the currently running scope.
 pub fn current() -> Option<Arc<Scope>> {
   SCOPE.with(|cell| cell.borrow().clone())
 }
 
+/// Runs a future as a concurrency scope.
 pub async fn run<F>(future: F) -> Result
 where
   F: Future<Output = failure::Result> + 'static,
 {
-  let child_events = Channel::new();
-
-  let scope =
-    Arc::new(Scope { next_child_id: AtomicUsize::new(1), child_events: child_events.sender() });
+  let ops = Channel::new();
+  let scope = Arc::new(Scope { next_child_id: AtomicUsize::new(1), ops: ops.sender() });
+  let mut join_children: Vec<ArcWeak<event_listener::Event>> = default();
 
   let event_listener = async move {
     let mut children: FxHashMap<usize, (Info, Option<Child>)> = default();
 
     loop {
-      let (child_id, event) = child_events.recv().await;
-
-      match event {
-        Event::Created { kind, name } => {
-          children.insert(child_id, (Info { kind, id: child_id, name }, None));
+      match ops.recv().await {
+        Op::RegisterChild(info) => {
+          children.insert(info.id, (info, None));
         }
 
-        Event::Started(child) => {
-          if let Some(entry) = children.get_mut(&child_id) {
+        Op::InsertChild { id, child } => {
+          if let Some(entry) = children.get_mut(&id) {
             entry.1 = Some(child);
           }
         }
 
-        Event::Finished(result) => {
-          if let Some((info, _)) = children.remove(&child_id) {
+        Op::FinishChild { id, result } => {
+          let entry = children.remove(&id);
+
+          if children.is_empty() {
+            for join in join_children.drain(..) {
+              if let Some(event) = join.upgrade() {
+                event.notify(1);
+              }
+            }
+          }
+
+          if let Some((info, _)) = entry {
             if let Err(err) = result {
               return Err(Error::FromChild { child: info, error: Box::new(err) });
             }
           }
+        }
+
+        Op::JoinChildren(event) => {
+          join_children.retain(|j| j.strong_count() > 0);
+          join_children.push(event);
         }
       }
     }
@@ -98,20 +116,21 @@ where
 }
 
 impl Scope {
-  pub fn create_child(&self, kind: Kind, name: impl Into<SharedStr>) -> usize {
+  /// Registers a child of this scope.
+  ///
+  /// The actual child must later be provided with [`insert_child()`],
+  pub fn register_child(&self, kind: Kind, name: impl Into<SharedStr>) -> usize {
     let id = self.next_child_id.fetch_add(1, AcqRel);
-    self.child_events.send((id, Event::Created { kind, name: name.into() }));
+    self.ops.send(Op::RegisterChild(Info { id, kind, name: name.into() }));
     id
   }
 
-  pub fn set_child(&self, id: usize, child: Child) {
-    self.child_events.send((id, Event::Started(child)));
+  /// Inserts a previously registered child.
+  pub fn insert_child(&self, id: usize, child: Child) {
+    self.ops.send(Op::InsertChild { id, child });
   }
 
-  pub fn finish_child(&self, id: usize, result: Result) {
-    self.child_events.send((id, Event::Finished(result)));
-  }
-
+  /// Runs a future as a child scope.
   pub fn run_child<F>(self: &Arc<Self>, id: usize, future: F) -> impl Future<Output = ()>
   where
     F: Future<Output = failure::Result> + 'static,
@@ -122,11 +141,25 @@ impl Scope {
       let result = run(future).await;
 
       if let Some(scope) = scope.upgrade() {
-        scope.finish_child(id, result);
+        scope.ops.send(Op::FinishChild { id, result });
       }
     }
   }
+
+  /// Waits for all children to exit.
+  pub async fn join_children(&self) {
+    let event = Arc::new(event_listener::Event::new());
+    let listener = event.listen();
+
+    self.ops.send(Op::JoinChildren(Arc::downgrade(&event)));
+
+    listener.await;
+  }
 }
+
+// Implement formatting for errors so that they can be used as part of a
+// sentence. For example, "The main task {}" to describe why the main task
+// failed.
 
 impl Display for Error {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -141,16 +174,6 @@ impl Display for Error {
         "" => write!(f, "failed\nbecause {} {} {}", child.kind, child.id, error),
         name => write!(f, "failed\nbecause {} {:?} {}", child.kind, name, error),
       },
-    }
-  }
-}
-
-impl Display for Kind {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    match self {
-      Kind::Thread => write!(f, "thread"),
-      Kind::Fiber => write!(f, "fiber"),
-      Kind::Task => write!(f, "task"),
     }
   }
 }

@@ -22,7 +22,7 @@ where
     error!(target: module_path, "Main thread {}", fmt::indent("", "  ", err));
   }
 
-  thread::block_on(log::flush());
+  async_io::block_on(log::flush());
 
   match result {
     Ok(_) => exit(0),

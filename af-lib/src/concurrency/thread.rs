@@ -1,15 +1,28 @@
-pub(crate) use async_io::block_on;
-
 use super::{channel, scope};
 use crate::prelude::*;
 use crate::string::SharedStr;
 
-pub(crate) type Executor = Rc<async_executor::LocalExecutor<'static>>;
+/// An executor which runs futures on a single thread.
+type Executor = Rc<async_executor::LocalExecutor<'static>>;
 
 thread_local! {
+  /// A thread-specific executor.
   static EXECUTOR: RefCell<Option<Executor>> = default();
 }
 
+/// Returns a reference to the current thread's executor, if one exists.
+pub(super) fn executor() -> Option<Executor> {
+  EXECUTOR.with(|ex| ex.borrow().clone())
+}
+
+/// Creates an executor for the current thread and returns a reference to it.
+fn init_executor() -> Executor {
+  let executor = Executor::default();
+  EXECUTOR.with(|ex| *ex.borrow_mut() = Some(executor.clone()));
+  executor
+}
+
+/// Starts a new thread which runs a future to completion.
 #[track_caller]
 pub fn start<F>(name: impl Into<SharedStr>, future: F)
 where
@@ -22,7 +35,7 @@ where
     .name(name.to_string())
     .spawn(move || {
       let executor = init_executor();
-      let id = parent.create_child(scope::Kind::Thread, name);
+      let id = parent.register_child("thread", name);
       let future = parent.run_child(id, future);
       let (tx, rx) = channel::<()>();
 
@@ -32,28 +45,20 @@ where
         future.await
       });
 
-      parent.set_child(id, child);
+      parent.insert_child(id, child);
 
-      block_on(executor.run(rx.recv()));
+      async_io::block_on(executor.run(rx.recv()));
     })
     .expect("failed to spawn thread");
 }
 
-pub(crate) fn executor() -> Option<Executor> {
-  EXECUTOR.with(|ex| ex.borrow().clone())
-}
-
-fn init_executor() -> Executor {
-  let executor = Executor::default();
-  EXECUTOR.with(|ex| *ex.borrow_mut() = Some(executor.clone()));
-  executor
-}
-
-pub(crate) fn run<F>(future: F) -> Result<(), scope::Error>
+/// Runs a future to completion on the current thread, as though it were started
+/// with [`start()`].
+pub(super) fn run<F>(future: F) -> Result<(), scope::Error>
 where
   F: Future<Output = Result> + 'static,
 {
   let executor = init_executor();
 
-  block_on(executor.run(scope::run(future)))
+  async_io::block_on(executor.run(scope::run(future)))
 }

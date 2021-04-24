@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use af_lib::concurrency::{fiber, task, thread};
+use af_lib::concurrency::{fiber, join};
 use af_lib::prelude::*;
 
 /// Main entry point for tests.
@@ -17,7 +17,9 @@ async fn main() {
   });
 
   fiber::start("b", async {
-    time::delay(Duration::ms(10)).await;
-    fail!("oh fuck");
+    time::delay(Duration::secs(1)).await;
+    Ok(())
   });
+
+  join().await;
 }
