@@ -1,3 +1,5 @@
+//! Contains functionality associated with [`DateTime`].
+
 use chrono::{TimeZone as _, Timelike};
 use chrono_tz::Tz;
 

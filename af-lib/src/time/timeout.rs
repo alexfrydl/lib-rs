@@ -1,4 +1,4 @@
-//! Simple timeouts for async operations.
+//! Contains functionality associated with [`timeout()`].
 
 use super::Duration;
 use crate::prelude::*;
