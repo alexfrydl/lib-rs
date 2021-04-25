@@ -15,7 +15,7 @@ pub use std::error::Error;
 pub use std::hash::{self, Hash, Hasher};
 pub use std::io::{BufRead as _, Read as _, Seek as _, Write as _};
 pub use std::marker::PhantomData;
-pub use std::mem::{self, ManuallyDrop};
+pub use std::mem;
 pub use std::ops::*;
 pub use std::pin::Pin;
 pub use std::ptr;
