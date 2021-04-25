@@ -14,12 +14,12 @@ pub fn defer<F>(closure: F) -> Deferred<F>
 where
   F: FnOnce(),
 {
-  Deferred(ManuallyDrop::new(closure))
+  Deferred(Some(closure))
 }
 
 /// A deferred closure that will be run when dropped.
 #[must_use = "A deferred closure is run when dropped. Use a `let` binding to defer it until the end of the block."]
-pub struct Deferred<F>(ManuallyDrop<F>)
+pub struct Deferred<F>(Option<F>)
 where
   F: FnOnce();
 
@@ -29,9 +29,7 @@ where
 {
   /// Cancels the deferred closure, dropping it instead.
   pub fn cancel(mut self) {
-    let _closure = unsafe { ManuallyDrop::take(&mut self.0) };
-
-    mem::forget(self);
+    self.0.take();
   }
 
   /// Runs the deferred closure now.
@@ -47,8 +45,8 @@ where
   F: FnOnce(),
 {
   fn drop(&mut self) {
-    let closure = unsafe { ManuallyDrop::take(&mut self.0) };
-
-    closure();
+    if let Some(closure) = self.0.take() {
+      closure();
+    }
   }
 }
