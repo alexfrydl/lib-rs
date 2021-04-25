@@ -23,8 +23,7 @@ pub struct IndentedFormatter<'a, F> {
   start_of_line: bool,
 }
 
-/// Wraps the value so that it is displayed with the given initial and hanging
-/// indentation.
+/// Wraps a value so that it displays with custom indentation.
 pub fn indent<'a, T>(initial: &'a str, hanging: &'a str, value: T) -> Indented<'a, T> {
   Indented { initial, hanging, value }
 }

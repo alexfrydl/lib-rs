@@ -4,36 +4,51 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+//! Deferred closures for running code when a block ends or a panic occurs.
+
 use crate::prelude::*;
 
-/// A deferred function that will be called when dropped.
-#[must_use = "This deferred function runs immediately. Assign it to a guard to run it at the end of the block: `let _guard = defer(…);`"]
-pub struct Deferred<F, O>(ManuallyDrop<F>)
+/// Defers a closure so that it is run when the returned [`Deferred`] is
+/// dropped.
+pub fn defer<F>(closure: F) -> Deferred<F>
 where
-  F: FnOnce() -> O;
-
-/// Defers a function so that it is called when dropped.
-pub fn defer<F, O>(func: F) -> Deferred<F, O>
-where
-  F: FnOnce() -> O,
+  F: FnOnce(),
 {
-  Deferred(ManuallyDrop::new(func))
+  Deferred(ManuallyDrop::new(closure))
 }
 
-impl<F, O> Deferred<F, O>
+/// A deferred closure that will be run when dropped.
+#[must_use = "A deferred closure is run when dropped. Use a `let` binding to defer it until the end of the block."]
+pub struct Deferred<F>(ManuallyDrop<F>)
 where
-  F: FnOnce() -> O,
+  F: FnOnce();
+
+impl<F> Deferred<F>
+where
+  F: FnOnce(),
 {
-  pub fn run(self) {}
+  /// Cancels the deferred closure, dropping it instead.
+  pub fn cancel(mut self) {
+    let _closure = unsafe { ManuallyDrop::take(&mut self.0) };
+
+    mem::forget(self);
+  }
+
+  /// Runs the deferred closure now.
+  ///
+  /// This is equivalent to (but more readable than) calling `drop()`.
+  pub fn run_now(self) {}
 }
 
-impl<F, O> Drop for Deferred<F, O>
+// Implement Drop to run the deferred closure.
+
+impl<F> Drop for Deferred<F>
 where
-  F: FnOnce() -> O,
+  F: FnOnce(),
 {
   fn drop(&mut self) {
-    let func = unsafe { ManuallyDrop::take(&mut self.0) };
+    let closure = unsafe { ManuallyDrop::take(&mut self.0) };
 
-    func();
+    closure();
   }
 }

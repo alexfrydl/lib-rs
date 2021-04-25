@@ -43,7 +43,8 @@ thread_local! {
   static THREAD_BUFFER: RefCell<String> = default();
 }
 
-/// Initializes the logger.
+#[doc(hidden)]
+/// Initializes the logger if it is not already initialized.
 pub fn init() {
   if log::set_logger(&*LOGGER).is_err() {
     return;
@@ -51,21 +52,13 @@ pub fn init() {
 
   log::set_max_level(LevelFilter::Trace);
 
-  set_level_of(
-    "af_core",
-    match cfg!(debug_assertions) {
-      true => Debug,
-      false => Info,
-    },
-  );
-
   thread::Builder::new()
-    .name("af_runtime::logger".into())
+    .name("logger".into())
     .spawn(|| futures_lite::future::block_on(output_messages()))
     .unwrap();
 }
 
-/// Waits until the logger finishes writing all records created before this
+/// Waits until the logger finishes writing all messages logged before this
 /// call.
 pub async fn flush() {
   let (tx, rx) = channel();
@@ -75,9 +68,10 @@ pub async fn flush() {
   rx.recv().await;
 }
 
-/// Sets the level of the logger.
+/// Sets the current verbosity level.
 ///
-/// Records above this level are hidden. Use `None` to hide all records.
+/// Set `level` to `None` to hide all messages. The verbosity of specific
+/// modules can be overridden by calling [`set_level_of()`].
 pub fn set_level(level: impl Into<Option<Level>>) {
   let level = level.into().map(|lv| lv.to_level_filter()).unwrap_or(LevelFilter::Off);
   let mut max_level = LOGGER.max_level.write();
@@ -85,9 +79,9 @@ pub fn set_level(level: impl Into<Option<Level>>) {
   *max_level = level;
 }
 
-/// Sets the level of a target.
+/// Sets the current verbosity level for a specific module.
 ///
-/// Records above this level are hidden. Use `None` to hide all records.
+/// Set `level` to `None` to hide all messages from the module.
 pub fn set_level_of(name: impl Into<String>, level: impl Into<Option<Level>>) {
   let level = level.into().map(|lv| lv.to_level_filter()).unwrap_or(LevelFilter::Off);
   let name = name.into();

@@ -52,7 +52,7 @@ pub async fn race<T>(a: impl Future<Output = T>, b: impl Future<Output = T>) -> 
   a.or(b).await
 }
 
-/// Executes a future, setting a thread local value while it is being polled.
+/// Executes a future, setting a thread local value whenever it is polled.
 ///
 /// This function can be used to implement “future local” values using a thread
 /// local storage cell.
@@ -91,7 +91,7 @@ where
       });
 
       if let future::Poll::Ready(output) = this.future.poll(cx) {
-        reset.run();
+        reset.run_now();
 
         return future::Poll::Ready(output);
       }

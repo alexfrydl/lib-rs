@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-/// Initializes `af_runtime::logger`.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! logger_init {
   () => {

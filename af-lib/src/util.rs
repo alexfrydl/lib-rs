@@ -6,7 +6,7 @@
 
 //! Miscellaneous utilities.
 
-mod defer;
+pub mod defer;
 pub mod derive;
 pub mod failure;
 pub mod fmt;
@@ -18,12 +18,13 @@ pub mod random;
 mod shared_str;
 mod uuid;
 
-pub use cfg_if::cfg_if;
 pub use futures_lite::pin;
 pub use pin_project::pin_project;
 
+#[doc(inline)]
 pub use self::defer::defer;
-pub use self::failure::fail;
+#[doc(inline)]
+pub use self::failure::{failure, Failure};
 pub use self::shared_str::SharedStr;
 pub use self::uuid::Uuid;
 

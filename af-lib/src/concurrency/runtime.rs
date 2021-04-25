@@ -12,6 +12,10 @@ use super::{scope, thread};
 use crate::log;
 use crate::prelude::*;
 
+/// Runs the runtime until it exits the process.
+///
+/// This function is marked unsafe because it may only be called once on the
+///  main thread. Use the `main` proc macro instead.
 pub unsafe fn run<O, F>(module_path: &'static str, future: F) -> !
 where
   O: scope::IntoOutput + 'static,

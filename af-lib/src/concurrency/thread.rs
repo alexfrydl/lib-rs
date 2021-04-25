@@ -4,6 +4,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+//! Run operations concurrently by starting them on separate dedicated threads.
+
 use super::{channel, scope};
 use crate::prelude::*;
 use crate::util::SharedStr;

@@ -28,7 +28,7 @@ macro_rules! failure {
   };
 }
 
-/// Creates a new `Failure`.
+/// Returns an `Err(Failure)` from the current function.
 #[macro_export]
 macro_rules! fail {
   ($($arg:tt)*) => {

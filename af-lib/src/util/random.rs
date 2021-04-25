@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//! Random number generation.
+//! Randomness utilities and random number generation.
 
 use std::cell::RefCell;
 
@@ -40,7 +40,7 @@ pub fn range<T: SampleUniform>(range: impl SampleRange<T>) -> T {
   THREAD_RNG.with(|rng| rng.borrow_mut().gen_range(range))
 }
 
-/// Returns `true` with a probability expressed by the ratio between two given
+/// Returns `true` with a probability expressed by the ratio between two
 /// numbers.
 pub fn ratio<T: Number + SampleUniform>(numerator: T, denominator: T) -> bool {
   THREAD_RNG.with(|rng| rng.borrow_mut().gen_ratio(numerator, denominator))
@@ -51,7 +51,7 @@ pub fn shuffle<T>(slice: &mut [T]) {
   THREAD_RNG.with(|rng| rng.borrow_mut().shuffle(slice))
 }
 
-/// A trait for types that can be created randomly.
+/// A trait for types that can be initialized randomly.
 pub trait Random: Sized {
   /// Returns a random value using the given `Rng`.
   fn random_with(rng: &mut Rng) -> Self;

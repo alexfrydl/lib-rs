@@ -8,18 +8,18 @@ use super::*;
 use crate::math::One;
 use crate::prelude::*;
 
-/// Displays a correctly pluralized count of something, for example `1 user` vs.
-/// `3 users`.
+/// Wraps a value so that it displays with a correctly pluralized label; for
+/// example, `1 image` vs. `3 images`.
+pub fn count<'a, T>(count: T, one: &'a str, many: &'a str) -> Counted<'a, T> {
+  Counted { count, one, many }
+}
+
+/// A wrapper returned from [`count()`] that displays its value with a correctly
+/// pluralized label.
 pub struct Counted<'a, T> {
   pub count: T,
   pub one: &'a str,
   pub many: &'a str,
-}
-
-/// Displays a correctly pluralized count of something, for example `1 user` vs.
-/// `3 users`.
-pub fn count<'a, T>(count: T, one: &'a str, many: &'a str) -> Counted<'a, T> {
-  Counted { count, one, many }
 }
 
 impl<'a, T> Display for Counted<'a, T>

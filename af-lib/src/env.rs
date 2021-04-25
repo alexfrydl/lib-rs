@@ -12,15 +12,14 @@ use std::io;
 use crate::fs;
 use crate::prelude::*;
 
-/// One of the possible errors that can occur when reading an environment
-/// variable.
+/// One of the possible errors returned when reading an environment variable.
 #[derive(Debug, Error)]
 pub enum VarError {
   /// Environment variable not present.
-  #[error("Environment variable not present.")]
+  #[error("not present")]
   NotPresent,
   /// Environment variable contains non-Unicode characters.
-  #[error("Environment variable contains non-Unicode characters.")]
+  #[error("contains non-Unicode characters")]
   NotUnicode(OsString),
 }
 
@@ -28,13 +27,13 @@ pub enum VarError {
 #[derive(Debug, Clone, Error)]
 pub enum WorkingPathError {
   /// The working path was not found.
-  #[error("Not found.")]
+  #[error("not found")]
   NotFound,
   /// The user does not have permission to access the current working directory.
-  #[error("Permission denied.")]
+  #[error("permission denied")]
   PermissionDenied,
   /// The working path is not unicode.
-  #[error("The path contains non-Unicode characters: `{0:?}`.")]
+  #[error("path contains non-Unicode characters")]
   NotUnicode(OsString),
   /// Some other error occurred.
   #[error("{0}")]
@@ -59,7 +58,7 @@ pub fn exe_name() -> &'static str {
   &EXE_PATH.as_ref().expect("Failed to determine path to current executable").1
 }
 
-/// Returns the full file system path to directory containing the currently
+/// Returns the full file system path to the directory containing the currently
 /// running executable.
 pub fn exe_path() -> &'static str {
   &EXE_PATH.as_ref().expect("Failed to determine path to current executable").0
@@ -95,7 +94,7 @@ pub fn var(name: &str) -> Option<String> {
   std::env::var(name).ok()
 }
 
-/// Returns the value of the given environment variable.
+/// Returns the value of the given environment variable as an `OsString`.
 pub fn var_os(name: &str) -> Option<OsString> {
   std::env::var_os(name)
 }
