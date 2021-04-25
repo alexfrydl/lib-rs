@@ -4,9 +4,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use chrono::{Datelike, TimeZone};
+use chrono::{Datelike, TimeZone as _};
 
-use super::{Time, Zone};
+use super::Zone;
 use crate::prelude::*;
 
 /// ISO 8601 calendar date without time zone.
@@ -44,19 +44,22 @@ impl Date {
     Self(self.0.pred())
   }
 
-  /// Convert the date to a time in the local time zone.
-  pub fn to_local_time(&self) -> Time {
+  /// Converts the date to a [`DateTime`] representing midnight in the local
+  /// time zone at the start of the same day.
+  pub fn to_local_time(&self) -> DateTime {
     self.to_time(Zone::local())
   }
 
-  /// Converts the date to a time in the given time zone.
-  pub fn to_time(&self, zone: Zone) -> Time {
-    Time(zone.as_tz().from_local_date(&self.0).and_hms_opt(0, 0, 0).unwrap())
+  /// Converts the date to a [`DateTime`] representing midnight at the start of
+  /// the same day.
+  pub fn to_time(&self, zone: Zone) -> DateTime {
+    zone.as_tz().from_local_date(&self.0).and_hms_opt(0, 0, 0).unwrap().into()
   }
 
-  /// Convert the date to a time in UTC.
-  pub fn to_utc_time(&self) -> Time {
-    self.to_time(super::UTC)
+  /// Converts the date to a [`DateTime`] representing midnight in UTC at the
+  /// start of the same day.
+  pub fn to_utc_time(&self) -> DateTime {
+    self.to_time(Zone::utc())
   }
 
   /// Returns the year number.

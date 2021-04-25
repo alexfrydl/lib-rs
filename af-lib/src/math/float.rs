@@ -4,8 +4,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use crate::prelude::*;
-
 /// An extension trait for `f32` and `f64`.
 pub trait FloatExt {
   /// Rounds the number up to a specified number of decimal places.

@@ -44,13 +44,13 @@ pub fn run(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
   #[cfg(feature = "logger")]
   code.append_all(quote! {
     unsafe {
-      af_lib::log::init!();
+      __af_lib_macro_helpers::__log_init!();
     }
   });
 
   code.append_all(quote! {
     unsafe {
-      af_lib::concurrency::runtime::run(module_path!(), async { #run });
+      __af_lib_macro_helpers::__runtime_run(module_path!(), async { #run });
     }
   });
 

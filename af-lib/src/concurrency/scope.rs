@@ -13,7 +13,7 @@ use rustc_hash::FxHashMap;
 
 use crate::concurrency::channel;
 use crate::prelude::*;
-use crate::util::SharedStr;
+use crate::util::{future, panic, Panic, SharedStr};
 
 thread_local! {
   /// The currently running scope.

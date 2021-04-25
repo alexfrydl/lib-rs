@@ -10,6 +10,52 @@ pub use parse_duration::parse::Error as ParseError;
 use crate::math::AsPrimitive;
 use crate::prelude::*;
 
+/// Returns a [`Duration`] representing a number of days.
+pub fn days(days: impl AsPrimitive<f64>) -> Duration {
+  seconds(days.as_() * 24.0 * 60.0 * 60.0)
+}
+
+/// Returns an infinite [`Duration`].
+pub fn forever() -> Duration {
+  Duration { secs: f64::INFINITY }
+}
+
+/// Returns a [`Duration`] representing a number of hours.
+pub fn hours(hours: impl AsPrimitive<f64>) -> Duration {
+  seconds(hours.as_() * 60.0 * 60.0)
+}
+
+/// Returns a [`Duration`] representing a number of Hz.
+pub fn hz(hz: impl AsPrimitive<f64>) -> Duration {
+  seconds(1.0 / hz.as_())
+}
+
+/// Returns a [`Duration`] representing a number of minutes.
+pub fn minutes(minutes: impl AsPrimitive<f64>) -> Duration {
+  seconds(minutes.as_() * 60.0)
+}
+
+/// Returns a [`Duration`] representing a number of milliseconds.
+pub fn milliseconds(ms: impl AsPrimitive<f64>) -> Duration {
+  seconds(ms.as_() / 1000.0)
+}
+
+/// Returns a [`Duration`] representing a number of seconds.
+pub fn seconds(secs: impl AsPrimitive<f64>) -> Duration {
+  let mut secs = secs.as_();
+
+  if secs.is_nan() {
+    secs = 0.0;
+  }
+
+  Duration { secs: secs.max(0.0) }
+}
+
+/// Returns a [`Duration`] representing a number of weeks.
+pub fn weeks(weeks: impl AsPrimitive<f64>) -> Duration {
+  seconds(weeks.as_() * 7.0 * 24.0 * 60.0 * 60.0)
+}
+
 /// A duration of time.
 ///
 /// The duration is stored as a 64-bit floating point number of seconds and
@@ -19,64 +65,7 @@ pub struct Duration {
   secs: f64,
 }
 
-/// Waits for a duration to elapse.
-pub async fn delay(duration: Duration) {
-  /// A cut-off value which suggests a timer is not needed.
-  const EFFECTIVELY_INFINITE: Duration = Duration { secs: 31536000000.0 };
-
-  if duration > EFFECTIVELY_INFINITE {
-    futures_lite::future::pending::<()>().await;
-  } else {
-    async_io::Timer::after(duration.to_std()).await;
-  }
-}
-
 impl Duration {
-  /// An infinite duration.
-  pub const INFINITE: Self = Self { secs: f64::INFINITY };
-
-  /// A zero-length duration.
-  pub const ZERO: Self = Self { secs: 0.0 };
-
-  /// Returns a duration of the given number of weeks.
-  pub fn weeks(weeks: impl AsPrimitive<f64>) -> Self {
-    Self::secs(weeks.as_() * 7.0 * 24.0 * 60.0 * 60.0)
-  }
-
-  /// Returns a duration of the given number of days.
-  pub fn days(days: impl AsPrimitive<f64>) -> Self {
-    Self::secs(days.as_() * 24.0 * 60.0 * 60.0)
-  }
-
-  /// Returns a duration of the given number of hours.
-  pub fn hours(hours: impl AsPrimitive<f64>) -> Self {
-    Self::secs(hours.as_() * 60.0 * 60.0)
-  }
-
-  /// Returns a duration of the given number of minutes.
-  pub fn mins(mins: impl AsPrimitive<f64>) -> Self {
-    Self::secs(mins.as_() * 60.0)
-  }
-
-  /// Returns a duration of the given number of seconds.
-  pub fn secs(secs: impl AsPrimitive<f64>) -> Self {
-    let secs = secs.as_();
-
-    assert!(!secs.is_nan(), "Duration cannot be NaN.");
-
-    Self { secs: secs.max(0.0) }
-  }
-
-  /// Returns a duration of the given number of Hz.
-  pub fn hz(hz: impl AsPrimitive<f64>) -> Self {
-    Self::secs(1.0 / hz.as_())
-  }
-
-  /// Returns a duration of the given number of milliseconds.
-  pub fn ms(ms: impl AsPrimitive<f64>) -> Duration {
-    Self::secs(ms.as_() / 1000.0)
-  }
-
   /// Return the duration as a number of weeks.
   pub fn as_weeks(self) -> f64 {
     self.as_secs() / 7.0 / 24.0 / 60.0 / 60.0
@@ -112,6 +101,18 @@ impl Duration {
     self.secs * 1000.0
   }
 
+  /// Waits until a span of time equal to the duration has elapsed.
+  pub async fn elapsed(&self) {
+    /// A cut-off value which suggests a timer is not needed.
+    const EFFECTIVELY_INFINITE: Duration = Duration { secs: 31536000000.0 };
+
+    if self > &EFFECTIVELY_INFINITE {
+      futures_lite::future::pending::<()>().await;
+    } else {
+      async_io::Timer::after(self.to_std()).await;
+    }
+  }
+
   /// Returns `true` if this duration represents a finite amount of time.
   pub fn is_finite(&self) -> bool {
     self.secs.is_finite()
@@ -120,6 +121,14 @@ impl Duration {
   /// Returns `true` if this duration represents an infinite amount of time.
   pub fn is_infinite(&self) -> bool {
     self.secs.is_infinite()
+  }
+
+  /// Returns `true` if the duration is zero.
+  ///
+  /// A duration is considered “zero” if it is less than one nanosecond.
+  pub fn is_zero(&self) -> bool {
+    // Less than one nanosecond.
+    self.secs < 1e-9
   }
 
   /// Converts this duration to a `std::time::Duration`.
@@ -199,7 +208,7 @@ impl Eq for Duration {}
 
 impl From<std::time::Duration> for Duration {
   fn from(value: std::time::Duration) -> Self {
-    Self::secs(value.as_secs_f64())
+    seconds(value.as_secs_f64())
   }
 }
 

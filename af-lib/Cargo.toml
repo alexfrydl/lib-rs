@@ -22,38 +22,28 @@ logger = ["af-macros/logger", "dashmap"]
 
 [dependencies]
 af-macros = { version = "^0.2.0", path = "../af-macros" }
-arrayvec = "0.5"
 async-channel = "1"
 async-executor = "1"
 async-io = "1"
 async-task = "4"
-atomic = "0.5"
-bytes = "1"
 cfg-if = "1"
 chrono = "0.4"
 chrono-tz = { version = "0.5", default-features = false }
 console = "0.14"
 derive_more = "0.99"
 event-listener = "2"
-fnv = "1"
 futures-lite = "1"
-im = "15"
-itertools = "0.10"
 log = "0.4"
 num_cpus = "1"
 num-traits = "0.2"
 once_cell = { version = "1", features = ["parking_lot"] }
-parking_lot = "0.11"
 parse_duration = "2"
 pin-project = "1"
 rand = "0.8"
 rand_xoshiro = "0.6"
 rustc-hash = "1"
 serde = { version = "1", features = ["derive"] }
-signal-hook = "0.3"
-smallvec = "1"
 thiserror = "1"
-tokio = { version = "1", features = ["rt", "rt-multi-thread", "time"] }
 uuid = { version = "0.8", features = ["serde"] }
 
 # logger deps.

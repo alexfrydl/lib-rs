@@ -8,13 +8,13 @@
 #[macro_export]
 macro_rules! logger_init {
   () => {
-    af_lib::log::init();
+    __af_lib_macro_helpers::__log_init();
 
-    af_lib::log::set_level_of(
+    __af_lib_macro_helpers::__log_set_level_of(
       option_env!("CARGO_BIN_NAME").unwrap_or(env!("CARGO_PKG_NAME")).replace("-", "_"),
       match cfg!(debug_assertions) {
-        true => af_lib::log::Debug,
-        false => af_lib::log::Info,
+        true => __af_lib_macro_helpers::__log_level::Debug,
+        false => __af_lib_macro_helpers::__log_level::Info,
       },
     );
   };

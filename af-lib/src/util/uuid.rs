@@ -7,6 +7,7 @@
 use ::uuid::{Builder, Uuid as Inner, Variant, Version};
 
 use crate::prelude::*;
+use crate::util::{random, Random};
 
 /// A universally-unique identifier.
 #[derive(

@@ -8,8 +8,8 @@
 //! them on separate tasks.
 
 use super::scope;
-use crate::util::SharedStr;
-use crate::{env, prelude::*};
+use crate::prelude::*;
+use crate::util::{future, SharedStr};
 
 /// An executor which can run futures on multiple threads.
 type Executor = Arc<async_executor::Executor<'static>>;
@@ -18,7 +18,7 @@ type Executor = Arc<async_executor::Executor<'static>>;
 static EXECUTOR: Lazy<Executor> = Lazy::new(|| {
   let executor = Executor::default();
 
-  for i in 0..env::num_cpus() + 1 {
+  for i in 0..num_cpus::get() + 1 {
     let executor = executor.clone();
 
     std::thread::Builder::new()

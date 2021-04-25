@@ -12,7 +12,7 @@ pub use std::path::{is_separator, MAIN_SEPARATOR as SEPARATOR};
 
 pub use af_macros::{path_join as join, path_normalize as normalize, path_resolve as resolve};
 
-use crate::{env, prelude::*};
+use crate::prelude::*;
 
 thread_local! {
   /// A thread-local buffer for operations that need temporary storage.
@@ -122,9 +122,9 @@ pub fn pop(path: &mut String) -> Option<String> {
 }
 
 /// Resolves the given path into an absolute, normalized path.
-pub fn resolve(path: &mut String) -> Result<(), env::WorkingPathError> {
+pub fn resolve(path: &mut String) -> Result<(), process::WorkingPathError> {
   if !is_absolute(&path) {
-    let mut buf = env::working_path()?;
+    let mut buf = process::working_path()?;
 
     mem::swap(path, &mut buf);
     append(path, &buf);
@@ -136,7 +136,7 @@ pub fn resolve(path: &mut String) -> Result<(), env::WorkingPathError> {
 }
 
 /// Returns an absolute, normalized version of the given path.
-pub fn resolved<'a>(path: impl PathLike<'a>) -> Result<Cow<'a, str>, env::WorkingPathError> {
+pub fn resolved<'a>(path: impl PathLike<'a>) -> Result<Cow<'a, str>, process::WorkingPathError> {
   let mut path = path.to_cow();
 
   if is_absolute(&path) {

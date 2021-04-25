@@ -4,48 +4,24 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//! Provides access to environment variables and well-known paths.
+//! Common utilities for the current process.
+
+pub mod env;
 
 use std::ffi::OsString;
 use std::io;
+use std::sync::atomic::AtomicI8;
+use std::sync::atomic::Ordering::{Acquire, Release};
 
 use crate::fs;
 use crate::prelude::*;
 
-/// One of the possible errors returned when reading an environment variable.
-#[derive(Debug, Error)]
-pub enum VarError {
-  /// Environment variable not present.
-  #[error("not present")]
-  NotPresent,
-  /// Environment variable contains non-Unicode characters.
-  #[error("contains non-Unicode characters")]
-  NotUnicode(OsString),
-}
-
-/// One of the possible errors returned by [`working_path()`].
-#[derive(Debug, Clone, Error)]
-pub enum WorkingPathError {
-  /// The working path was not found.
-  #[error("not found")]
-  NotFound,
-  /// The user does not have permission to access the current working directory.
-  #[error("permission denied")]
-  PermissionDenied,
-  /// The working path is not unicode.
-  #[error("path contains non-Unicode characters")]
-  NotUnicode(OsString),
-  /// Some other error occurred.
-  #[error("{0}")]
-  Other(String),
-}
-
-/// The full file system path to the current executable.
+/// The full file system path to the current executable and its file name.
 static EXE_PATH: Lazy<Result<(String, String), String>> = Lazy::new(|| {
   let mut path: String = std::env::current_exe()
-    .map_err(|err| format!("IO error. {}.", err))?
+    .map_err(|err| err.to_string())?
     .to_str()
-    .ok_or("non-unicode path name.")?
+    .ok_or("non-unicode path name")?
     .into();
 
   let file = fs::path::pop(&mut path).unwrap_or_default();
@@ -53,22 +29,28 @@ static EXE_PATH: Lazy<Result<(String, String), String>> = Lazy::new(|| {
   Ok((path, file))
 });
 
+/// The exit code to use when the process exits normally.
+static EXIT_CODE: Lazy<AtomicI8> = Lazy::new(default);
+
 /// Returns the file name of the currently running executable.
 pub fn exe_name() -> &'static str {
-  &EXE_PATH.as_ref().expect("Failed to determine path to current executable").1
+  &EXE_PATH.as_ref().expect("failed to determine path to current executable").1
 }
 
 /// Returns the full file system path to the directory containing the currently
 /// running executable.
 pub fn exe_path() -> &'static str {
-  &EXE_PATH.as_ref().expect("Failed to determine path to current executable").0
+  &EXE_PATH.as_ref().expect("failed to determine path to current executable").0
 }
 
-/// Returns the number of logical CPUs.
-pub fn num_cpus() -> usize {
-  static VALUE: Lazy<usize> = Lazy::new(num_cpus::get);
+/// Exit the process immediately, without running destructors.
+pub fn exit(code: i8) -> ! {
+  std::process::exit(code as i32)
+}
 
-  *VALUE
+/// Gets the exit code to use when the process exits normally.
+pub(crate) fn get_exit_code() -> i8 {
+  EXIT_CODE.load(Acquire)
 }
 
 /// Returns the full file system path to the cargo project of the currently
@@ -89,14 +71,11 @@ pub fn project_path() -> Option<&'static str> {
   *PATH
 }
 
-/// Returns the value of the given environment variable.
-pub fn var(name: &str) -> Option<String> {
-  std::env::var(name).ok()
-}
-
-/// Returns the value of the given environment variable as an `OsString`.
-pub fn var_os(name: &str) -> Option<OsString> {
-  std::env::var_os(name)
+/// Sets the exit code to use when the process exits normally.
+///
+/// This value is overridden by an explicit call to [`exit()`].
+pub fn set_exit_code(code: i8) {
+  EXIT_CODE.store(code, Release);
 }
 
 /// Returns the full file system path to the current working directory.
@@ -149,4 +128,21 @@ pub fn workspace_path() -> Option<&'static str> {
   });
 
   *PATH
+}
+
+/// One of the possible errors returned by [`working_path()`].
+#[derive(Debug, Clone, Error)]
+pub enum WorkingPathError {
+  /// The working path was not found.
+  #[error("not found")]
+  NotFound,
+  /// The user does not have permission to access the current working directory.
+  #[error("permission denied")]
+  PermissionDenied,
+  /// The working path is not unicode.
+  #[error("path contains non-Unicode characters")]
+  NotUnicode(OsString),
+  /// Some other error occurred.
+  #[error("{0}")]
+  Other(String),
 }

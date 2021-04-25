@@ -7,13 +7,14 @@
 //! Miscellaneous utilities.
 
 pub mod defer;
-pub mod derive;
 pub mod failure;
 pub mod fmt;
 pub mod future;
 pub mod iter;
 pub mod lazy;
+pub mod log;
 pub mod panic;
+pub mod process;
 pub mod random;
 mod shared_str;
 mod uuid;
@@ -25,6 +26,12 @@ pub use pin_project::pin_project;
 pub use self::defer::defer;
 #[doc(inline)]
 pub use self::failure::{failure, Failure};
+#[doc(inline)]
+pub use self::lazy::Lazy;
+#[doc(inline)]
+pub use self::panic::Panic;
+#[doc(inline)]
+pub use self::random::{random, Random};
 pub use self::shared_str::SharedStr;
 pub use self::uuid::Uuid;
 

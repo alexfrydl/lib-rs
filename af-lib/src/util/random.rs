@@ -7,8 +7,8 @@
 //! Randomness utilities and random number generation.
 
 use std::cell::RefCell;
+use std::sync::Mutex;
 
-use parking_lot::Mutex;
 use rand::distributions::uniform::{SampleRange, SampleUniform};
 use rand::distributions::{self, Distribution};
 use rand::seq::SliceRandom;
@@ -79,14 +79,14 @@ pub struct Rng {
   inner: Xoshiro256StarStar,
 }
 
-/// The global RNG to use to create thread-local RNGs.
+/// The global RNG used to create thread-local RNGs.
 static GLOBAL_RNG: Lazy<Mutex<Rng>> =
   Lazy::new(|| Mutex::new(Rng { inner: Xoshiro256StarStar::from_entropy() }));
 
 thread_local! {
   /// The thread-local RNG.
   static THREAD_RNG: RefCell<Rng> = {
-    let mut global_rng = GLOBAL_RNG.lock();
+    let mut global_rng = GLOBAL_RNG.lock().unwrap();
     let thread_rng = global_rng.clone();
 
     global_rng.inner.long_jump();

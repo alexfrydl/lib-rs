@@ -5,13 +5,13 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::cell::RefCell;
-use std::sync::atomic::{self, AtomicUsize};
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering::Relaxed;
 use std::thread;
 
 pub use af_macros::logger_init as init;
 use dashmap::DashMap;
 use log::{Level, LevelFilter, Log, Metadata, Record, RecordBuilder};
-use parking_lot::RwLock;
 
 use super::*;
 use crate::concurrency::{channel, Channel};
@@ -19,7 +19,7 @@ use crate::concurrency::{channel, Channel};
 /// A logger to register with the `log` crate.
 struct Logger {
   dropped_messages: AtomicUsize,
-  max_level: RwLock<LevelFilter>,
+  max_level: AtomicUsize,
   max_level_of: DashMap<String, LevelFilter>,
   output: Channel<Output>,
 }
@@ -33,7 +33,7 @@ enum Output {
 /// The shared logger instance.
 static LOGGER: Lazy<Logger> = Lazy::new(|| Logger {
   dropped_messages: default(),
-  max_level: RwLock::new(LevelFilter::Warn),
+  max_level: AtomicUsize::new(LevelFilter::Warn as usize),
   max_level_of: default(),
   output: channel(),
 });
@@ -77,9 +77,8 @@ pub async fn flush() {
 /// modules can be overridden by calling [`set_level_of()`].
 pub fn set_level(level: impl Into<Option<Level>>) {
   let level = level.into().map(|lv| lv.to_level_filter()).unwrap_or(LevelFilter::Off);
-  let mut max_level = LOGGER.max_level.write();
 
-  *max_level = level;
+  LOGGER.max_level.store(level as usize, Relaxed);
 }
 
 /// Sets the current verbosity level for a specific module.
@@ -103,11 +102,11 @@ async fn output_messages() {
 
     // If one or more messages were dropped, write an error message about it.
 
-    let dropped_messages = logger.dropped_messages.swap(0, atomic::Ordering::Relaxed);
+    let dropped_messages = logger.dropped_messages.swap(0, Relaxed);
 
     if dropped_messages > 0 {
       write_message(
-        Time::now(),
+        DateTime::now(),
         &RecordBuilder::new()
           .level(Level::Error)
           .target(module_path!())
@@ -144,7 +143,7 @@ async fn output_messages() {
 }
 
 /// Writes a record to the given string.
-fn write_message(time: Time, record: &Record, f: &mut String) -> fmt::Result {
+fn write_message(time: DateTime, record: &Record, f: &mut String) -> fmt::Result {
   use console::style;
 
   // Write the timestamp in bright black.
@@ -220,7 +219,7 @@ impl Log for Logger {
       }
     }
 
-    metadata.level() <= *LOGGER.max_level.read()
+    metadata.level() as usize <= LOGGER.max_level.load(Relaxed)
   }
 
   fn log(&self, record: &Record) {
@@ -228,7 +227,12 @@ impl Log for Logger {
       return;
     }
 
-    let time = Time::now();
+    if self.output.len() > 1024 {
+      LOGGER.dropped_messages.fetch_add(1, Relaxed);
+      return;
+    }
+
+    let time = DateTime::now();
 
     let message = THREAD_BUFFER.with(|buffer| {
       let mut buffer = buffer.borrow_mut();
@@ -238,14 +242,7 @@ impl Log for Logger {
       buffer.split_off(0)
     });
 
-    // Send a message to the output task immediately or increment the dropped
-    // count.
-
-    if self.output.len() > 4096 {
-      LOGGER.dropped_messages.fetch_add(1, atomic::Ordering::Relaxed);
-    } else {
-      self.output.send(Output::Write(message));
-    }
+    self.output.send(Output::Write(message));
   }
 
   fn flush(&self) {}

@@ -10,7 +10,7 @@ pub use std::future::Future;
 pub use std::task::{Context, Poll};
 
 use crate::prelude::*;
-use crate::util::defer;
+use crate::util::{defer, future, panic, Panic};
 
 /// Waits for a future, capturing panic information if one occurs.
 pub async fn capture_panic<F>(future: F) -> Result<F::Output, Panic>

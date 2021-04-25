@@ -6,17 +6,24 @@
 
 use af_lib::concurrency::{fiber, join};
 use af_lib::prelude::*;
+use af_lib::time::seconds;
 
 /// Main entry point for tests.
 #[af_lib::main]
 async fn main() {
   fiber::start(async {
-    time::delay(Duration::secs(10)).await;
+    seconds(1).elapsed().await;
+    info!("One!");
   });
 
   fiber::start(async {
-    time::delay(Duration::secs(10)).await;
+    seconds(1).elapsed().await;
+    info!("Two!");
   });
 
   join().await;
+
+  info!("Three!");
+
+  process::set_exit_code(10);
 }

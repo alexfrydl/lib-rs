@@ -7,5 +7,3 @@
 //! Common [`Iterator`] types and utilities.
 
 pub use std::iter::*;
-
-pub use itertools::*;

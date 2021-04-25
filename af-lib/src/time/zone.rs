@@ -8,11 +8,7 @@ use std::process::Command;
 
 use chrono_tz::{Tz, TZ_VARIANTS};
 
-use crate::env;
 use crate::prelude::*;
-
-/// The UTC time zone.
-pub const UTC: Zone = Zone(Tz::UTC);
 
 /// A time zone.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -22,6 +18,10 @@ impl Zone {
   /// Returns an iterator over all time zones.
   pub fn all() -> impl Iterator<Item = Self> {
     TZ_VARIANTS.iter().cloned().map(Zone)
+  }
+
+  pub(crate) fn as_tz(&self) -> &Tz {
+    &self.0
   }
 
   /// Returns a time zone from the given name, or `None` if no such timezone
@@ -35,7 +35,7 @@ impl Zone {
     static ZONE: Lazy<Zone> = Lazy::new(|| {
       // First, check the TZ environment variable.
 
-      if let Some(tz) = env::var("TZ") {
+      if let Ok(tz) = process::env::get("TZ") {
         if let Ok(tz) = tz.parse() {
           return Zone(tz);
         }
@@ -59,7 +59,7 @@ impl Zone {
 
         if let Ok(output) = output {
           if output.status.success() {
-            if let Ok(tz) = str::from_utf8(&output.stdout) {
+            if let Ok(tz) = std::str::from_utf8(&output.stdout) {
               if let Ok(tz) = tz.parse() {
                 return Zone(tz);
               }
@@ -76,18 +76,14 @@ impl Zone {
     *ZONE
   }
 
-  /// Returns the UTC time zone.
-  pub const fn utc() -> Self {
-    Self(Tz::UTC)
-  }
-
   /// Returns the name of the time zone.
   pub fn name(&self) -> &'static str {
     self.0.name()
   }
 
-  pub(crate) fn as_tz(&self) -> &Tz {
-    &self.0
+  /// Returns the UTC time zone.
+  pub const fn utc() -> Self {
+    Self(Tz::UTC)
   }
 }
 
@@ -104,5 +100,5 @@ impl FromStr for Zone {
 
 /// An error returned when a time zone name is not recognized.
 #[derive(Debug, Error)]
-#[error("Unrecognized time zone.")]
+#[error("unrecognized time zone")]
 pub struct Unrecognized;

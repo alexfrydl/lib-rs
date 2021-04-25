@@ -6,8 +6,6 @@
 
 //! Deferred closures for running code when a block ends or a panic occurs.
 
-use crate::prelude::*;
-
 /// Defers a closure so that it is run when the returned [`Deferred`] is
 /// dropped.
 pub fn defer<F>(closure: F) -> Deferred<F>

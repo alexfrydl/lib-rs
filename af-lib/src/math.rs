@@ -14,7 +14,6 @@ use num_traits::{NumAssignOps, NumOps};
 use rand::distributions::uniform::SampleUniform;
 
 pub use self::float::FloatExt;
-use crate::prelude::*;
 
 /// A trait for types that implement all the basic operations of a number.
 ///

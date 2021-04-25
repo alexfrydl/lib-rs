@@ -4,13 +4,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::process::exit;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::AcqRel;
 
 use super::{scope, thread};
-use crate::log;
 use crate::prelude::*;
+use crate::util::log;
 
 /// Runs the runtime until it exits the process.
 ///
@@ -35,8 +34,11 @@ where
 
   async_io::block_on(log::flush());
 
-  match result {
-    Ok(_) => exit(0),
-    Err(_) => exit(1),
+  let code = process::get_exit_code();
+
+  if code == 0 && result.is_err() {
+    process::exit(-1);
   }
+
+  process::exit(code);
 }

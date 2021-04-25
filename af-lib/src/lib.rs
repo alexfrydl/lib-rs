@@ -26,20 +26,10 @@
 //! ```
 
 pub mod concurrency;
-pub mod env;
 pub mod fs;
-pub mod log;
 pub mod math;
 pub mod prelude;
 pub mod time;
 pub mod util;
 
 pub use af_macros::main;
-
-#[cfg(test)]
-mod test {
-  #[test]
-  fn test_thing_bro() {
-    panic!("lol")
-  }
-}
