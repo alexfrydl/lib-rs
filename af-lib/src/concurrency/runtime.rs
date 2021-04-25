@@ -7,7 +7,7 @@
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::AcqRel;
 
-use super::{scope, thread};
+use super::scope;
 use crate::prelude::*;
 use crate::util::log;
 

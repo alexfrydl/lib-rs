@@ -6,11 +6,15 @@
 
 use af_lib::concurrency::{fiber, join};
 use af_lib::prelude::*;
-use af_lib::time::{timeout, Duration};
+use af_lib::time::Duration;
 
 /// Main entry point for tests.
 #[af_lib::main]
-async fn main() -> Result {
+async fn main() {
+  defer! {
+    // Runs at the end of the block.
+  };
+
   fiber::start(async {
     Duration::seconds(1).elapsed().await;
     info!("One!");
@@ -21,9 +25,5 @@ async fn main() -> Result {
     info!("Two!");
   });
 
-  if let Err(err) = timeout(Duration::milliseconds(10), join()).await {
-    fail!("Failed to wait for fibers: {}.", err);
-  }
-
-  Ok(())
+  join().await;
 }

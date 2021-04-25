@@ -14,7 +14,7 @@ pub use {
   crate::math::{FloatExt as _, Number},
   crate::util::failure::{self, fail, failure, Failure, Result},
   crate::util::log::{debug, error, info, trace, warn},
-  crate::util::{default, fmt, pin, pin_project, process, Lazy, Uuid},
+  crate::util::{default, defer, fmt, pin, pin_project, process, Lazy, Uuid},
   derive_more::{
     Add, AddAssign, AsMut, AsRef, Binary, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor,
     BitXorAssign, Constructor, Deref, DerefMut, Display, Div, DivAssign, From, FromStr, Index,

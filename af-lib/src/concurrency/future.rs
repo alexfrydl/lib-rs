@@ -9,9 +9,10 @@
 pub use std::future::Future;
 pub use std::task::{Context, Poll};
 
-use crate::concurrency::future;
+pub use futures_lite::ready;
+
 use crate::prelude::*;
-use crate::util::{defer, panic, Panic};
+use crate::util::{panic, Panic};
 
 /// Waits for an async operation to complete, capturing panic information if one
 /// occurs.
@@ -82,24 +83,20 @@ where
   {
     type Output = F::Output;
 
-    fn poll(self: Pin<&mut Self>, cx: &mut future::Context<'_>) -> future::Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
       let key = self.key;
       let mut this = self.project();
       let local = &mut this.value;
 
       key.with(|cell| mem::swap(&mut *cell.borrow_mut(), local));
 
-      let reset = defer(|| {
-        key.with(|cell| mem::swap(&mut *cell.borrow_mut(), local));
-      });
+      defer! {
+        key.with(|cell| mem::swap(&mut *cell.borrow_mut(), local))
+      };
 
-      if let future::Poll::Ready(output) = this.op.poll(cx) {
-        reset.run_now();
+      let output = ready!(this.op.poll(cx));
 
-        return future::Poll::Ready(output);
-      }
-
-      future::Poll::Pending
+      Poll::Ready(output)
     }
   }
 

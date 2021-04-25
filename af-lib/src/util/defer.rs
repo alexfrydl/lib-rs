@@ -6,6 +6,8 @@
 
 //! Deferred closures for running code when a block ends or a panic occurs.
 
+pub use af_macros::defer;
+
 /// Defers a closure so that it is run when the returned [`Deferred`] is
 /// dropped.
 pub fn defer<F>(closure: F) -> Deferred<F>
