@@ -12,12 +12,12 @@ use crate::prelude::*;
 
 /// A time zone.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct Zone(Tz);
+pub struct TimeZone(Tz);
 
-impl Zone {
+impl TimeZone {
   /// Returns an iterator over all time zones.
   pub fn all() -> impl Iterator<Item = Self> {
-    TZ_VARIANTS.iter().cloned().map(Zone)
+    TZ_VARIANTS.iter().cloned().map(TimeZone)
   }
 
   pub(crate) fn as_tz(&self) -> &Tz {
@@ -26,18 +26,18 @@ impl Zone {
 
   /// Returns a time zone from the given name, or `None` if no such timezone
   /// exists.
-  pub fn from_name(name: impl AsRef<str>) -> Result<Zone, Unrecognized> {
+  pub fn from_name(name: impl AsRef<str>) -> Result<TimeZone, Unrecognized> {
     name.as_ref().parse()
   }
 
   /// Returns the local time zone.
   pub fn local() -> Self {
-    static ZONE: Lazy<Zone> = Lazy::new(|| {
+    static ZONE: Lazy<TimeZone> = Lazy::new(|| {
       // First, check the TZ environment variable.
 
       if let Ok(tz) = process::env::get("TZ") {
         if let Ok(tz) = tz.parse() {
-          return Zone(tz);
+          return TimeZone(tz);
         }
       }
 
@@ -48,7 +48,7 @@ impl Zone {
 
         if let Ok(tz) = std::fs::read_to_string("/etc/timezone") {
           if let Ok(tz) = tz.parse() {
-            return Zone(tz);
+            return TimeZone(tz);
           }
         }
 
@@ -61,7 +61,7 @@ impl Zone {
           if output.status.success() {
             if let Ok(tz) = std::str::from_utf8(&output.stdout) {
               if let Ok(tz) = tz.parse() {
-                return Zone(tz);
+                return TimeZone(tz);
               }
             }
           }
@@ -70,7 +70,7 @@ impl Zone {
 
       // Otherwise, just use UTC.
 
-      Zone::utc()
+      TimeZone::utc()
     });
 
     *ZONE
@@ -87,12 +87,12 @@ impl Zone {
   }
 }
 
-impl FromStr for Zone {
+impl FromStr for TimeZone {
   type Err = Unrecognized;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     match s.parse() {
-      Ok(tz) => Ok(Zone(tz)),
+      Ok(tz) => Ok(TimeZone(tz)),
       Err(_) => Err(Unrecognized),
     }
   }

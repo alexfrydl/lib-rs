@@ -1,15 +1,6 @@
 use super::Duration;
 use crate::prelude::*;
 
-/// Returns an [`Instant`] representing “now.”
-///
-/// Unlike [`DateTime::now()`], consecutive calls to this function are
-/// gauranteed to return a value that is greater than or equal to all previously
-/// returned values.
-pub fn now() -> Instant {
-  Instant(std::time::Instant::now())
-}
-
 /// A measurement of monotonically increasing time.
 #[derive(Clone, Copy, Eq, From, Hash, Into, Ord, PartialEq, PartialOrd)]
 pub struct Instant(std::time::Instant);
@@ -17,12 +8,12 @@ pub struct Instant(std::time::Instant);
 impl Instant {
   /// Returns the duration since this instant in time occurred.
   pub fn duration_since(&self) -> Duration {
-    *self - now()
+    *self - Self::now()
   }
 
   /// Returns the duration until this instant in time occurs.
   pub fn duration_until(&self) -> Duration {
-    now() - *self
+    Self::now() - *self
   }
 
   /// Waits until this instant in time occurs.
@@ -36,6 +27,15 @@ impl Instant {
 
       remaining.elapsed().await;
     }
+  }
+
+  /// Returns a value representing “now.”
+  ///
+  /// Unlike [`DateTime::now()`], consecutive calls to this function are
+  /// gauranteed to return a value that is greater than or equal to all previously
+  /// returned values.
+  pub fn now() -> Instant {
+    Instant(std::time::Instant::now())
   }
 
   /// Converts to a [`std::time::Instant`].

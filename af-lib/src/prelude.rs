@@ -12,7 +12,6 @@ pub use thiserror;
 #[doc(no_inline)]
 pub use {
   crate::math::{FloatExt as _, Number},
-  crate::time::{Date, DateTime},
   crate::util::failure::{self, fail, failure, Failure, Result},
   crate::util::log::{debug, error, info, trace, warn},
   crate::util::{default, fmt, pin, pin_project, process, Lazy, Uuid},

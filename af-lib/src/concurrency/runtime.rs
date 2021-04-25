@@ -29,7 +29,7 @@ where
   let result = thread::run(future);
 
   if let Err(err) = &result {
-    error!(target: module_path, "Main thread {}", fmt::indent("", "  ", err));
+    error!(target: module_path, "Main thread {}", err);
   }
 
   async_io::block_on(log::flush());

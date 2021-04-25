@@ -10,10 +10,12 @@ mod date;
 mod date_time;
 pub mod duration;
 mod instant;
-pub mod zone;
+pub mod time_zone;
+pub mod timeout;
 
 pub use self::date::Date;
 pub use self::date_time::DateTime;
-pub use self::duration::{days, forever, hours, hz, milliseconds, minutes, seconds, Duration};
-pub use self::instant::*;
-pub use self::zone::Zone;
+pub use self::duration::Duration;
+pub use self::instant::Instant;
+pub use self::time_zone::TimeZone;
+pub use self::timeout::timeout;

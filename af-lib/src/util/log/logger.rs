@@ -15,6 +15,7 @@ use log::{Level, LevelFilter, Log, Metadata, Record, RecordBuilder};
 
 use super::*;
 use crate::concurrency::{channel, Channel};
+use crate::time::DateTime;
 
 /// A logger to register with the `log` crate.
 struct Logger {

@@ -1,7 +1,7 @@
 use chrono::{TimeZone as _, Timelike};
 use chrono_tz::Tz;
 
-use super::{Date, Duration, Zone};
+use super::{Date, Duration, TimeZone};
 use crate::prelude::*;
 
 /// A date and time in a specific time zone.
@@ -11,22 +11,22 @@ pub struct DateTime(chrono::DateTime<Tz>);
 impl DateTime {
   /// Returns a value representing the maximum local date and time.
   pub fn max_value() -> DateTime {
-    DateTime(chrono::MAX_DATETIME.with_timezone(Zone::local().as_tz()))
+    DateTime(chrono::MAX_DATETIME.with_timezone(TimeZone::local().as_tz()))
   }
 
   /// Returns a value representing the minimum local date and time.
   pub fn min_value() -> DateTime {
-    DateTime(chrono::MIN_DATETIME.with_timezone(Zone::local().as_tz()))
+    DateTime(chrono::MIN_DATETIME.with_timezone(TimeZone::local().as_tz()))
   }
 
   /// Returns a value representing the current local date and time.
   pub fn now() -> DateTime {
-    Self(chrono::Utc::now().with_timezone(Zone::local().as_tz()))
+    Self(chrono::Utc::now().with_timezone(TimeZone::local().as_tz()))
   }
 
   /// Returns a date and time representing a Unix timestamp in milliseconds.
   pub fn from_unix_ms(timestamp: i64) -> Self {
-    Self(Zone::local().as_tz().timestamp_millis(timestamp))
+    Self(TimeZone::local().as_tz().timestamp_millis(timestamp))
   }
 
   /// Formats the date and time according to RFC 3339.
@@ -106,16 +106,16 @@ impl DateTime {
 
   /// Converts the date and time to the local time zone.
   pub fn to_local(&self) -> Self {
-    self.to_zone(Zone::local())
+    self.to_zone(TimeZone::local())
   }
 
   /// Converts the date and time to UTC.
   pub fn to_utc(&self) -> Self {
-    self.to_zone(Zone::utc())
+    self.to_zone(TimeZone::utc())
   }
 
   /// Converts the date and time to a time zone.
-  pub fn to_zone(&self, zone: Zone) -> Self {
+  pub fn to_zone(&self, zone: TimeZone) -> Self {
     Self(self.0.with_timezone(zone.as_tz()))
   }
 }
