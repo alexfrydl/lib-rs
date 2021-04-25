@@ -34,21 +34,14 @@ pub struct ClosedError;
 #[derive(Clone, Copy)]
 pub struct SendError<M>(pub M);
 
-/// Creates a channel and returns its [`Sender`] and [`Receiver`] halves.
-pub fn channel<T>() -> (Sender<T>, Receiver<T>) {
+/// Creates a channel.
+pub fn channel<T>() -> Channel<T> {
   let (tx, rx) = async_channel::unbounded();
 
-  (Sender { tx }, Receiver { rx })
+  Channel { sender: Sender { tx }, receiver: Receiver { rx } }
 }
 
 impl<T> Channel<T> {
-  /// Creates a new channel.
-  pub fn new() -> Self {
-    let (sender, receiver) = channel();
-
-    Self { sender, receiver }
-  }
-
   /// Converts this channel into a [`Receiver`].
   pub fn into_receiver(self) -> Receiver<T> {
     self.receiver

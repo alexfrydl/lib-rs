@@ -30,14 +30,23 @@ fn init_executor() -> Executor {
   executor
 }
 
-/// Starts a new thread which runs a future to completion.
+/// Starts a named thread which runs a future to completion.
 #[track_caller]
-pub fn start<O, F>(name: impl Into<SharedStr>, future: F)
+pub fn start<O>(future: impl Future<Output = O> + Send + 'static)
 where
   O: scope::IntoOutput + 'static,
-  F: Future<Output = O> + Send + 'static,
 {
-  let parent = scope::current().expect("thread does not support child threads");
+  start_as("", future)
+}
+
+/// Starts a named thread which runs a future to completion.
+#[track_caller]
+pub fn start_as<O>(name: impl Into<SharedStr>, future: impl Future<Output = O> + Send + 'static)
+where
+  O: scope::IntoOutput + 'static,
+{
+  let parent =
+    scope::current().expect("the current thread does not support starting child threads");
   let name = name.into();
 
   std::thread::Builder::new()
@@ -46,7 +55,7 @@ where
       let executor = init_executor();
       let id = parent.register_child("thread", name);
       let future = parent.run_child(id, future);
-      let (tx, rx) = channel::<()>();
+      let (tx, rx) = channel::<()>().split();
 
       let child = executor.spawn(async move {
         let _tx = tx;

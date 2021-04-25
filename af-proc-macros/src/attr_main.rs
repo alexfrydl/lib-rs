@@ -43,7 +43,9 @@ pub fn run(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
   #[cfg(feature = "logger")]
   code.append_all(quote! {
-    af_lib::log::init!();
+    unsafe {
+      af_lib::log::init!();
+    }
   });
 
   code.append_all(quote! {

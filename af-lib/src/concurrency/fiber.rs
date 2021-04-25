@@ -11,18 +11,30 @@ use super::{scope, thread};
 use crate::prelude::*;
 use crate::util::SharedStr;
 
-/// Starts a new fiber which runs a future to completion on the current thread.
+/// Starts a fiber which runs a future to completion on the current thread.
 ///
 /// This function panics if the current thread does not support fibers (for
 /// example, if it is a task executor from the global thread pool).
 #[track_caller]
-pub fn start<O, F>(name: impl Into<SharedStr>, future: F)
+pub fn start<O>(future: impl Future<Output = O> + 'static)
 where
   O: scope::IntoOutput + 'static,
-  F: Future<Output = O> + 'static,
 {
-  let executor = thread::executor().expect("thread does not support fibers");
-  let parent = scope::current().expect("thread does not support fibers");
+  start_as("", future)
+}
+
+/// Starts a named fiber which runs a future to completion on the current
+/// thread.
+///
+/// This function panics if the current thread does not support fibers (for
+/// example, if it is a task executor from the global thread pool).
+#[track_caller]
+pub fn start_as<O>(name: impl Into<SharedStr>, future: impl Future<Output = O> + 'static)
+where
+  O: scope::IntoOutput + 'static,
+{
+  let executor = thread::executor().expect("the current thread does not support fibers");
+  let parent = scope::current().expect("the current thread does not support fibers");
   let id = parent.register_child("fiber", name.into());
 
   parent.insert_child(id, executor.spawn(parent.run_child(id, future)));

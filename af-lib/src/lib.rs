@@ -35,3 +35,11 @@ pub mod time;
 pub mod util;
 
 pub use af_macros::main;
+
+#[cfg(test)]
+mod test {
+  #[test]
+  fn test_thing_bro() {
+    panic!("lol")
+  }
+}

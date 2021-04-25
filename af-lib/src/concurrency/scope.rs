@@ -4,56 +4,16 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+//! Concurrency scope plumbing not intended for end users.
+
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::AcqRel;
 
 use rustc_hash::FxHashMap;
 
-use crate::concurrency::{channel, Channel};
+use crate::concurrency::channel;
 use crate::prelude::*;
 use crate::util::SharedStr;
-
-/// The name of a kind of scope; for example, "thread" or "task".
-pub type Kind = &'static str;
-
-/// A child of a scope.
-pub type Child = async_task::Task<()>;
-
-/// The result of running a scope to completion.
-type Result<T = (), E = Error> = std::result::Result<T, E>;
-
-/// A running scope.
-pub struct Scope {
-  next_child_id: AtomicUsize,
-  ops: channel::Sender<Op>,
-}
-
-/// Identifying info about a scope
-pub struct Info {
-  pub id: usize,
-  pub kind: &'static str,
-  pub name: SharedStr,
-}
-
-/// An error returned from a scope.
-pub enum Error {
-  Error(String),
-  Panic(Panic),
-  FromChild { child: Info, error: Box<Error> },
-}
-
-/// One of the possible operations the scope controller can run.
-enum Op {
-  RegisterChild(Info),
-  InsertChild { id: usize, child: Child },
-  FinishChild { id: usize, result: Result },
-  JoinChildren(ArcWeak<event_listener::Event>),
-}
-
-/// A trait for types which can be used as concurrency scope outputs.
-pub trait IntoOutput {
-  fn into_scope_output(self) -> Result<(), String>;
-}
 
 thread_local! {
   /// The currently running scope.
@@ -66,12 +26,12 @@ pub fn current() -> Option<Arc<Scope>> {
 }
 
 /// Runs a future as a concurrency scope.
-pub async fn run<O, F>(future: F) -> Result
+pub async fn run<O, F>(future: F) -> Result<(), Error>
 where
   O: IntoOutput + 'static,
   F: Future<Output = O> + 'static,
 {
-  let ops = Channel::new();
+  let ops = channel();
   let scope = Arc::new(Scope { next_child_id: AtomicUsize::new(1), ops: ops.sender() });
   let mut join_children: Vec<ArcWeak<event_listener::Event>> = default();
 
@@ -139,6 +99,80 @@ where
     .await
 }
 
+/// A child of a scope.
+pub type Child = async_task::Task<()>;
+
+/// An error returned from a scope.
+pub enum Error {
+  Error(String),
+  Panic(Panic),
+  FromChild { child: Info, error: Box<Error> },
+}
+
+impl Display for Error {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self {
+      Error::Error(err) => {
+        write!(f, "failed\n{}", fmt::indent("  ", "  ", err))
+      }
+
+      Error::Panic(panic) => Display::fmt(panic, f),
+
+      Error::FromChild { child, error } => match child.name.as_str() {
+        "" => write!(f, "failed\nbecause {} {} {}", child.kind, child.id, error),
+        name => write!(f, "failed\nbecause {} {:?} {}", child.kind, name, error),
+      },
+    }
+  }
+}
+
+/// Identifying info about a scope
+pub struct Info {
+  pub id: usize,
+  pub kind: &'static str,
+  pub name: SharedStr,
+}
+
+/// A trait which allows scopes to return `()` or `Result<(), String>`.
+pub trait IntoOutput {
+  fn into_scope_output(self) -> Result<(), String>;
+}
+
+impl IntoOutput for () {
+  fn into_scope_output(self) -> Result<(), String> {
+    Ok(())
+  }
+}
+
+impl<E> IntoOutput for Result<(), E>
+where
+  E: Display,
+{
+  fn into_scope_output(self) -> Result<(), String> {
+    match self {
+      Ok(_) => Ok(()),
+      Err(err) => Err(err.to_string()),
+    }
+  }
+}
+
+/// The name of a kind of scope; for example, "thread" or "task".
+pub type Kind = &'static str;
+
+/// One of the possible operations the scope controller can run.
+enum Op {
+  RegisterChild(Info),
+  InsertChild { id: usize, child: Child },
+  FinishChild { id: usize, result: Result<(), Error> },
+  JoinChildren(ArcWeak<event_listener::Event>),
+}
+
+/// A running scope.
+pub struct Scope {
+  next_child_id: AtomicUsize,
+  ops: channel::Sender<Op>,
+}
+
 impl Scope {
   /// Registers a child of this scope.
   ///
@@ -179,46 +213,5 @@ impl Scope {
     self.ops.send(Op::JoinChildren(Arc::downgrade(&event)));
 
     listener.await;
-  }
-}
-
-// Implement IntoOutput for () and result types.
-
-impl IntoOutput for () {
-  fn into_scope_output(self) -> Result<(), String> {
-    Ok(())
-  }
-}
-
-impl<E> IntoOutput for Result<(), E>
-where
-  E: Display,
-{
-  fn into_scope_output(self) -> Result<(), String> {
-    match self {
-      Ok(_) => Ok(()),
-      Err(err) => Err(err.to_string()),
-    }
-  }
-}
-
-// Implement formatting for errors so that they can be used as part of a
-// sentence. For example, "The main task {}" to describe why the main task
-// failed.
-
-impl Display for Error {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    match self {
-      Error::Error(err) => {
-        write!(f, "failed\n{}", fmt::indent("  ", "  ", err))
-      }
-
-      Error::Panic(panic) => Display::fmt(panic, f),
-
-      Error::FromChild { child, error } => match child.name.as_str() {
-        "" => write!(f, "failed\nbecause {} {} {}", child.kind, child.id, error),
-        name => write!(f, "failed\nbecause {} {:?} {}", child.kind, name, error),
-      },
-    }
   }
 }

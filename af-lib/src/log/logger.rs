@@ -35,7 +35,7 @@ static LOGGER: Lazy<Logger> = Lazy::new(|| Logger {
   dropped_messages: default(),
   max_level: RwLock::new(LevelFilter::Warn),
   max_level_of: default(),
-  output: Channel::new(),
+  output: channel(),
 });
 
 thread_local! {
@@ -45,7 +45,10 @@ thread_local! {
 
 #[doc(hidden)]
 /// Initializes the logger if it is not already initialized.
-pub fn init() {
+///
+/// This function is marked unsafe to discourage its use outside of the `main`
+/// attribute macro.
+pub unsafe fn init() {
   if log::set_logger(&*LOGGER).is_err() {
     return;
   }
@@ -61,7 +64,7 @@ pub fn init() {
 /// Waits until the logger finishes writing all messages logged before this
 /// call.
 pub async fn flush() {
-  let (tx, rx) = channel();
+  let (tx, rx) = channel().split();
 
   LOGGER.output.send(Output::Flush(tx));
 

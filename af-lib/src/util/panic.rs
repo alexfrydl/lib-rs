@@ -106,7 +106,7 @@ impl Display for Panic {
     write!(f, "panicked at {} line {}", self.file, self.line)?;
 
     if let Some(message) = &self.message {
-      write!(f, "\n  {}", fmt::indent("", "  ", message))?;
+      write!(f, "\n{}", fmt::indent("  ", "  ", message))?;
     }
 
     Ok(())

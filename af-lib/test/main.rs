@@ -10,13 +10,12 @@ use af_lib::prelude::*;
 /// Main entry point for tests.
 #[af_lib::main]
 async fn main() {
-  fiber::start("a", async {
-    time::delay(Duration::ms(10)).await;
-    info!("Hello world!");
+  fiber::start(async {
+    time::delay(Duration::secs(10)).await;
   });
 
-  fiber::start("b", async {
-    fail!("Test");
+  fiber::start(async {
+    time::delay(Duration::secs(10)).await;
   });
 
   join().await;
