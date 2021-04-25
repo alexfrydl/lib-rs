@@ -11,9 +11,9 @@ use std::sync::atomic::Ordering::AcqRel;
 
 use rustc_hash::FxHashMap;
 
-use crate::concurrency::channel;
+use super::{channel, future, thread};
 use crate::prelude::*;
-use crate::util::{future, panic, Panic, SharedStr};
+use crate::util::{panic, Panic, SharedStr};
 
 thread_local! {
   /// The currently running scope.
@@ -25,8 +25,8 @@ pub fn current() -> Option<Arc<Scope>> {
   SCOPE.with(|cell| cell.borrow().clone())
 }
 
-/// Runs a future as a concurrency scope.
-pub async fn run<O, F>(future: F) -> Result<(), Error>
+/// Runs an async operation as a concurrency scope.
+pub async fn run<O, F>(op: F) -> Result<(), Error>
 where
   O: IntoOutput + 'static,
   F: Future<Output = O> + 'static,
@@ -85,7 +85,7 @@ where
   };
 
   let main_future = async move {
-    match future::capture_panic(panic::AssertUnwindSafe(future)).await {
+    match future::capture_panic(panic::AssertUnwindSafe(op)).await {
       Err(panic) => Err(Error::Panic(panic)),
 
       Ok(output) => match output.into_scope_output() {
@@ -97,6 +97,17 @@ where
 
   future::with_tls_value(&SCOPE, Some(scope.clone()), future::race(main_future, event_listener))
     .await
+}
+
+/// Runs an async operation as a scope by blocking the current thread.
+pub fn run_sync<O, F>(op: F) -> Result<(), Error>
+where
+  O: IntoOutput + 'static,
+  F: Future<Output = O> + 'static,
+{
+  let executor = thread::init_executor();
+
+  async_io::block_on(executor.run(run(op)))
 }
 
 /// A child of a scope.
@@ -188,8 +199,8 @@ impl Scope {
     self.ops.send(Op::InsertChild { id, child });
   }
 
-  /// Runs a future as a child scope.
-  pub fn run_child<O, F>(self: &Arc<Self>, id: usize, future: F) -> impl Future<Output = ()>
+  /// Runs an async operation as a child scope.
+  pub fn run_child<O, F>(self: &Arc<Self>, id: usize, op: F) -> impl Future<Output = ()>
   where
     O: IntoOutput + 'static,
     F: Future<Output = O> + 'static,
@@ -197,7 +208,7 @@ impl Scope {
     let scope = Arc::downgrade(self);
 
     async move {
-      let result = run(future).await;
+      let result = run(op).await;
 
       if let Some(scope) = scope.upgrade() {
         scope.ops.send(Op::FinishChild { id, result });

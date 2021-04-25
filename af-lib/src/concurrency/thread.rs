@@ -10,7 +10,7 @@ use super::{channel, scope};
 use crate::prelude::*;
 use crate::util::SharedStr;
 
-/// An executor which runs futures on a single thread.
+/// An executor which runs async operations on a single thread.
 type Executor = Rc<async_executor::LocalExecutor<'static>>;
 
 thread_local! {
@@ -19,29 +19,29 @@ thread_local! {
 }
 
 /// Returns a reference to the current thread's executor, if one exists.
-pub(super) fn executor() -> Option<Executor> {
+pub(crate) fn executor() -> Option<Executor> {
   EXECUTOR.with(|ex| ex.borrow().clone())
 }
 
 /// Creates an executor for the current thread and returns a reference to it.
-fn init_executor() -> Executor {
+pub(crate) fn init_executor() -> Executor {
   let executor = Executor::default();
   EXECUTOR.with(|ex| *ex.borrow_mut() = Some(executor.clone()));
   executor
 }
 
-/// Starts a named thread which runs a future to completion.
+/// Starts a thread which runs an async operation to completion.
 #[track_caller]
-pub fn start<O>(future: impl Future<Output = O> + Send + 'static)
+pub fn start<O>(op: impl Future<Output = O> + Send + 'static)
 where
   O: scope::IntoOutput + 'static,
 {
-  start_as("", future)
+  start_as("", op)
 }
 
-/// Starts a named thread which runs a future to completion.
+/// Starts a named thread which runs an async operation to completion.
 #[track_caller]
-pub fn start_as<O>(name: impl Into<SharedStr>, future: impl Future<Output = O> + Send + 'static)
+pub fn start_as<O>(name: impl Into<SharedStr>, op: impl Future<Output = O> + Send + 'static)
 where
   O: scope::IntoOutput + 'static,
 {
@@ -54,7 +54,7 @@ where
     .spawn(move || {
       let executor = init_executor();
       let id = parent.register_child("thread", name);
-      let future = parent.run_child(id, future);
+      let future = parent.run_child(id, op);
       let (tx, rx) = channel::<()>().split();
 
       let child = executor.spawn(async move {
@@ -68,16 +68,4 @@ where
       async_io::block_on(executor.run(rx.recv()));
     })
     .expect("failed to spawn thread");
-}
-
-/// Runs a future to completion on the current thread, as though it were started
-/// with [`start()`].
-pub(super) fn run<O, F>(future: F) -> Result<(), scope::Error>
-where
-  O: scope::IntoOutput + 'static,
-  F: Future<Output = O> + 'static,
-{
-  let executor = init_executor();
-
-  async_io::block_on(executor.run(scope::run(future)))
 }

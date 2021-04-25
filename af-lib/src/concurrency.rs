@@ -8,6 +8,7 @@
 
 pub mod channel;
 pub mod fiber;
+pub mod future;
 #[doc(hidden)]
 pub mod runtime;
 mod scope;
@@ -15,6 +16,7 @@ pub mod task;
 pub mod thread;
 
 pub use self::channel::{channel, Channel};
+pub use self::future::Future;
 
 /// Yields once to pending concurrent operations.
 pub async fn cooperative_yield() {

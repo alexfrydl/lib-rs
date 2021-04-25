@@ -11,11 +11,12 @@ use super::{scope, thread};
 use crate::prelude::*;
 use crate::util::log;
 
-/// Runs the runtime until it exits the process.
+/// Runs an async operation on the concurrency runtime and then exit the
+/// process.
 ///
-/// This function is marked unsafe because it may only be called once on the
+/// This function is marked unsafe because it must only be called once on the
 ///  main thread. Use the `main` proc macro instead.
-pub unsafe fn run<O, F>(module_path: &'static str, future: F) -> !
+pub unsafe fn run<O, F>(module_path: &'static str, op: F) -> !
 where
   O: scope::IntoOutput + 'static,
   F: Future<Output = O> + 'static,
@@ -26,7 +27,7 @@ where
     panic!("runtime already started");
   }
 
-  let result = thread::run(future);
+  let result = scope::run_sync(op);
 
   if let Err(err) = &result {
     error!(target: module_path, "Main thread {}", err);

@@ -9,7 +9,6 @@
 pub mod defer;
 pub mod failure;
 pub mod fmt;
-pub mod future;
 pub mod iter;
 pub mod lazy;
 pub mod log;

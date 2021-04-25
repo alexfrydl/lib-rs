@@ -4,16 +4,18 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//! Common [`Future`] types and utilities.
+//! Basic async operations represented by the [`Future`] trait.
 
 pub use std::future::Future;
 pub use std::task::{Context, Poll};
 
+use crate::concurrency::future;
 use crate::prelude::*;
-use crate::util::{defer, future, panic, Panic};
+use crate::util::{defer, panic, Panic};
 
-/// Waits for a future, capturing panic information if one occurs.
-pub async fn capture_panic<F>(future: F) -> Result<F::Output, Panic>
+/// Waits for an async operation to complete, capturing panic information if one
+/// occurs.
+pub async fn capture_panic<F>(op: F) -> Result<F::Output, Panic>
 where
   F: Future + panic::UnwindSafe,
 {
@@ -34,7 +36,7 @@ where
     }
   }
 
-  CapturePanic(future).await
+  CapturePanic(op).await
 }
 
 /// Waits forever.
@@ -42,24 +44,25 @@ pub async fn never() -> ! {
   futures_lite::future::pending().await
 }
 
-/// Waits for one of two futures to be ready and returns its result.
+/// Waits for one of two async operations to complete and returns its output.
 ///
-/// The remaining future is dropped. If both futures are ready at the same time,
-/// the first future has priority.
+/// The remaining operation is canceled. If both operations complete at the same
+/// time, the output of the first is returned.
 pub async fn race<T>(a: impl Future<Output = T>, b: impl Future<Output = T>) -> T {
   use futures_lite::FutureExt;
 
   a.or(b).await
 }
 
-/// Executes a future, setting a thread local value whenever it is polled.
+/// Executes an async operation, setting a thread local value whenever it is
+/// polled.
 ///
 /// This function can be used to implement “future local” values using a thread
 /// local storage cell.
 pub async fn with_tls_value<V, F>(
   key: &'static std::thread::LocalKey<RefCell<V>>,
   value: V,
-  future: F,
+  op: F,
 ) -> F::Output
 where
   V: 'static,
@@ -70,7 +73,7 @@ where
     key: &'static std::thread::LocalKey<RefCell<V>>,
     value: V,
     #[pin]
-    future: F,
+    op: F,
   }
 
   impl<V, F> Future for WithTls<V, F>
@@ -90,7 +93,7 @@ where
         key.with(|cell| mem::swap(&mut *cell.borrow_mut(), local));
       });
 
-      if let future::Poll::Ready(output) = this.future.poll(cx) {
+      if let future::Poll::Ready(output) = this.op.poll(cx) {
         reset.run_now();
 
         return future::Poll::Ready(output);
@@ -100,5 +103,5 @@ where
     }
   }
 
-  WithTls { key, value, future }.await
+  WithTls { key, value, op }.await
 }

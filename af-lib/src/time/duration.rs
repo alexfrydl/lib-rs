@@ -7,8 +7,9 @@
 use parse_duration::parse;
 pub use parse_duration::parse::Error as ParseError;
 
+use crate::concurrency::future;
+use crate::math::AsPrimitive;
 use crate::prelude::*;
-use crate::{math::AsPrimitive, util::future};
 
 /// A duration of time.
 ///

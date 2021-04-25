@@ -7,11 +7,11 @@
 //! Run operations concurrently on a shared, global thread pool by starting
 //! them on separate tasks.
 
-use super::scope;
+use super::{future, scope};
 use crate::prelude::*;
-use crate::util::{future, SharedStr};
+use crate::util::SharedStr;
 
-/// An executor which can run futures on multiple threads.
+/// An executor which can run async operations on multiple threads.
 type Executor = Arc<async_executor::Executor<'static>>;
 
 /// A global thread pool executor.
@@ -30,25 +30,25 @@ static EXECUTOR: Lazy<Executor> = Lazy::new(|| {
   executor
 });
 
-/// Starts a task which runs a future to completion on a global, shared thread
-/// pool.
+/// Starts a task which runs an async operation to completion on a global,
+/// shared thread pool.
 #[track_caller]
-pub fn start<O>(future: impl Future<Output = O> + Send + 'static)
+pub fn start<O>(op: impl Future<Output = O> + Send + 'static)
 where
   O: scope::IntoOutput + 'static,
 {
-  start_as("", future)
+  start_as("", op)
 }
 
-/// Starts a named task which runs a future to completion on a global, shared
-/// thread pool.
+/// Starts a named task which runs an async operation to completion on a global,
+/// shared thread pool.
 #[track_caller]
-pub fn start_as<O>(name: impl Into<SharedStr>, future: impl Future<Output = O> + Send + 'static)
+pub fn start_as<O>(name: impl Into<SharedStr>, op: impl Future<Output = O> + Send + 'static)
 where
   O: scope::IntoOutput + 'static,
 {
   let parent = scope::current().expect("the current thread does not support starting child tasks");
   let id = parent.register_child("task", name.into());
 
-  parent.insert_child(id, EXECUTOR.spawn(parent.run_child(id, future)));
+  parent.insert_child(id, EXECUTOR.spawn(parent.run_child(id, op)));
 }

@@ -7,8 +7,8 @@
 //! Contains functionality associated with [`timeout()`].
 
 use super::Duration;
+use crate::concurrency::{future, Future};
 use crate::prelude::*;
-use crate::util::future;
 
 /// Waits for an async operation to complete with a timeout.
 ///
