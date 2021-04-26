@@ -32,3 +32,26 @@ where
 
   process::exit(code);
 }
+
+#[cfg(feature = "tokio")]
+mod tokio {
+  // TODO: Always use tokio's runtime, instead of async_executor?
+
+  use tokio::runtime::Runtime;
+
+  use crate::prelude::*;
+
+  static RUNTIME: Lazy<tokio::runtime::Handle> = Lazy::new(|| {
+    tokio::runtime::Handle::try_current().unwrap_or_else(|_| {
+      let rt = Runtime::new().expect("failed to start tokio runtime");
+      let handle = rt.handle().clone();
+
+      std::thread::spawn(move || {
+        rt.block_on(future::never());
+      })
+      .expect("failed to start main tokio thread");
+
+      handle
+    })
+  });
+}
