@@ -11,7 +11,7 @@ pub mod fiber;
 pub mod future;
 #[doc(hidden)]
 pub mod runtime;
-mod scope;
+pub(crate) mod scope;
 pub mod task;
 pub mod thread;
 

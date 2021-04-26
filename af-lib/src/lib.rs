@@ -29,6 +29,7 @@ pub mod concurrency;
 pub mod fs;
 pub mod math;
 pub mod prelude;
+pub mod test;
 pub mod time;
 pub mod util;
 

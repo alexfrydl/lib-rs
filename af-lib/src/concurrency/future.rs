@@ -16,7 +16,7 @@ use crate::util::{panic, Panic};
 
 /// Waits for an async operation to complete, capturing panic information if one
 /// occurs.
-pub async fn capture_panic<F>(op: F) -> Result<F::Output, Panic>
+pub fn capture_panic<F>(op: F) -> impl Future<Output = Result<F::Output, Panic>>
 where
   F: Future + panic::UnwindSafe,
 {
@@ -37,11 +37,11 @@ where
     }
   }
 
-  CapturePanic(op).await
+  CapturePanic(op)
 }
 
 /// Waits forever.
-pub async fn never() -> ! {
+pub async fn never() {
   futures_lite::future::pending().await
 }
 
@@ -49,10 +49,10 @@ pub async fn never() -> ! {
 ///
 /// The remaining operation is canceled. If both operations complete at the same
 /// time, the output of the first is returned.
-pub async fn race<T>(a: impl Future<Output = T>, b: impl Future<Output = T>) -> T {
+pub fn race<T>(a: impl Future<Output = T>, b: impl Future<Output = T>) -> impl Future<Output = T> {
   use futures_lite::FutureExt;
 
-  a.or(b).await
+  a.or(b)
 }
 
 /// Executes an async operation, setting a thread local value whenever it is
@@ -60,11 +60,11 @@ pub async fn race<T>(a: impl Future<Output = T>, b: impl Future<Output = T>) -> 
 ///
 /// This function can be used to implement “future local” values using a thread
 /// local storage cell.
-pub async fn with_tls_value<V, F>(
+pub fn with_tls_value<V, F>(
   key: &'static std::thread::LocalKey<RefCell<V>>,
   value: V,
   op: F,
-) -> F::Output
+) -> impl Future<Output = F::Output>
 where
   V: 'static,
   F: Future,
@@ -100,5 +100,5 @@ where
     }
   }
 
-  WithTls { key, value, op }.await
+  WithTls { key, value, op }
 }

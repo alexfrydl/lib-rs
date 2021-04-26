@@ -88,6 +88,18 @@ impl From<String> for SharedStr {
   }
 }
 
+impl From<SharedStr> for String {
+  fn from(value: SharedStr) -> Self {
+    value.as_str().into()
+  }
+}
+
+impl<'a> From<&'a String> for SharedStr {
+  fn from(value: &'a String) -> Self {
+    Self(Inner::ArcStr(value.clone().into()))
+  }
+}
+
 impl From<Cow<'static, str>> for SharedStr {
   fn from(value: Cow<'static, str>) -> Self {
     match value {

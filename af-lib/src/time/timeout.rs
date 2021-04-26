@@ -14,22 +14,49 @@ use crate::prelude::*;
 ///
 /// If the timeout duration elapses before the operation completes, this
 /// function returns an error and drops the operation.
-pub async fn timeout<O>(duration: Duration, op: impl Future<Output = O>) -> Result<O, Error> {
-  let future = async { Ok(op.await) };
-
-  if duration.is_infinite() {
-    return future.await;
+pub fn timeout<O>(
+  duration: Duration,
+  op: impl Future<Output = O>,
+) -> impl Future<Output = Result<O, Error>> {
+  #[pin_project]
+  struct Timeout<F> {
+    #[pin]
+    future: F,
+    #[pin]
+    timer: async_io::Timer,
   }
 
-  let timeout = async {
-    duration.elapsed().await;
-    Err(Error)
-  };
+  impl<F> Future for Timeout<F>
+  where
+    F: Future,
+  {
+    type Output = Result<F::Output, Error>;
 
-  future::race(future, timeout).await
+    fn poll(self: Pin<&mut Self>, cx: &mut future::Context) -> future::Poll<Self::Output> {
+      let this = self.project();
+
+      if let future::Poll::Ready(value) = this.future.poll(cx) {
+        return future::Poll::Ready(Ok(value));
+      }
+
+      if this.timer.poll(cx).is_ready() {
+        return future::Poll::Ready(Err(Error));
+      }
+
+      future::Poll::Pending
+    }
+  }
+
+  Timeout { future: op, timer: async_io::Timer::after(duration.into()) }
 }
 
 /// A timeout error.
-#[derive(Debug, Error)]
+#[derive(Error)]
 #[error("timed out")]
 pub struct Error;
+
+impl Debug for Error {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "timeout::Error")
+  }
+}

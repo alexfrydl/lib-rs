@@ -33,9 +33,9 @@ where
 {
   let ops = channel();
   let scope = Arc::new(Scope { next_child_id: AtomicUsize::new(1), ops: ops.sender() });
-  let mut join_children: Vec<ArcWeak<event_listener::Event>> = default();
 
   let event_listener = async move {
+    let mut join_children: Vec<ArcWeak<event_listener::Event>> = default();
     let mut children: FxHashMap<usize, (Info, Option<Child>)> = default();
 
     loop {
@@ -114,10 +114,16 @@ where
 pub type Child = async_task::Task<()>;
 
 /// An error returned from a scope.
+#[derive(From)]
 pub enum Error {
+  #[from]
   Error(String),
+  #[from]
   Panic(Panic),
-  FromChild { child: Info, error: Box<Error> },
+  FromChild {
+    child: Info,
+    error: Box<Error>,
+  },
 }
 
 impl Display for Error {
@@ -127,7 +133,7 @@ impl Display for Error {
         write!(f, "failed\n{}", fmt::indent("  ", "  ", err))
       }
 
-      Error::Panic(panic) => Display::fmt(panic, f),
+      Error::Panic(panic) => write!(f, "{:#}", panic),
 
       Error::FromChild { child, error } => match child.name.as_str() {
         "" => write!(f, "failed\nbecause {} {} {}", child.kind, child.id, error),
@@ -200,10 +206,13 @@ impl Scope {
   }
 
   /// Runs an async operation as a child scope.
-  pub fn run_child<O, F>(self: &Arc<Self>, id: usize, op: F) -> impl Future<Output = ()>
+  pub fn run_child<O>(
+    self: &Arc<Self>,
+    id: usize,
+    op: impl Future<Output = O> + 'static,
+  ) -> impl Future<Output = ()>
   where
     O: IntoOutput + 'static,
-    F: Future<Output = O> + 'static,
   {
     let scope = Arc::downgrade(self);
 

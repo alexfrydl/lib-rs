@@ -10,7 +10,8 @@ use crate::prelude::*;
 pub fn run(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
   // Extract function item information.
 
-  let syn::ItemFn { attrs, vis, sig, block } = syn::parse_macro_input!(item as syn::ItemFn);
+  let func = syn::parse_macro_input!(item as syn::ItemFn);
+  let sig = &func.sig;
   let name = &sig.ident;
 
   // Check requirements.
@@ -37,22 +38,11 @@ pub fn run(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     },
   };
 
-  // Generate the output.
+  generate(func, run)
+}
 
-  let mut code = TokenStream::new();
-
-  #[cfg(feature = "logger")]
-  code.append_all(quote! {
-    unsafe {
-      __af_lib_macro_helpers::__log_init!();
-    }
-  });
-
-  code.append_all(quote! {
-    unsafe {
-      __af_lib_macro_helpers::__runtime_run(module_path!(), async { #run });
-    }
-  });
+pub fn generate(func: syn::ItemFn, run: TokenStream) -> proc_macro::TokenStream {
+  let syn::ItemFn { vis, attrs, sig, block, .. } = func;
 
   // Generate code to call the main function.
 
@@ -61,7 +51,13 @@ pub fn run(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
       #(#attrs)*
       #sig #block
 
-      #code
+      unsafe {
+        __af_lib_macro_helpers::__log_init!();
+
+        __af_lib_macro_helpers::__runtime_run(module_path!(), async {
+          #run
+        });
+      }
     }
   };
 

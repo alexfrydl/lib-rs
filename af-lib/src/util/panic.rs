@@ -103,10 +103,18 @@ fn install_hook() {
 
 impl Display for Panic {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "panicked at {} line {}", self.file, self.line)?;
+    if f.alternate() {
+      write!(f, "panicked\n  at {} line {}", self.file, self.line)?;
 
-    if let Some(message) = &self.message {
-      write!(f, "\n{}", fmt::indent("  ", "  ", message))?;
+      if let Some(message) = &self.message {
+        write!(f, "\n{}", fmt::indent("    ", "    ", message))?;
+      }
+    } else {
+      write!(f, "panicked at {} line {}", self.file, self.line)?;
+
+      if let Some(message) = &self.message {
+        write!(f, "\n{}", fmt::indent("  ", "  ", message))?;
+      }
     }
 
     Ok(())

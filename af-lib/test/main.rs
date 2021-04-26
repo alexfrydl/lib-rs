@@ -4,26 +4,26 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use af_lib::concurrency::{fiber, join};
-use af_lib::prelude::*;
-use af_lib::time::Duration;
+use af_lib::test::prelude::*;
 
 /// Main entry point for tests.
-#[af_lib::main]
-async fn main() {
-  defer! {
-    // Runs at the end of the block.
-  };
-
-  fiber::start(async {
-    Duration::seconds(1).elapsed().await;
-    info!("One!");
+#[test::main]
+async fn main(t: test::Context) {
+  t.test("root level test", async {
+    assert!(false);
   });
 
-  fiber::start(async {
-    Duration::seconds(1).elapsed().await;
-    info!("Two!");
+  test_things(&t);
+}
+
+fn test_things(t: &test::Context) {
+  let t = t.context("Thing");
+
+  t.test("should fail", async {
+    assert!(false);
   });
 
-  join().await;
+  t.test("::tester()", async {
+    assert_eq!("not", "equal");
+  });
 }

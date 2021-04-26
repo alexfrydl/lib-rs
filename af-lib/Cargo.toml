@@ -24,7 +24,7 @@ logger = ["af-macros/logger", "dashmap"]
 af-macros = { version = "^0.2.0", path = "../af-macros" }
 async-channel = "1"
 async-executor = "1"
-async-io = "1"
+async-io = "~1.0"
 async-task = "4"
 cfg-if = "1"
 chrono = "0.4"
@@ -43,6 +43,7 @@ rand = "0.8"
 rand_xoshiro = "0.6"
 rustc-hash = "1"
 serde = { version = "1", features = ["derive"] }
+socket2 = "~0.3"
 thiserror = "1"
 uuid = { version = "0.8", features = ["serde"] }
 

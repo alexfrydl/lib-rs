@@ -55,7 +55,11 @@ pub use {
 /// autocomplete and autoimport.
 pub mod __af_lib_macro_helpers {
   pub use crate::concurrency::runtime::run as __runtime_run;
+  pub use crate::main as __main;
+  pub use crate::test::run_suite as __run_test_suite;
   pub use crate::util::log::{
-    init as __log_init, set_level_of as __log_set_level_of, Level as __log_level,
+    flush as __flush_log, init as __log_init, set_level_of as __log_set_level_of,
+    Level as __log_level,
   };
+  pub use crate::util::process::set_exit_code as __set_exit_code;
 }
