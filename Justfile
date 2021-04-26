@@ -4,13 +4,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-# Displays information about available recipes.
-help:
-  just --list
-
 # Builds all features.
 build:
   cargo build --workspace --all-features
+
+# Displays information about available recipes.
+help:
+  just --list
 
 # Adds the MPL license header to all source files.
 license:
@@ -34,8 +34,5 @@ license:
     and mv $file{.tmp,}
   end
 
-publish package:
-  @cd {{package}} && cargo publish --all-features
-
 test:
-  cargo run --all-features --bin test-af-lib
+  cargo test --workspace --all-features
