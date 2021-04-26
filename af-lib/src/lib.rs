@@ -29,8 +29,27 @@ pub mod concurrency;
 pub mod fs;
 pub mod math;
 pub mod prelude;
-pub mod test;
 pub mod time;
 pub mod util;
 
-pub use af_macros::main;
+pub use af_macros::{async_test, main};
+
+#[cfg(test)]
+mod tests {
+  use crate::concurrency::{fiber, join};
+  use crate::prelude::*;
+
+  #[async_test]
+  async fn test_stuff() {
+    fiber::start(async {
+      panic!("oh god");
+    });
+
+    join().await;
+  }
+
+  #[test]
+  fn test_shit() {
+    eprintln!("lol");
+  }
+}

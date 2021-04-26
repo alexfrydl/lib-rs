@@ -100,6 +100,9 @@ where
 }
 
 /// Runs an async operation as a scope by blocking the current thread.
+///
+/// This function is marked unsafe because it must only be run on a fresh
+/// thread.
 pub fn run_sync<O, F>(op: F) -> Result<(), Error>
 where
   O: IntoOutput + 'static,

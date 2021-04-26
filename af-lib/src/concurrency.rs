@@ -9,8 +9,7 @@
 pub mod channel;
 pub mod fiber;
 pub mod future;
-#[doc(hidden)]
-pub mod runtime;
+pub(crate) mod runtime;
 pub(crate) mod scope;
 pub mod task;
 pub mod thread;

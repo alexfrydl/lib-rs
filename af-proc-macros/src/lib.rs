@@ -6,11 +6,21 @@
 
 //! Proc macros for [af-core](https://docs.rs/af-core/0.1).
 
+mod attr_async_test;
 mod attr_main;
-mod attr_test_main;
 mod prelude;
 
 use proc_macro_error::proc_macro_error;
+
+/// An attribute macro to be applied to asynchronous test functions.
+#[proc_macro_error]
+#[proc_macro_attribute]
+pub fn async_test(
+  _: proc_macro::TokenStream,
+  item: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+  attr_async_test::run(item)
+}
 
 /// An attribute macro to be applied to the `main()` function of an executable.
 ///
@@ -19,14 +29,4 @@ use proc_macro_error::proc_macro_error;
 #[proc_macro_attribute]
 pub fn main(_: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
   attr_main::run(item)
-}
-
-/// Defines a main function for an `af_core::test` suite.
-#[proc_macro_error]
-#[proc_macro_attribute]
-pub fn test_main(
-  _: proc_macro::TokenStream,
-  item: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-  attr_test_main::run(item)
 }

@@ -6,15 +6,12 @@
 
 //! Formatted logging using the [log](https://docs.rs/log) crate.
 
+#[cfg(feature = "logger")]
+mod logger;
+
 pub use log::{debug, error, info, trace, warn, Level};
 
+#[cfg(feature = "logger")]
+pub use self::logger::*;
 pub use self::Level::*;
 use crate::prelude::*;
-
-cfg_if! {
-  if #[cfg(feature = "logger")] {
-    mod logger;
-
-    pub use self::logger::*;
-  }
-}

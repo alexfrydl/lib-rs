@@ -6,11 +6,11 @@
 
 //! A “prelude” module containing common imports.
 
-pub(crate) use cfg_if::cfg_if;
 #[doc(hidden)]
 pub use thiserror;
 #[doc(no_inline)]
 pub use {
+  crate::async_test,
   crate::math::{FloatExt as _, Number},
   crate::util::failure::{self, fail, failure, Failure, Result},
   crate::util::log::{debug, error, info, trace, warn},
@@ -55,8 +55,9 @@ pub use {
 /// autocomplete and autoimport.
 pub mod __af_lib_macro_helpers {
   pub use crate::concurrency::runtime::run as __runtime_run;
+  pub use crate::concurrency::scope::run_sync as __run_scope_sync;
   pub use crate::main as __main;
-  pub use crate::test::run_suite as __run_test_suite;
+  pub use crate::util::fmt::indent as __fmt_indent;
   pub use crate::util::log::{
     flush as __flush_log, init as __log_init, set_level_of as __log_set_level_of,
     Level as __log_level,
