@@ -16,6 +16,7 @@ pub mod thread;
 
 pub use self::channel::{channel, Channel};
 pub use self::future::Future;
+pub use once_cell::sync::{Lazy, OnceCell};
 
 /// Yields once to pending concurrent operations.
 pub async fn cooperative_yield() {
