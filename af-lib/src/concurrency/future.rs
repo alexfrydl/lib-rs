@@ -20,24 +20,14 @@ pub fn capture_panic<F>(op: F) -> impl Future<Output = Result<F::Output, Panic>>
 where
   F: Future + panic::UnwindSafe,
 {
-  #[pin_project]
-  struct CapturePanic<F>(#[pin] F);
+  with_poll_fn(op, |this, cx| {
+    let result = panic::capture(panic::AssertUnwindSafe(|| this.poll(cx)));
 
-  impl<F: Future> Future for CapturePanic<F> {
-    type Output = Result<F::Output, Panic>;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
-      let this = self.project();
-      let result = panic::capture(panic::AssertUnwindSafe(|| this.0.poll(cx)));
-
-      match result {
-        Ok(poll) => poll.map(Ok),
-        Err(panic) => Poll::Ready(Err(panic)),
-      }
+    match result {
+      Ok(poll) => poll.map(Ok),
+      Err(panic) => Poll::Ready(Err(panic)),
     }
-  }
-
-  CapturePanic(op)
+  })
 }
 
 /// Waits forever.
@@ -55,51 +45,38 @@ pub fn race<T>(a: impl Future<Output = T>, b: impl Future<Output = T>) -> impl F
   a.or(b)
 }
 
-/// Executes an async operation, setting a thread local value whenever it is
-/// polled.
-///
-/// This function can be used to implement “future local” values using a thread
-/// local storage cell.
-pub fn with_tls_value<V, F>(
-  key: &'static std::thread::LocalKey<RefCell<V>>,
-  value: V,
+/// Waits for an async operation to complete by polling it with a custom
+/// closure.
+pub fn with_poll_fn<O, F>(
   op: F,
-) -> impl Future<Output = F::Output>
+  poll: impl FnMut(Pin<&mut F>, &mut Context) -> Poll<O>,
+) -> impl Future<Output = O>
 where
-  V: 'static,
   F: Future,
 {
   #[pin_project]
-  struct WithTls<V: 'static, F> {
-    key: &'static std::thread::LocalKey<RefCell<V>>,
-    value: V,
+  struct WithPollFn<O, F, P>
+  where
+    P: FnMut(Pin<&mut F>, &mut Context) -> Poll<O>,
+  {
     #[pin]
     op: F,
+    poll: P,
   }
 
-  impl<V, F> Future for WithTls<V, F>
+  impl<O, F, P> Future for WithPollFn<O, F, P>
   where
     F: Future,
+    P: FnMut(Pin<&mut F>, &mut Context) -> Poll<O>,
   {
-    type Output = F::Output;
+    type Output = O;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
-      let mut this = self.project();
+      let this = self.project();
 
-      // Set the thread-local value for the duration of the poll function.
-
-      let key = this.key;
-      let tmp = &mut this.value;
-
-      key.with(|cell| mem::swap(&mut *cell.borrow_mut(), tmp));
-
-      defer! {
-        key.with(|cell| mem::swap(&mut *cell.borrow_mut(), tmp));
-      };
-
-      this.op.poll(cx)
+      (this.poll)(this.op, cx)
     }
   }
 
-  WithTls { key, value, op }
+  WithPollFn { op, poll }
 }

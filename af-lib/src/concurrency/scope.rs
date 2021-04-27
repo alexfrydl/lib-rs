@@ -118,7 +118,19 @@ where
   // Set up the scope and run the main future and controller future concurrently
   // until the main future exits or a child scope fails.
 
-  future::with_tls_value(&SCOPE, Some(scope.clone()), future::race(main_future, controller)).await
+  let future = future::race(main_future, controller);
+  let mut tmp = Some(scope);
+
+  future::with_poll_fn(future, |this, cx| {
+    SCOPE.with(|cell| mem::swap(&mut *cell.borrow_mut(), &mut tmp));
+
+    defer! {
+      SCOPE.with(|cell| mem::swap(&mut *cell.borrow_mut(), &mut tmp));
+    }
+
+    this.poll(cx)
+  })
+  .await
 }
 
 /// Runs an async operation as a scope by blocking the current thread.

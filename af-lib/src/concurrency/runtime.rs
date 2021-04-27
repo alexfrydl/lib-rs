@@ -33,6 +33,7 @@ pub fn can_spawn_local() -> bool {
   HAS_LOCAL_SET.with(|cell| cell.get())
 }
 
+/// Runs a closure in the context of a local set.
 fn with_local_set<O>(closure: impl FnOnce(LocalSet) -> O) -> O {
   let local = LocalSet::new();
   let original_hls = HAS_LOCAL_SET.with(|cell| cell.replace(true));
