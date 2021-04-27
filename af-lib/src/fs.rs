@@ -10,11 +10,9 @@ pub mod path;
 
 use std::io;
 
-use self::path::PathLike;
-
 /// Checks whether a path exists.
-pub fn exists<'a>(path: impl PathLike<'a>) -> Result<bool, io::Error> {
-  match std::fs::metadata(&*path.to_cow()) {
+pub fn exists(path: impl AsRef<str>) -> Result<bool, io::Error> {
+  match std::fs::metadata(path.as_ref()) {
     Ok(_) => Ok(true),
     Err(err) if err.kind() == io::ErrorKind::NotFound => Ok(false),
     Err(err) => Err(err),
@@ -22,8 +20,8 @@ pub fn exists<'a>(path: impl PathLike<'a>) -> Result<bool, io::Error> {
 }
 
 /// Checks whether a path refers to a directory.
-pub fn is_dir<'a>(path: impl PathLike<'a>) -> Result<bool, io::Error> {
-  match std::fs::metadata(&*path.to_cow()) {
+pub fn is_dir(path: impl AsRef<str>) -> Result<bool, io::Error> {
+  match std::fs::metadata(path.as_ref()) {
     Ok(m) => Ok(m.is_dir()),
     Err(err) if err.kind() == io::ErrorKind::NotFound => Ok(false),
     Err(err) => Err(err),
@@ -31,8 +29,8 @@ pub fn is_dir<'a>(path: impl PathLike<'a>) -> Result<bool, io::Error> {
 }
 
 /// Checks whether a path refers to a file.
-pub fn is_file<'a>(path: impl PathLike<'a>) -> Result<bool, io::Error> {
-  match std::fs::metadata(&*path.to_cow()) {
+pub fn is_file(path: impl AsRef<str>) -> Result<bool, io::Error> {
+  match std::fs::metadata(path.as_ref()) {
     Ok(m) => Ok(m.is_file()),
     Err(err) if err.kind() == io::ErrorKind::NotFound => Ok(false),
     Err(err) => Err(err),

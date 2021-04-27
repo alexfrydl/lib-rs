@@ -25,8 +25,5 @@ pub async fn cooperative_yield() {
 
 /// Waits for all children of the current concurrency scope to exit.
 pub async fn join() {
-  scope::current()
-    .expect("join_all() must be called from within a concurrency scope")
-    .join_children()
-    .await
+  scope::current().expect("join() cannot be called from this context").join_children().await
 }

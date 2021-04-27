@@ -11,8 +11,7 @@ use super::{runtime, scope};
 use crate::prelude::*;
 use crate::util::SharedStr;
 
-/// Starts a fiber which runs an async operation to completion on the current
-/// thread.
+/// Starts a concurrency scope on a child fiber that runs on the current thread.
 ///
 /// This function panics if the current thread does not support fibers (for
 /// example, if it is a task executor from the global thread pool).
@@ -24,8 +23,8 @@ where
   start_as("", op)
 }
 
-/// Starts a named fiber which runs an async operation to completion on the
-/// current thread.
+/// Starts a named concurrency scope on a child fiber that runs on the current
+/// thread.
 ///
 /// This function panics if the current thread does not support fibers (for
 /// example, if it is a task executor from the global thread pool).
@@ -38,6 +37,52 @@ where
 
   let parent = scope::current().expect("cannot start child fibers from this context");
   let id = parent.register_child("fiber", name.into());
+  let child = runtime::spawn_local(parent.run_child(id, op));
 
-  parent.insert_child(id, runtime::spawn_local(parent.run_child(id, op)));
+  parent.insert_child(id, child);
+}
+
+// Tests
+
+#[cfg(test)]
+mod tests {
+  use std::sync::atomic::AtomicBool;
+  use std::sync::atomic::Ordering::{Acquire, Release};
+
+  use super::*;
+  use crate::concurrency::join;
+
+  #[async_test]
+  async fn should_work() {
+    let rx = Arc::new(AtomicBool::new(false));
+    let tx = rx.clone();
+
+    start(async move {
+      tx.store(true, Release);
+    });
+
+    join().await;
+
+    assert!(rx.load(Acquire), "did not run");
+  }
+
+  #[async_test]
+  #[should_panic]
+  async fn should_propagate_errors() {
+    start(async {
+      fail!("oh no!");
+    });
+
+    join().await;
+  }
+
+  #[async_test]
+  #[should_panic]
+  async fn should_propagate_panics() {
+    start(async {
+      panic!("oh no!");
+    });
+
+    join().await;
+  }
 }

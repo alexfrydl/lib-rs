@@ -33,22 +33,3 @@ pub mod time;
 pub mod util;
 
 pub use af_macros::{async_test, main};
-
-#[cfg(test)]
-mod tests {
-  use crate::prelude::*;
-  use crate::{
-    concurrency::{fiber, join},
-    time::Duration,
-  };
-
-  #[async_test]
-  async fn test_stuff() {
-    fiber::start(async {
-      Duration::seconds(1).elapsed().await;
-      panic!("oh god");
-    });
-
-    join().await;
-  }
-}

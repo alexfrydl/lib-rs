@@ -10,7 +10,10 @@ use super::{channel, runtime, scope};
 use crate::prelude::*;
 use crate::util::SharedStr;
 
-/// Starts a thread which runs an async operation to completion.
+/// Starts a concurrency scope on a child thread.
+///
+/// The child thread can start [fibers][super::fiber] for thread-local
+/// concurrency.
 #[track_caller]
 pub fn start<O>(op: impl Future<Output = O> + Send + 'static)
 where
@@ -19,7 +22,10 @@ where
   start_as("", op)
 }
 
-/// Starts a named thread which runs an async operation to completion.
+/// Starts a named concurrency scope on a child thread.
+///
+/// The child thread can start [fibers][super::fiber] for thread-local
+/// concurrency.
 #[track_caller]
 pub fn start_as<O>(name: impl Into<SharedStr>, op: impl Future<Output = O> + Send + 'static)
 where
@@ -27,17 +33,22 @@ where
 {
   let parent = scope::current().expect("cannot start child threads from this context");
   let name = name.into();
+  let id = parent.register_child("thread", name.clone());
 
   std::thread::Builder::new()
     .name(name.to_string())
     .spawn(move || {
       runtime::block_on(async move {
-        let id = parent.register_child("thread", name);
+        // We need to spawn an actual AsyncOp, so this main future will instead
+        // wait to receive a message when the operation exits.
+
         let future = parent.run_child(id, op);
-        let (tx, rx) = channel::<()>().split();
+        let (tx, rx) = channel().split();
 
         let child = runtime::spawn_local(async move {
-          let _tx = tx;
+          defer! {
+            tx.send(());
+          }
 
           future.await
         });
@@ -48,4 +59,49 @@ where
       });
     })
     .expect("failed to spawn thread");
+}
+
+// Tests
+
+#[cfg(test)]
+mod tests {
+  use std::sync::atomic::AtomicBool;
+  use std::sync::atomic::Ordering::{Acquire, Release};
+
+  use super::*;
+  use crate::concurrency::join;
+
+  #[async_test]
+  async fn should_work() {
+    let rx = Arc::new(AtomicBool::new(false));
+    let tx = rx.clone();
+
+    start(async move {
+      tx.store(true, Release);
+    });
+
+    join().await;
+
+    assert!(rx.load(Acquire));
+  }
+
+  #[async_test]
+  #[should_panic]
+  async fn should_propagate_errors() {
+    start(async {
+      fail!("oh no!");
+    });
+
+    join().await;
+  }
+
+  #[async_test]
+  #[should_panic]
+  async fn should_propagate_panics() {
+    start(async {
+      panic!("oh no!");
+    });
+
+    join().await;
+  }
 }

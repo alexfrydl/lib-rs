@@ -32,58 +32,10 @@ where
   O: IntoOutput + 'static,
   F: Future<Output = O> + 'static,
 {
-  let ops = channel();
-  let scope = Arc::new(Scope { next_child_id: AtomicUsize::new(1), ops: ops.sender() });
+  let commands = channel();
+  let scope = Arc::new(Scope { next_child_id: AtomicUsize::new(1), commands: commands.sender() });
 
-  let event_listener = async move {
-    let mut join_children: Vec<ArcWeak<event_listener::Event>> = default();
-    let mut children: FxHashMap<usize, (Info, Option<AsyncOp>)> = default();
-
-    loop {
-      match ops.recv().await {
-        Op::RegisterChild(info) => {
-          children.insert(info.id, (info, None));
-        }
-
-        Op::InsertChild { id, child } => {
-          if let Some(entry) = children.get_mut(&id) {
-            entry.1 = Some(child);
-          }
-        }
-
-        Op::FinishChild { id, result } => {
-          let entry = children.remove(&id);
-
-          if children.is_empty() {
-            for join in join_children.drain(..) {
-              if let Some(event) = join.upgrade() {
-                event.notify_relaxed(1);
-              }
-            }
-          }
-
-          if let Some((info, _)) = entry {
-            if let Err(err) = result {
-              return Err(Error::FromChild { child: info, error: Box::new(err) });
-            }
-          }
-        }
-
-        Op::JoinChildren(event) => {
-          join_children.retain(|j| j.strong_count() > 0);
-
-          if children.is_empty() {
-            if let Some(event) = event.upgrade() {
-              event.notify_relaxed(1);
-              continue;
-            }
-          }
-
-          join_children.push(event);
-        }
-      }
-    }
-  };
+  // Wrap the main future in a capture_panic() and normalize its output.
 
   let main_future = async move {
     match future::capture_panic(panic::AssertUnwindSafe(op)).await {
@@ -96,14 +48,80 @@ where
     }
   };
 
-  future::with_tls_value(&SCOPE, Some(scope.clone()), future::race(main_future, event_listener))
-    .await
+  // Create a “controller” future that implements parent-child relationships.
+
+  let controller = async move {
+    // A map of IDs to children.
+    let mut children: FxHashMap<usize, (Info, Option<AsyncOp>)> = default();
+    // A list of events to signal when all children exit.
+    let mut join_children: Vec<ArcWeak<event_listener::Event>> = default();
+
+    loop {
+      // Handle each received command.
+
+      match commands.recv().await {
+        Command::RegisterChild(info) => {
+          children.insert(info.id, (info, None));
+        }
+
+        Command::InsertChild { id, child } => {
+          if let Some(entry) = children.get_mut(&id) {
+            entry.1 = Some(child);
+          }
+        }
+
+        Command::FinishChild { id, result } => {
+          let entry = children.remove(&id);
+
+          // If all children have finished, notify all join listeners.
+
+          if children.is_empty() {
+            for join in join_children.drain(..) {
+              if let Some(event) = join.upgrade() {
+                event.notify_relaxed(usize::MAX);
+              }
+            }
+          }
+
+          // If the child exited with an error, propagate it.
+
+          if let Some((info, _)) = entry {
+            if let Err(err) = result {
+              return Err(Error::FromChild { child: info, error: Box::new(err) });
+            }
+          }
+        }
+
+        Command::JoinChildren(event) => {
+          // Run a “garbage collection” pass on the list.
+
+          join_children.retain(|j| j.strong_count() > 0);
+
+          // If there are no children currently, notify this listener
+          // immediately.
+
+          if children.is_empty() {
+            if let Some(event) = event.upgrade() {
+              event.notify_relaxed(1);
+              continue;
+            }
+          }
+
+          // Otherwise store it.
+
+          join_children.push(event);
+        }
+      }
+    }
+  };
+
+  // Set up the scope and run the main future and controller future concurrently
+  // until the main future exits or a child scope fails.
+
+  future::with_tls_value(&SCOPE, Some(scope.clone()), future::race(main_future, controller)).await
 }
 
 /// Runs an async operation as a scope by blocking the current thread.
-///
-/// This function is marked unsafe because it must only be run on a fresh
-/// thread.
 pub fn run_sync<O, F>(op: F) -> Result<(), Error>
 where
   O: IntoOutput + 'static,
@@ -176,7 +194,7 @@ where
 pub type Kind = &'static str;
 
 /// One of the possible operations the scope controller can run.
-enum Op {
+enum Command {
   RegisterChild(Info),
   InsertChild { id: usize, child: AsyncOp },
   FinishChild { id: usize, result: Result<(), Error> },
@@ -186,7 +204,7 @@ enum Op {
 /// A running scope.
 pub struct Scope {
   next_child_id: AtomicUsize,
-  ops: channel::Sender<Op>,
+  commands: channel::Sender<Command>,
 }
 
 impl Scope {
@@ -195,13 +213,13 @@ impl Scope {
   /// The actual child must later be provided with [`insert_child()`],
   pub fn register_child(&self, kind: Kind, name: impl Into<SharedStr>) -> usize {
     let id = self.next_child_id.fetch_add(1, AcqRel);
-    self.ops.send(Op::RegisterChild(Info { id, kind, name: name.into() }));
+    self.commands.send(Command::RegisterChild(Info { id, kind, name: name.into() }));
     id
   }
 
   /// Inserts a previously registered child.
   pub fn insert_child(&self, id: usize, child: AsyncOp) {
-    self.ops.send(Op::InsertChild { id, child });
+    self.commands.send(Command::InsertChild { id, child });
   }
 
   /// Runs an async operation as a child scope.
@@ -219,7 +237,7 @@ impl Scope {
       let result = run(op).await;
 
       if let Some(scope) = scope.upgrade() {
-        scope.ops.send(Op::FinishChild { id, result });
+        scope.commands.send(Command::FinishChild { id, result });
       }
     }
   }
@@ -229,7 +247,7 @@ impl Scope {
     let event = Arc::new(event_listener::Event::new());
     let listener = event.listen();
 
-    self.ops.send(Op::JoinChildren(Arc::downgrade(&event)));
+    self.commands.send(Command::JoinChildren(Arc::downgrade(&event)));
 
     listener.await;
   }

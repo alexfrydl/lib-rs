@@ -11,8 +11,8 @@ use super::{runtime, scope};
 use crate::prelude::*;
 use crate::util::SharedStr;
 
-/// Starts a task which runs an async operation to completion on a global,
-/// shared thread pool.
+/// Starts a concurrency scope on a child task that runs on the global thread
+/// pool.
 #[track_caller]
 pub fn start<O>(op: impl Future<Output = O> + Send + 'static)
 where
@@ -20,9 +20,8 @@ where
 {
   start_as("", op)
 }
-
-/// Starts a named task which runs an async operation to completion on a global,
-/// shared thread pool.
+/// Starts a named concurrency scope on a child task that runs on the global
+/// thread pool.
 #[track_caller]
 pub fn start_as<O>(name: impl Into<SharedStr>, op: impl Future<Output = O> + Send + 'static)
 where
@@ -30,6 +29,52 @@ where
 {
   let parent = scope::current().expect("cannot start child tasks from this context");
   let id = parent.register_child("task", name.into());
+  let child = runtime::spawn(parent.run_child(id, op));
 
-  parent.insert_child(id, runtime::spawn(parent.run_child(id, op)));
+  parent.insert_child(id, child);
+}
+
+// Tests
+
+#[cfg(test)]
+mod tests {
+  use std::sync::atomic::AtomicBool;
+  use std::sync::atomic::Ordering::{Acquire, Release};
+
+  use super::*;
+  use crate::concurrency::join;
+
+  #[async_test]
+  async fn should_work() {
+    let rx = Arc::new(AtomicBool::new(false));
+    let tx = rx.clone();
+
+    start(async move {
+      tx.store(true, Release);
+    });
+
+    join().await;
+
+    assert!(rx.load(Acquire));
+  }
+
+  #[async_test]
+  #[should_panic]
+  async fn should_propagate_errors() {
+    start(async {
+      fail!("oh no!");
+    });
+
+    join().await;
+  }
+
+  #[async_test]
+  #[should_panic]
+  async fn should_propagate_panics() {
+    start(async {
+      panic!("oh no!");
+    });
+
+    join().await;
+  }
 }

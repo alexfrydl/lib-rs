@@ -84,19 +84,20 @@ where
     type Output = F::Output;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
-      let key = self.key;
       let mut this = self.project();
-      let local = &mut this.value;
 
-      key.with(|cell| mem::swap(&mut *cell.borrow_mut(), local));
+      // Set the thread-local value for the duration of the poll function.
+
+      let key = this.key;
+      let tmp = &mut this.value;
+
+      key.with(|cell| mem::swap(&mut *cell.borrow_mut(), tmp));
 
       defer! {
-        key.with(|cell| mem::swap(&mut *cell.borrow_mut(), local))
+        key.with(|cell| mem::swap(&mut *cell.borrow_mut(), tmp));
       };
 
-      let output = ready!(this.op.poll(cx));
-
-      Poll::Ready(output)
+      this.op.poll(cx)
     }
   }
 
