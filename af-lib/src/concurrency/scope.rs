@@ -11,7 +11,8 @@ use std::sync::atomic::Ordering::AcqRel;
 
 use rustc_hash::FxHashMap;
 
-use super::{channel, future, thread};
+use super::runtime::{self, AsyncOp};
+use super::{channel, future};
 use crate::prelude::*;
 use crate::util::{panic, Panic, SharedStr};
 
@@ -36,7 +37,7 @@ where
 
   let event_listener = async move {
     let mut join_children: Vec<ArcWeak<event_listener::Event>> = default();
-    let mut children: FxHashMap<usize, (Info, Option<Child>)> = default();
+    let mut children: FxHashMap<usize, (Info, Option<AsyncOp>)> = default();
 
     loop {
       match ops.recv().await {
@@ -108,13 +109,8 @@ where
   O: IntoOutput + 'static,
   F: Future<Output = O> + 'static,
 {
-  let executor = thread::init_executor();
-
-  async_io::block_on(executor.run(run(op)))
+  runtime::block_on(run(op))
 }
-
-/// A child of a scope.
-pub type Child = async_task::Task<()>;
 
 /// An error returned from a scope.
 #[derive(From)]
@@ -182,7 +178,7 @@ pub type Kind = &'static str;
 /// One of the possible operations the scope controller can run.
 enum Op {
   RegisterChild(Info),
-  InsertChild { id: usize, child: Child },
+  InsertChild { id: usize, child: AsyncOp },
   FinishChild { id: usize, result: Result<(), Error> },
   JoinChildren(ArcWeak<event_listener::Event>),
 }
@@ -204,7 +200,7 @@ impl Scope {
   }
 
   /// Inserts a previously registered child.
-  pub fn insert_child(&self, id: usize, child: Child) {
+  pub fn insert_child(&self, id: usize, child: AsyncOp) {
     self.ops.send(Op::InsertChild { id, child });
   }
 

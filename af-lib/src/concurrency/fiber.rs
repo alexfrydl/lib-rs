@@ -7,7 +7,7 @@
 //! Run operations concurrently on the current thread by starting them on
 //! separate fibers.
 
-use super::{scope, thread};
+use super::{runtime, scope};
 use crate::prelude::*;
 use crate::util::SharedStr;
 
@@ -34,9 +34,10 @@ pub fn start_as<O>(name: impl Into<SharedStr>, op: impl Future<Output = O> + 'st
 where
   O: scope::IntoOutput + 'static,
 {
-  let executor = thread::executor().expect("the current thread does not support fibers");
-  let parent = scope::current().expect("the current thread does not support fibers");
+  assert!(runtime::can_spawn_local(), "the current thread does not support fibers");
+
+  let parent = scope::current().expect("cannot start child fibers from this context");
   let id = parent.register_child("fiber", name.into());
 
-  parent.insert_child(id, executor.spawn(parent.run_child(id, op)));
+  parent.insert_child(id, runtime::spawn_local(parent.run_child(id, op)));
 }

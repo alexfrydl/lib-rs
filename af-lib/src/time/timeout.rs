@@ -7,7 +7,7 @@
 //! Contains functionality associated with [`timeout()`].
 
 use super::Duration;
-use crate::concurrency::{future, Future};
+use crate::concurrency::{future, runtime, Future};
 use crate::prelude::*;
 
 /// Waits for an async operation to complete with a timeout.
@@ -23,7 +23,7 @@ pub fn timeout<O>(
     #[pin]
     future: F,
     #[pin]
-    timer: async_io::Timer,
+    timeout: runtime::Sleep,
   }
 
   impl<F> Future for Timeout<F>
@@ -39,7 +39,7 @@ pub fn timeout<O>(
         return future::Poll::Ready(Ok(value));
       }
 
-      if this.timer.poll(cx).is_ready() {
+      if this.timeout.poll(cx).is_ready() {
         return future::Poll::Ready(Err(Error));
       }
 
@@ -47,7 +47,7 @@ pub fn timeout<O>(
     }
   }
 
-  Timeout { future: op, timer: async_io::Timer::after(duration.into()) }
+  Timeout { future: op, timeout: runtime::sleep(duration) }
 }
 
 /// A timeout error.

@@ -7,7 +7,7 @@
 use parse_duration::parse;
 pub use parse_duration::parse::Error as ParseError;
 
-use crate::concurrency::future;
+use crate::concurrency::{future, runtime};
 use crate::math::AsPrimitive;
 use crate::prelude::*;
 
@@ -66,7 +66,7 @@ impl Duration {
     if self.is_infinite() {
       future::never().await;
     } else {
-      async_io::Timer::after(self.to_std()).await;
+      runtime::sleep(*self).await;
     }
   }
 

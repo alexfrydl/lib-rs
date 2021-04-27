@@ -7,28 +7,9 @@
 //! Run operations concurrently on a shared, global thread pool by starting
 //! them on separate tasks.
 
-use super::{future, scope};
+use super::{runtime, scope};
 use crate::prelude::*;
 use crate::util::SharedStr;
-
-/// An executor which can run async operations on multiple threads.
-type Executor = Arc<async_executor::Executor<'static>>;
-
-/// A global thread pool executor.
-static EXECUTOR: Lazy<Executor> = Lazy::new(|| {
-  let executor = Executor::default();
-
-  for i in 0..num_cpus::get() + 1 {
-    let executor = executor.clone();
-
-    std::thread::Builder::new()
-      .name(format!("task executor {}", i + 1))
-      .spawn(move || async_io::block_on(executor.run(future::never())))
-      .expect("failed to spawn task executor thread");
-  }
-
-  executor
-});
 
 /// Starts a task which runs an async operation to completion on a global,
 /// shared thread pool.
@@ -47,8 +28,8 @@ pub fn start_as<O>(name: impl Into<SharedStr>, op: impl Future<Output = O> + Sen
 where
   O: scope::IntoOutput + 'static,
 {
-  let parent = scope::current().expect("the current thread does not support starting child tasks");
+  let parent = scope::current().expect("cannot start child tasks from this context");
   let id = parent.register_child("task", name.into());
 
-  parent.insert_child(id, EXECUTOR.spawn(parent.run_child(id, op)));
+  parent.insert_child(id, runtime::spawn(parent.run_child(id, op)));
 }

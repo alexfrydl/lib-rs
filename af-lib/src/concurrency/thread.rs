@@ -6,29 +6,9 @@
 
 //! Run operations concurrently by starting them on separate dedicated threads.
 
-use super::{channel, scope};
+use super::{channel, runtime, scope};
 use crate::prelude::*;
 use crate::util::SharedStr;
-
-/// An executor which runs async operations on a single thread.
-type Executor = Rc<async_executor::LocalExecutor<'static>>;
-
-thread_local! {
-  /// A thread-specific executor.
-  static EXECUTOR: RefCell<Option<Executor>> = default();
-}
-
-/// Returns a reference to the current thread's executor, if one exists.
-pub(crate) fn executor() -> Option<Executor> {
-  EXECUTOR.with(|ex| ex.borrow().clone())
-}
-
-/// Creates an executor for the current thread and returns a reference to it.
-pub(crate) fn init_executor() -> Executor {
-  let executor = Executor::default();
-  EXECUTOR.with(|ex| *ex.borrow_mut() = Some(executor.clone()));
-  executor
-}
 
 /// Starts a thread which runs an async operation to completion.
 #[track_caller]
@@ -45,27 +25,27 @@ pub fn start_as<O>(name: impl Into<SharedStr>, op: impl Future<Output = O> + Sen
 where
   O: scope::IntoOutput + 'static,
 {
-  let parent =
-    scope::current().expect("the current thread does not support starting child threads");
+  let parent = scope::current().expect("cannot start child threads from this context");
   let name = name.into();
 
   std::thread::Builder::new()
     .name(name.to_string())
     .spawn(move || {
-      let executor = init_executor();
-      let id = parent.register_child("thread", name);
-      let future = parent.run_child(id, op);
-      let (tx, rx) = channel::<()>().split();
+      runtime::block_on(async move {
+        let id = parent.register_child("thread", name);
+        let future = parent.run_child(id, op);
+        let (tx, rx) = channel::<()>().split();
 
-      let child = executor.spawn(async move {
-        let _tx = tx;
+        let child = runtime::spawn_local(async move {
+          let _tx = tx;
 
-        future.await
+          future.await
+        });
+
+        parent.insert_child(id, child);
+
+        rx.recv().await;
       });
-
-      parent.insert_child(id, child);
-
-      async_io::block_on(executor.run(rx.recv()));
     })
     .expect("failed to spawn thread");
 }
