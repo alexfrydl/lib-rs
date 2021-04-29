@@ -43,7 +43,7 @@ where
         // wait to receive a message when the operation exits.
 
         let future = parent.run_child(id, op);
-        let (tx, rx) = channel().split();
+        let (tx, rx) = channel();
 
         let child = runtime::spawn_local(async move {
           defer! {

@@ -8,106 +8,158 @@
 
 use crate::prelude::*;
 
-/// A cloneable channel.
-#[derive(From)]
-pub struct Channel<T> {
-  sender: Sender<T>,
-  receiver: Receiver<T>,
+/// Creates a bounded channel and returns its [`BoundedSender`] and
+/// [`Receiver`] halves.
+///
+/// A bounded channel has a fixed capacity and senders must wait for available
+/// space to send messages. A channel with zero capacity is a “rendesvouz
+/// channel,” where every `send` must be paired with a concurrent `recv`.
+pub fn bounded<T>(capacity: usize) -> (BoundedSender<T>, Receiver<T>) {
+  let (tx, rx) = flume::bounded(capacity);
+
+  (BoundedSender(tx), Receiver(rx))
 }
 
-/// A cloneable receiver for a channel.
-pub struct Receiver<T> {
-  rx: async_channel::Receiver<T>,
+/// Creates an unbounded channel and returns its [`Sender`] and [`Receiver`]
+/// halves.
+///
+/// An unbounded channel stores unlimited messages and senders can always send a
+/// message without waiting.
+pub fn channel<T>() -> (Sender<T>, Receiver<T>) {
+  let (tx, rx) = flume::unbounded();
+
+  (Sender(tx), Receiver(rx))
 }
 
-/// A cloneable sender for a channel.
-pub struct Sender<T> {
-  tx: async_channel::Sender<T>,
-}
+/// A cloneable sender for a bounded channel.
+pub struct BoundedSender<T>(flume::Sender<T>);
 
-/// An error indicating that the channel is closed.
-#[derive(Clone, Copy, Debug, Default, Error)]
-#[error("Channel is closed.")]
-pub struct ClosedError;
-
-/// An error returned from a [`Sender::try_send()`] call.
-#[derive(Clone, Copy)]
-pub struct SendError<M>(pub M);
-
-/// Creates a channel.
-pub fn channel<T>() -> Channel<T> {
-  let (tx, rx) = async_channel::unbounded();
-
-  Channel { sender: Sender { tx }, receiver: Receiver { rx } }
-}
-
-impl<T> Channel<T> {
-  /// Converts this channel into a [`Receiver`].
-  pub fn into_receiver(self) -> Receiver<T> {
-    self.receiver
+impl<T> BoundedSender<T> {
+  /// Returns `true` if the channel is closed.
+  ///
+  /// The channel is closed if all [`Receiver`] clones are dropped.
+  pub fn is_closed(&self) -> bool {
+    self.0.is_disconnected()
   }
 
-  /// Converts this channel into a [`Sender`].
-  pub fn into_sender(self) -> Sender<T> {
-    self.sender
-  }
-
-  /// Returns `true` if there are no messages in the channel.
+  /// Returns `true` if the channel has no messages.
   pub fn is_empty(&self) -> bool {
-    self.receiver.is_empty()
+    self.0.is_empty()
+  }
+
+  /// Returns `true` if the channel has no remaining capacity for messages.
+  pub fn is_full(&self) -> bool {
+    self.0.is_full()
   }
 
   /// Returns the number of messages in the channel.
   pub fn len(&self) -> usize {
-    self.sender.len()
+    self.0.len()
   }
 
-  /// Returns a [`Receiver`] which can receive messages from this channel.
-  pub fn receiver(&self) -> Receiver<T> {
-    self.receiver.clone()
+  /// Waits for available capacity in the channel, then sends a message.
+  ///
+  /// This function returns `true` if the message was sent or `false` if the
+  /// channel is closed.
+  pub async fn send(&self, message: T) -> bool {
+    self.try_send(message).await.is_ok()
   }
 
-  /// Waits for an available message and receives it.
-  pub async fn recv(&self) -> T {
-    self.receiver.recv().await.unwrap()
+  /// Attempts to send a message on the channel.
+  ///
+  /// If the channel is closed, this function returns an error containing the
+  /// failed message.
+  pub async fn try_send(&self, message: T) -> Result<(), MessageError<T, Closed>> {
+    self.0.send_async(message).await.map_err(|err| MessageError { message: err.0, error: Closed })
   }
 
-  /// Immediately receives a message if one is available.
-  pub fn recv_now(&self) -> Option<T> {
-    self.receiver.recv_now()
+  /// Sends a message on the channel immediately.
+  ///
+  /// This function returns `true` if the message was sent or `false` if the
+  /// channel is full or closed.
+  pub fn send_now(&self, message: T) -> bool {
+    self.0.try_send(message).is_ok()
   }
 
-  /// Sends a message to the channel.
-  pub fn send(&self, message: T) {
-    self.sender.send(message);
-  }
+  /// Attempts to send a message on the channel immediately.
+  ///
+  /// If the channel is full or closed, this function returns an error
+  /// containing the failed message.
+  pub fn try_send_now(&self, message: T) -> Result<(), MessageError<T, SendNowError>> {
+    self.0.try_send(message).map_err(|err| match err {
+      flume::TrySendError::Disconnected(message) => {
+        MessageError { message, error: SendNowError::Closed }
+      }
 
-  /// Returns a [`Sender`] which can send messages to this channel.
-  pub fn sender(&self) -> Sender<T> {
-    self.sender.clone()
-  }
-
-  pub fn split(self) -> (Sender<T>, Receiver<T>) {
-    (self.sender, self.receiver)
+      flume::TrySendError::Full(message) => MessageError { message, error: SendNowError::Full },
+    })
   }
 }
+
+impl<T> Clone for BoundedSender<T> {
+  fn clone(&self) -> Self {
+    Self(self.0.clone())
+  }
+}
+
+impl<T> From<Sender<T>> for BoundedSender<T> {
+  fn from(sender: Sender<T>) -> Self {
+    BoundedSender(sender.0)
+  }
+}
+
+/// An error indicating that the channel is closed.
+#[derive(Clone, Copy, Debug, Default, Error)]
+#[error("channel is closed")]
+pub struct Closed;
+
+/// An error containing a message that failed to send.
+pub struct MessageError<M, E> {
+  /// The message that failed to send.
+  pub message: M,
+  /// The error that caused the send to fail.
+  pub error: E,
+}
+
+impl<M, E> Debug for MessageError<M, E>
+where
+  E: Debug,
+{
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    self.error.fmt(f)
+  }
+}
+
+impl<M, E> Display for MessageError<M, E>
+where
+  E: Display,
+{
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    self.error.fmt(f)
+  }
+}
+
+impl<M, E> Error for MessageError<M, E> where E: Debug + Display {}
+
+/// A cloneable receiver for a channel.
+pub struct Receiver<T>(flume::Receiver<T>);
 
 impl<T> Receiver<T> {
   /// Returns `true` if the channel is closed.
   ///
   /// The channel is closed if all [`Sender`] clones are dropped.
   pub fn is_closed(&self) -> bool {
-    self.rx.is_closed()
+    self.0.is_disconnected()
   }
 
   /// Returns `true` if no messages are queued on the channel.
   pub fn is_empty(&self) -> bool {
-    self.rx.is_empty()
+    self.0.is_empty()
   }
 
   /// Returns the number of messages queued in the channel.
   pub fn len(&self) -> usize {
-    self.rx.len()
+    self.0.len()
   }
 
   /// Waits for an available message in the channel and receives it.
@@ -117,9 +169,7 @@ impl<T> Receiver<T> {
     self.try_recv().await.ok()
   }
 
-  /// Immediately receives an available message from the channel.
-  ///
-  /// If the channel is empty or closed, this function returns `None`.
+  /// Immediately receives a message from the channel if one is available.
   pub fn recv_now(&self) -> Option<T> {
     self.try_recv_now().ok()?
   }
@@ -127,93 +177,86 @@ impl<T> Receiver<T> {
   /// Attempts to wait for an available message in the channel and receive it.
   ///
   /// If the channel is closed, this function returns an error.
-  pub async fn try_recv(&self) -> Result<T, ClosedError> {
-    self.rx.recv().await.map_err(|_| ClosedError)
+  pub async fn try_recv(&self) -> Result<T, Closed> {
+    self.0.recv_async().await.map_err(|_| Closed)
   }
 
-  /// Attempts to immediately receive an available message from the channel.
+  /// Attempts to immediately receive a message from the channel if one is
+  /// available.
   ///
-  /// If the channel is empty, this function returns `Ok(None)`. If the channel is closed, this
-  /// function returns an error
-  pub fn try_recv_now(&self) -> Result<Option<T>, ClosedError> {
-    match self.rx.try_recv() {
+  /// If the channel is closed, this function returns an error.
+  pub fn try_recv_now(&self) -> Result<Option<T>, Closed> {
+    match self.0.try_recv() {
       Ok(msg) => Ok(Some(msg)),
-      Err(async_channel::TryRecvError::Empty) => Ok(None),
-      Err(async_channel::TryRecvError::Closed) => Err(ClosedError),
+      Err(flume::TryRecvError::Empty) => Ok(None),
+      Err(flume::TryRecvError::Disconnected) => Err(Closed),
     }
   }
 }
+
+impl<T> Clone for Receiver<T> {
+  fn clone(&self) -> Self {
+    Self(self.0.clone())
+  }
+}
+
+/// A cloneable sender for an unbounded channel.
+pub struct Sender<T>(flume::Sender<T>);
 
 impl<T> Sender<T> {
   /// Returns `true` if the channel is closed.
   ///
   /// The channel is closed if all [`Receiver`] clones are dropped.
   pub fn is_closed(&self) -> bool {
-    self.tx.is_closed()
+    self.0.is_disconnected()
   }
 
   /// Returns `true` if no messages are queued on the channel.
   pub fn is_empty(&self) -> bool {
-    self.tx.is_empty()
+    self.0.is_empty()
   }
 
   /// Returns the number of messages queued in the channel.
   pub fn len(&self) -> usize {
-    self.tx.len()
+    self.0.len()
   }
 
   /// Sends a message on the channel.
   ///
-  /// If the channel is closed, this function returns a `Some(T)` containing the
-  /// failed message.
-  pub fn send(&self, message: T) -> Option<T> {
-    match self.try_send(message) {
-      Ok(_) => None,
-      Err(err) => Some(err.0),
-    }
+  /// This function returns `true` if the message was sent or `false` if the
+  /// channel is closed.
+  pub fn send(&self, message: T) -> bool {
+    self.0.try_send(message).is_ok()
   }
 
   /// Attempts to send a message on the channel.
   ///
-  /// If the channel is closed, this function returns a [`SendError`] containing
-  /// the failed message.
-  pub fn try_send(&self, message: T) -> Result<(), SendError<T>> {
-    self.tx.try_send(message).map_err(|err| SendError(err.into_inner()))
-  }
-}
-
-// Manually implement `Clone` for all `T`.
-
-impl<T> Clone for Channel<T> {
-  fn clone(&self) -> Self {
-    Self { sender: self.sender.clone(), receiver: self.receiver.clone() }
-  }
-}
-
-impl<T> Clone for Receiver<T> {
-  fn clone(&self) -> Self {
-    Self { rx: self.rx.clone() }
+  /// If the channel is closed, this function returns an error containing the
+  /// failed message.
+  pub fn try_send(&self, message: T) -> Result<(), MessageError<T, Closed>> {
+    self.0.try_send(message).map_err(|err| MessageError {
+      message: match err {
+        flume::TrySendError::Disconnected(msg) => msg,
+        flume::TrySendError::Full(msg) => msg,
+      },
+      error: Closed,
+    })
   }
 }
 
 impl<T> Clone for Sender<T> {
   fn clone(&self) -> Self {
-    Self { tx: self.tx.clone() }
+    Self(self.0.clone())
   }
 }
 
-// Implement SendError error functionality.
-
-impl<M> std::error::Error for SendError<M> {}
-
-impl<M> Debug for SendError<M> {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "{:?}", ClosedError)
-  }
-}
-
-impl<M> Display for SendError<M> {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "{}", ClosedError)
-  }
+/// An error returned from an immediate send attempt.
+#[derive(Debug, Error)]
+pub enum SendNowError {
+  /// Channel is closed.
+  #[error("channel is closed")]
+  Closed,
+  /// Channel is full.
+  #[error("channel is full")]
+  Full,
 }

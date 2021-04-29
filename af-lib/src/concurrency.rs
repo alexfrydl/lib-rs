@@ -14,7 +14,7 @@ pub(crate) mod scope;
 pub mod task;
 pub mod thread;
 
-pub use self::channel::{channel, Channel};
+pub use self::channel::channel;
 pub use self::future::Future;
 pub use once_cell::sync::{Lazy, OnceCell};
 

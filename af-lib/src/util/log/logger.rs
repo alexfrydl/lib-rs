@@ -14,7 +14,7 @@ use dashmap::DashMap;
 use log::{Level, LevelFilter, Log, Metadata, Record, RecordBuilder};
 
 use super::*;
-use crate::concurrency::{channel, Channel};
+use crate::concurrency::channel;
 use crate::time::DateTime;
 
 /// A logger to register with the `log` crate.
@@ -22,7 +22,8 @@ struct Logger {
   dropped_messages: AtomicUsize,
   max_level: AtomicUsize,
   max_level_of: DashMap<String, LevelFilter>,
-  output: Channel<Output>,
+  output_rx: channel::Receiver<Output>,
+  output_tx: channel::BoundedSender<Output>,
 }
 
 /// One of the possible output commands.
@@ -32,11 +33,16 @@ enum Output {
 }
 
 /// The shared logger instance.
-static LOGGER: Lazy<Logger> = Lazy::new(|| Logger {
-  dropped_messages: default(),
-  max_level: AtomicUsize::new(LevelFilter::Warn as usize),
-  max_level_of: default(),
-  output: channel(),
+static LOGGER: Lazy<Logger> = Lazy::new(|| {
+  let (output_tx, output_rx) = channel::bounded(2048);
+
+  Logger {
+    dropped_messages: default(),
+    max_level: AtomicUsize::new(LevelFilter::Warn as usize),
+    max_level_of: default(),
+    output_tx,
+    output_rx,
+  }
 });
 
 thread_local! {
@@ -65,9 +71,9 @@ pub unsafe fn init() {
 /// Waits until the logger finishes writing all messages logged before this
 /// call.
 pub async fn flush() {
-  let (tx, rx) = channel().split();
+  let (tx, rx) = channel();
 
-  LOGGER.output.send(Output::Flush(tx));
+  LOGGER.output_tx.send(Output::Flush(tx)).await;
 
   rx.recv().await;
 }
@@ -98,9 +104,7 @@ async fn output_messages() {
   let logger = &*LOGGER;
   let mut stderr = console::Term::stderr();
 
-  loop {
-    let cmd = logger.output.recv().await;
-
+  while let Some(cmd) = logger.output_rx.recv().await {
     // If one or more messages were dropped, write an error message about it.
 
     let dropped_messages = logger.dropped_messages.swap(0, Relaxed);
@@ -141,6 +145,8 @@ async fn output_messages() {
       }
     }
   }
+
+  unreachable!();
 }
 
 /// Writes a record to the given string.
@@ -228,7 +234,7 @@ impl Log for Logger {
       return;
     }
 
-    if self.output.len() > 1024 {
+    if self.output_tx.is_full() {
       LOGGER.dropped_messages.fetch_add(1, Relaxed);
       return;
     }
@@ -243,7 +249,9 @@ impl Log for Logger {
       buffer.split_off(0)
     });
 
-    self.output.send(Output::Write(message));
+    if !self.output_tx.send_now(Output::Write(message)) {
+      LOGGER.dropped_messages.fetch_add(1, Relaxed);
+    }
   }
 
   fn flush(&self) {}

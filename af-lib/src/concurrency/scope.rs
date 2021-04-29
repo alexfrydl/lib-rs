@@ -32,8 +32,8 @@ where
   O: IntoOutput + 'static,
   F: Future<Output = O> + 'static,
 {
-  let commands = channel();
-  let scope = Arc::new(Scope { next_child_id: AtomicUsize::new(1), commands: commands.sender() });
+  let (commands_tx, command_rx) = channel();
+  let scope = Arc::new(Scope { next_child_id: AtomicUsize::new(1), commands: commands_tx });
 
   // Wrap the main future in a capture_panic() and normalize its output.
 
@@ -56,10 +56,10 @@ where
     // A list of events to signal when all children exit.
     let mut join_children: Vec<ArcWeak<event_listener::Event>> = default();
 
-    loop {
-      // Handle each received command.
+    // Handle each received command.
 
-      match commands.recv().await {
+    while let Some(command) = command_rx.recv().await {
+      match command {
         Command::RegisterChild(info) => {
           children.insert(info.id, (info, None));
         }
@@ -113,6 +113,8 @@ where
         }
       }
     }
+
+    unreachable!();
   };
 
   // Set up the scope and run the main future and controller future concurrently
